@@ -458,7 +458,6 @@ FILE *fopen_hook(const char *filename, const char *mode) {
   return file;
 }
 
-#ifdef WVP_OPTIMIZATION
 void
 matmul4_neon(float m0[16], float m1[16], float d[16])
 {
@@ -504,20 +503,22 @@ void SetMatrixConstant(void *ES2Shader, int MatrixConstantID, float *matrix) {
   void *uniformMatrix = ES2Shader + 0x4C * MatrixConstantID;
   float *uniformMatrixData = uniformMatrix + 0x2AC;
 
+#ifdef WVP_OPTIMIZATION
   if (MatrixConstantID == 0) { // Projection matrix
     float *ObjMatrix = (ES2Shader + 0x4C * 1) + 0x2AC;
-		matmul4_neon(matrix, ObjMatrix, uniformMatrixData);
+    matmul4_neon(matrix, ObjMatrix, uniformMatrixData);
     *(uint8_t *)(uniformMatrix + 0x2EC) = 1;
     *(uint8_t *)(uniformMatrix + 0x2A8) = 1;
-  } else {
-    if (memcmp(uniformMatrixData, matrix, 16 * 4) != 0) {
-      memcpy_neon(uniformMatrixData, matrix, 16 * 4);
-      *(uint8_t *)(uniformMatrix + 0x2EC) = 1;
-      *(uint8_t *)(uniformMatrix + 0x2A8) = 1;
-    }
+    return;
+  }
+#endif
+
+  if (memcmp(uniformMatrixData, matrix, 16 * 4) != 0) {
+    memcpy_neon(uniformMatrixData, matrix, 16 * 4);
+    *(uint8_t *)(uniformMatrix + 0x2EC) = 1;
+    *(uint8_t *)(uniformMatrix + 0x2A8) = 1;
   }
 }
-#endif
 
 void functions_patch() {
   // used for openal
@@ -576,11 +577,9 @@ void functions_patch() {
   uint32_t nop = 0xbf00bf00;
   kuKernelCpuUnrestrictedMemcpy(text_base + 0x004D7A2A, &nop, 2);
 
-#ifdef WVP_OPTIMIZATION
   hook_thumb(find_addr_by_symbol("_ZN9ES2Shader17SetMatrixConstantE24RQShaderMatrixConstantIDPKf"), (uintptr_t)SetMatrixConstant);
-#endif
 
-  uint16_t bkpt = 0xbe00;
+  // uint16_t bkpt = 0xbe00;
   // kuKernelCpuUnrestrictedMemcpy(text_base + 0x00194968, &bkpt, 2);
 }
 
