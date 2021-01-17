@@ -7,12 +7,13 @@
 uintptr_t find_addr_by_symbol(char *symbol);
 void hook_thumb(uintptr_t addr, uintptr_t dst);
 
-char pxlbuf[8192];
-char vtxbuf[8192];
+static char pxlbuf[8192];
+static char vtxbuf[8192];
 
-int disable_amp = 0; // TODO: Understand what that does
-int byte_5D6B42 = 0;
-int *RQMaxBones;
+static int disable_amp = 0;
+static int is_mali_chip = 0;
+static int byte_5D6B42 = 0;
+static int *RQMaxBones;
 
 int GetMobileEffectSetting() {
   return 0; // 3
@@ -125,7 +126,7 @@ void BuildVertexSource(int flags) {
   // if (flags & (FLAG_BONE3 | FLAG_BONE4))
     // VTX_EMIT("uniform float4x4 Bones[%d],", *RQMaxBones);
   if (flags & (FLAG_BONE3 | FLAG_BONE4))
-    VTX_EMIT("uniform float4 Bones[%d],", *RQMaxBones * 3 + 2);
+    VTX_EMIT("uniform float4 Bones[%d],", *RQMaxBones * 3 + 4);
 
   if (flags & FLAG_NORMAL)
     VTX_EMIT("uniform float3x3 NormalMatrix,");
@@ -304,12 +305,12 @@ void BuildVertexSource(int flags) {
 
   if (!disable_amp && (flags & FLAG_LIGHT1)) {
     if (flags & (FLAG_REFL_OUT | FLAG_TEX1)) {
-      VTX_EMIT("float specAmt = max(pow(dot(reflVector, DirLightDirection), %.1f), 0.0) * EnvMapCoefficient * 2.0;", 0.0f);
+      VTX_EMIT("float specAmt = max(pow(dot(reflVector, DirLightDirection), %.1f), 0.0) * EnvMapCoefficient * 2.0;", is_mali_chip ? 9.0f : 10.0f);
       VTX_EMIT("Out_Spec = specAmt * DirLightDiffuseColor;");
     } else if (flags & (FLAG_BONE3 | FLAG_BONE4)) {
       VTX_EMIT("float3 reflVector = normalize(WorldPos.xyz - CameraPosition.xyz);");
       VTX_EMIT("reflVector = reflVector - 2.0 * dot(reflVector, WorldNormal) * WorldNormal;");
-      VTX_EMIT("float specAmt = max(pow(dot(reflVector, DirLightDirection), %.1f), 0.0) * 0.125;", 0.0f);
+      VTX_EMIT("float specAmt = max(pow(dot(reflVector, DirLightDirection), %.1f), 0.0) * 0.125;", is_mali_chip ? 5.0f : 4.0f);
       VTX_EMIT("Out_Spec = specAmt * DirLightDiffuseColor;");
     }
   }

@@ -1,7 +1,10 @@
 /*
   TODO:
   - Implement touch
-  - Fix thread priorities
+  - Use math neon
+  - Use 4th core
+  - Use wvp optimization
+  - Optimize bones matrix
 */
 
 #include <psp2/io/dirent.h>
@@ -332,10 +335,37 @@ int thread_stub(SceSize args, int *argp) {
   return func(arg);
 }
 
+// OS_ThreadLaunch CdStream with priority 6b
+// OS_ThreadLaunch Es2Thread with priority 40
+// OS_ThreadLaunch MainThread with priority 5a
+// OS_ThreadLaunch BankLoader with priority bf
+// OS_ThreadLaunch StreamThread with priority 6b
 void *OS_ThreadLaunch(int (* func)(), void *arg, int r2, char *name, int r4, int priority) {
-  debugPrintf("OS_ThreadLaunch: %s\n", name);
+  int min_priority = 191;
+  int max_priority = 64;
+  int vita_priority;
 
-  SceUID thid = sceKernelCreateThread(name, (SceKernelThreadEntry)thread_stub, 0x40, 1 * 1024 * 1024, 0, 0, NULL); // TODO: check if 1mb is enough, also priority needs work...
+  switch (priority) {
+    case 0:
+      vita_priority = min_priority;
+      break;
+    case 1:
+      vita_priority = min_priority - 2 * (min_priority - max_priority) / 3;
+      break;
+    case 2:
+      vita_priority = min_priority - 4 * (min_priority - max_priority) / 5;
+      break;
+    case 3:
+      vita_priority = max_priority;
+      break;
+    default:
+      vita_priority = 0x10000100;
+      break;
+  }
+
+  // debugPrintf("OS_ThreadLaunch %s with priority %x\n", name, vita_priority);
+
+  SceUID thid = sceKernelCreateThread(name, (SceKernelThreadEntry)thread_stub, vita_priority, 1 * 1024 * 1024, 0, 0, NULL);
   if (thid >= 0) {
     char *out = malloc(0x48);
 
@@ -658,7 +688,7 @@ GLint glGetUniformLocationHook(GLuint program, const GLchar *name) {
 void glGetIntegervHook(GLenum pname, GLint *data) {
   glGetIntegerv(pname, data);
   if (pname == GL_MAX_VERTEX_UNIFORM_VECTORS)
-    *data = (63 * 3) + 32; // piglet hardcodes 128! this sets RQMaxBones=63 
+    *data = (63 * 3) + 32; // piglet hardcodes 128! this sets RQMaxBones=63
 }
 
 typedef struct {
@@ -1024,7 +1054,6 @@ int main() {
       for (int j = 0; j < n_rels; j++) {
         uint32_t *ptr = (uint32_t *)(text_base + rels[j].r_offset);
         int sym_idx = ELF32_R_SYM(rels[j].r_info);
-        if (sym_idx == 15) debugPrintf("wtf\n");
         Elf32_Sym *sym = &syms[sym_idx];
 
         switch (ELF32_R_TYPE(rels[j].r_info)) {
