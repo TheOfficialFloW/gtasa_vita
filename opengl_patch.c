@@ -215,8 +215,8 @@ void BuildVertexSource(int flags) {
     VTX_EMIT("ReflPos.xy = normalize(ReflPos.xy) * (ReflPos.z * 0.5 + 0.5);");
     VTX_EMIT("gl_Position = float4(ReflPos.xy, length(ReflVector) * 0.002, 1.0);");
   } else {
-#ifdef WVP_OPTIMIZATION
-    // With WVP optimization, ProjMatrix is the WVP matrix.
+#ifdef MVP_OPTIMIZATION
+    // With MVP optimization, ProjMatrix is the MVP matrix.
     if (flags & (FLAG_BONE3 | FLAG_BONE4)) {
       VTX_EMIT("float4 ViewPos = mul(BoneVertex, ProjMatrix);");
     } else {

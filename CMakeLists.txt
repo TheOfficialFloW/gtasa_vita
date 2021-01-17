@@ -10,7 +10,7 @@ endif()
 
 project(GTASA ASM C CXX)
 include("${VITASDK}/share/vita.cmake" REQUIRED)
-set(VITA_APP_NAME "GTASA")
+set(VITA_APP_NAME "Grand Theft Auto: San Andreas")
 set(VITA_TITLEID  "GTASA0000")
 set(VITA_MKSFOEX_FLAGS "-d ATTRIBUTE2=12")
 
@@ -51,6 +51,10 @@ vita_create_self(eboot.bin GTASA UNSAFE)
 vita_create_vpk(GTASA.vpk ${VITA_TITLEID} eboot.bin
   VERSION ${VITA_VERSION}
   NAME ${VITA_APP_NAME}
+  FILE ${CMAKE_SOURCE_DIR}/sce_sys/icon0.png sce_sys/icon0.png
+       ${CMAKE_SOURCE_DIR}/sce_sys/livearea/contents/bg.png sce_sys/livearea/contents/bg.png
+       ${CMAKE_SOURCE_DIR}/sce_sys/livearea/contents/startup.png sce_sys/livearea/contents/startup.png
+       ${CMAKE_SOURCE_DIR}/sce_sys/livearea/contents/template.xml sce_sys/livearea/contents/template.xml
 )
 
 add_custom_target(copy

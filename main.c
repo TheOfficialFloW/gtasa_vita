@@ -499,25 +499,40 @@ matmul4_neon(float m0[16], float m1[16], float d[16])
 	);
 }
 
-void SetMatrixConstant(void *ES2Shader, int MatrixConstantID, float *matrix) {
-  void *uniformMatrix = ES2Shader + 0x4C * MatrixConstantID;
-  float *uniformMatrixData = uniformMatrix + 0x2AC;
+void *(* GetCurrentProjectionMatrix)();
 
-#ifdef WVP_OPTIMIZATION
+void SetMatrixConstant(void *ES2Shader, int MatrixConstantID, float *matrix) {
+#ifdef MVP_OPTIMIZATION
   if (MatrixConstantID == 0) { // Projection matrix
-    float *ObjMatrix = (ES2Shader + 0x4C * 1) + 0x2AC;
-    matmul4_neon(matrix, ObjMatrix, uniformMatrixData);
-    *(uint8_t *)(uniformMatrix + 0x2EC) = 1;
-    *(uint8_t *)(uniformMatrix + 0x2A8) = 1;
+    void *MvpMatrix = ES2Shader + 0x4C * 0;
+    float *MvpMatrixData = MvpMatrix + 0x2AC;
+    float *MvMatrixData = (ES2Shader + 0x4C * 1) + 0x2AC;
+    matmul4_neon(matrix, MvMatrixData, MvpMatrixData);
+    *(uint8_t *)(MvpMatrix + 0x2EC) = 1;
+    *(uint8_t *)(MvpMatrix + 0x2A8) = 1;
     return;
+  } else if (MatrixConstantID == 1) { // Model view matrix
+    float *ProjMatrix = (float *)GetCurrentProjectionMatrix();
+    // There will be no fresher ProjMatrix, so we should update MvpMatrix as well.
+    if (((uint8_t *)ProjMatrix)[64] == 0) {
+      void *MvpMatrix = ES2Shader + 0x4C * 0;
+      float *MvpMatrixData = MvpMatrix + 0x2AC;
+      matmul4_neon(ProjMatrix, matrix, MvpMatrixData);
+      *(uint8_t *)(MvpMatrix + 0x2EC) = 1;
+      *(uint8_t *)(MvpMatrix + 0x2A8) = 1;
+    }
   }
 #endif
 
-  if (memcmp(uniformMatrixData, matrix, 16 * 4) != 0) {
-    memcpy_neon(uniformMatrixData, matrix, 16 * 4);
-    *(uint8_t *)(uniformMatrix + 0x2EC) = 1;
-    *(uint8_t *)(uniformMatrix + 0x2A8) = 1;
-  }
+  void *UniformMatrix = ES2Shader + 0x4C * MatrixConstantID;
+  float *UniformMatrixData = UniformMatrix + 0x2AC;
+
+  // That check is so useless IMO. If you need to go through both matrices anways, why just don't copy.
+  // if (memcmp(UniformMatrixData, matrix, 16 * 4) != 0) {
+    memcpy_neon(UniformMatrixData, matrix, 16 * 4);
+    *(uint8_t *)(UniformMatrix + 0x2EC) = 1;
+    *(uint8_t *)(UniformMatrix + 0x2A8) = 1;
+  // }
 }
 
 void functions_patch() {
@@ -577,6 +592,7 @@ void functions_patch() {
   uint32_t nop = 0xbf00bf00;
   kuKernelCpuUnrestrictedMemcpy(text_base + 0x004D7A2A, &nop, 2);
 
+  GetCurrentProjectionMatrix = (void *)find_addr_by_symbol("_Z26GetCurrentProjectionMatrixv");
   hook_thumb(find_addr_by_symbol("_ZN9ES2Shader17SetMatrixConstantE24RQShaderMatrixConstantIDPKf"), (uintptr_t)SetMatrixConstant);
 
   // uint16_t bkpt = 0xbe00;
@@ -759,6 +775,16 @@ void glGetIntegervHook(GLenum pname, GLint *data) {
     *data = (63 * 3) + 32; // piglet hardcodes 128! this sets RQMaxBones=63
 }
 
+void glCompressedTexImage2DHook(GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLint border, GLsizei imageSize, const void * data) {
+    if (!level)
+        glCompressedTexImage2D(target, level, internalformat, width, height, border, imageSize, data);
+}
+
+void glTexImage2DHook(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const void * data) {
+    if (!level)
+        glTexImage2D(target, level, internalformat, width, height, border, format, type, data);
+}
+
 typedef struct {
   char *symbol;
   uintptr_t func;
@@ -913,7 +939,7 @@ DynLibFunction dynlib_functions[] = {
   { "glClearDepthf", (uintptr_t)&glClearDepthf_wrapper },
   { "glClearStencil", (uintptr_t)&glClearStencil },
   { "glCompileShader", (uintptr_t)&glCompileShader },
-  { "glCompressedTexImage2D", (uintptr_t)&glCompressedTexImage2D },
+  { "glCompressedTexImage2D", (uintptr_t)&glCompressedTexImage2DHook },
   { "glCreateProgram", (uintptr_t)&glCreateProgram },
   { "glCreateShader", (uintptr_t)&glCreateShader },
   { "glCullFace", (uintptr_t)&glCullFace },
@@ -954,7 +980,7 @@ DynLibFunction dynlib_functions[] = {
   { "glRenderbufferStorage", (uintptr_t)&glRenderbufferStorage },
   { "glScissor", (uintptr_t)&glScissor },
   { "glShaderSource", (uintptr_t)&glShaderSource },
-  { "glTexImage2D", (uintptr_t)&glTexImage2D },
+  { "glTexImage2D", (uintptr_t)&glTexImage2DHook },
   { "glTexParameterf", (uintptr_t)&glTexParameterf },
   { "glTexParameteri", (uintptr_t)&glTexParameteri },
   { "glUniform1fv", (uintptr_t)&glUniform1fv },
@@ -1140,7 +1166,7 @@ int main() {
           case R_ARM_GLOB_DAT:
           case R_ARM_JUMP_SLOT:
           {
-            if (!sym->st_shndx == SHN_UNDEF) {
+            if (sym->st_shndx != SHN_UNDEF) {
               *ptr = (uintptr_t)text_base + sym->st_value;
               break;
             }

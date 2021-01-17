@@ -1,6 +1,6 @@
 #ifndef __CONFIG_H__
 #define __CONFIG_H__
 
-//#define WVP_OPTIMIZATION
+#define MVP_OPTIMIZATION
 
 #endif
