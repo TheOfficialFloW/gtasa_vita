@@ -1,9 +1,11 @@
 /*
   TODO:
+  - Fix street lamps
+  - Fix hud elements (touch buttons)
+    - Some compressed textures are not supported
   - Implement touch
   - Use math neon
   - Use 4th core
-  - Use wvp optimization
   - Optimize bones matrix
 */
 
@@ -35,6 +37,8 @@
 #include <math_neon.h>
 
 #include "elf.h"
+
+#include "config.h"
 
 #define FAKE_MEM_SIZE 256
 
@@ -454,6 +458,67 @@ FILE *fopen_hook(const char *filename, const char *mode) {
   return file;
 }
 
+#ifdef WVP_OPTIMIZATION
+void
+matmul4_neon(float m0[16], float m1[16], float d[16])
+{
+	asm volatile (
+	"vld1.32 		{d0, d1}, [%1]!			\n\t"	//q0 = m1
+	"vld1.32 		{d2, d3}, [%1]!			\n\t"	//q1 = m1+4
+	"vld1.32 		{d4, d5}, [%1]!			\n\t"	//q2 = m1+8
+	"vld1.32 		{d6, d7}, [%1]			\n\t"	//q3 = m1+12
+	"vld1.32 		{d16, d17}, [%0]!		\n\t"	//q8 = m0
+	"vld1.32 		{d18, d19}, [%0]!		\n\t"	//q9 = m0+4
+	"vld1.32 		{d20, d21}, [%0]!		\n\t"	//q10 = m0+8
+	"vld1.32 		{d22, d23}, [%0]		\n\t"	//q11 = m0+12
+
+	"vmul.f32 		q12, q8, d0[0] 			\n\t"	//q12 = q8 * d0[0]
+	"vmul.f32 		q13, q8, d2[0] 			\n\t"	//q13 = q8 * d2[0]
+	"vmul.f32 		q14, q8, d4[0] 			\n\t"	//q14 = q8 * d4[0]
+	"vmul.f32 		q15, q8, d6[0]	 		\n\t"	//q15 = q8 * d6[0]
+	"vmla.f32 		q12, q9, d0[1] 			\n\t"	//q12 = q9 * d0[1]
+	"vmla.f32 		q13, q9, d2[1] 			\n\t"	//q13 = q9 * d2[1]
+	"vmla.f32 		q14, q9, d4[1] 			\n\t"	//q14 = q9 * d4[1]
+	"vmla.f32 		q15, q9, d6[1] 			\n\t"	//q15 = q9 * d6[1]
+	"vmla.f32 		q12, q10, d1[0] 		\n\t"	//q12 = q10 * d0[0]
+	"vmla.f32 		q13, q10, d3[0] 		\n\t"	//q13 = q10 * d2[0]
+	"vmla.f32 		q14, q10, d5[0] 		\n\t"	//q14 = q10 * d4[0]
+	"vmla.f32 		q15, q10, d7[0] 		\n\t"	//q15 = q10 * d6[0]
+	"vmla.f32 		q12, q11, d1[1] 		\n\t"	//q12 = q11 * d0[1]
+	"vmla.f32 		q13, q11, d3[1] 		\n\t"	//q13 = q11 * d2[1]
+	"vmla.f32 		q14, q11, d5[1] 		\n\t"	//q14 = q11 * d4[1]
+	"vmla.f32 		q15, q11, d7[1]	 		\n\t"	//q15 = q11 * d6[1]
+
+	"vst1.32 		{d24, d25}, [%2]! 		\n\t"	//d = q12
+	"vst1.32 		{d26, d27}, [%2]!		\n\t"	//d+4 = q13
+	"vst1.32 		{d28, d29}, [%2]! 		\n\t"	//d+8 = q14
+	"vst1.32 		{d30, d31}, [%2]	 	\n\t"	//d+12 = q15
+
+	: "+r"(m0), "+r"(m1), "+r"(d) :
+    : "q0", "q1", "q2", "q3", "q8", "q9", "q10", "q11", "q12", "q13", "q14", "q15",
+	"memory"
+	);
+}
+
+void SetMatrixConstant(void *ES2Shader, int MatrixConstantID, float *matrix) {
+  void *uniformMatrix = ES2Shader + 0x4C * MatrixConstantID;
+  float *uniformMatrixData = uniformMatrix + 0x2AC;
+
+  if (MatrixConstantID == 0) { // Projection matrix
+    float *ObjMatrix = (ES2Shader + 0x4C * 1) + 0x2AC;
+		matmul4_neon(matrix, ObjMatrix, uniformMatrixData);
+    *(uint8_t *)(uniformMatrix + 0x2EC) = 1;
+    *(uint8_t *)(uniformMatrix + 0x2A8) = 1;
+  } else {
+    if (memcmp(uniformMatrixData, matrix, 16 * 4) != 0) {
+      memcpy_neon(uniformMatrixData, matrix, 16 * 4);
+      *(uint8_t *)(uniformMatrix + 0x2EC) = 1;
+      *(uint8_t *)(uniformMatrix + 0x2A8) = 1;
+    }
+  }
+}
+#endif
+
 void functions_patch() {
   // used for openal
   hook_thumb(find_addr_by_symbol("InitializeCriticalSection"), (uintptr_t)ret0);
@@ -511,8 +576,12 @@ void functions_patch() {
   uint32_t nop = 0xbf00bf00;
   kuKernelCpuUnrestrictedMemcpy(text_base + 0x004D7A2A, &nop, 2);
 
-  // uint16_t bkpt = 0xbe00;
-  // kuKernelCpuUnrestrictedMemcpy(text_base + 0x00194D88, &bkpt, 2);
+#ifdef WVP_OPTIMIZATION
+  hook_thumb(find_addr_by_symbol("_ZN9ES2Shader17SetMatrixConstantE24RQShaderMatrixConstantIDPKf"), (uintptr_t)SetMatrixConstant);
+#endif
+
+  uint16_t bkpt = 0xbe00;
+  // kuKernelCpuUnrestrictedMemcpy(text_base + 0x00194968, &bkpt, 2);
 }
 
 extern int _Znwj;

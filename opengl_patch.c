@@ -4,6 +4,8 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "config.h"
+
 uintptr_t find_addr_by_symbol(char *symbol);
 void hook_thumb(uintptr_t addr, uintptr_t dst);
 
@@ -201,7 +203,8 @@ void BuildVertexSource(int flags) {
       VTX_EMIT("BoneToLocal[1] += Bones[BlendIndexArray.w*3+1] * BoneWeight.w;");
       VTX_EMIT("BoneToLocal[2] += Bones[BlendIndexArray.w*3+2] * BoneWeight.w;");
     }
-    VTX_EMIT("float4 WorldPos = mul(mul(float4(Position, 1.0), transpose(BoneToLocal)), ObjMatrix);");
+    VTX_EMIT("float4 BoneVertex = mul(float4(Position, 1.0), transpose(BoneToLocal));");
+    VTX_EMIT("float4 WorldPos = mul(BoneVertex, ObjMatrix);");
   } else {
     VTX_EMIT("float4 WorldPos = mul(float4(Position, 1.0), ObjMatrix);");
   }
@@ -212,7 +215,16 @@ void BuildVertexSource(int flags) {
     VTX_EMIT("ReflPos.xy = normalize(ReflPos.xy) * (ReflPos.z * 0.5 + 0.5);");
     VTX_EMIT("gl_Position = float4(ReflPos.xy, length(ReflVector) * 0.002, 1.0);");
   } else {
+#ifdef WVP_OPTIMIZATION
+    // With WVP optimization, ProjMatrix is the WVP matrix.
+    if (flags & (FLAG_BONE3 | FLAG_BONE4)) {
+      VTX_EMIT("float4 ViewPos = mul(BoneVertex, ProjMatrix);");
+    } else {
+      VTX_EMIT("float4 ViewPos = mul(float4(Position, 1.0), ProjMatrix);");
+    }
+#else
     VTX_EMIT("float4 ViewPos = mul(WorldPos, ProjMatrix);");
+#endif
     VTX_EMIT("gl_Position = ViewPos;");
   }
 
@@ -221,7 +233,7 @@ void BuildVertexSource(int flags) {
       VTX_EMIT("float3 WorldNormal = normalize(float3(WorldPos.xy - CameraPosition.xy, 0.0001)) * 0.85;");
     } else {
       if (flags & (FLAG_BONE3 | FLAG_BONE4))
-        VTX_EMIT("float3 WorldNormal = mul(mul(Normal, float3x3(transpose(BoneToLocal))), float3x3(ObjMatrix));");
+        VTX_EMIT("float3 WorldNormal = mul(mul(Normal, float3x3(transpose(BoneToLocal))), float3x3(ObjMatrix));"); // TODO: optimize tranposition
       else
         VTX_EMIT("float3 WorldNormal = (mul(float4(Normal, 0.0), ObjMatrix)).xyz;");
     }
