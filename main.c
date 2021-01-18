@@ -15,6 +15,7 @@
 #include <psp2/kernel/threadmgr.h>
 #include <psp2/ctrl.h>
 #include <psp2/power.h>
+#include <psp2/touch.h>
 #include <EGL/egl.h>
 #include <GLES2/gl2.h>
 #include <GLES2/gl2ext.h>
@@ -181,6 +182,10 @@ char *GetRockstarID() {
   return "flow";
 }
 
+int OS_SystemChip() {
+  return 11;
+}
+
 int AND_DeviceType() {
   // 0x1: phone
   // 0x2: tegra
@@ -216,6 +221,9 @@ int WarGamepad_GetGamepadButtons() {
   SceCtrlData pad;
   sceCtrlPeekBufferPositiveExt2(0, &pad, 1);
 
+  SceTouchData touch;
+  sceTouchPeek(0, &touch, 1);
+
   if (pad.buttons & SCE_CTRL_CROSS)
     mask |= 0x1;
   if (pad.buttons & SCE_CTRL_CIRCLE)
@@ -241,12 +249,24 @@ int WarGamepad_GetGamepadButtons() {
   if (pad.buttons & SCE_CTRL_RIGHT)
     mask |= 0x800;
 
+  for (int i = 0; i < touch.reportNum; i++) {
+    if (touch.report[i].y > 1088/2) {
+      if (touch.report[i].x < 1920/2)
+        mask |= 0x1000; // L3
+      else
+        mask |= 0x2000; // R3
+    }
+  }
+
   return mask;
 }
 
 float WarGamepad_GetGamepadAxis(int axis) {
   SceCtrlData pad;
   sceCtrlPeekBufferPositiveExt2(0, &pad, 1);
+
+  SceTouchData touch;
+  sceTouchPeek(0, &touch, 1);
 
   float val = 0.0f;
 
@@ -263,13 +283,24 @@ float WarGamepad_GetGamepadAxis(int axis) {
     case 3:
       val = ((float)pad.ry - 128.0f) / 128.0f;
       break;
-    // case 4:
-      // return ((float)pad.rx - 128.0f) / 128.0f;
-    // case 5:
-      // return ((float)pad.ry - 128.0f) / 128.0f;
+    case 4: // L2
+    case 5: // R2
+    {
+      for (int i = 0; i < touch.reportNum; i++) {
+        if (touch.report[i].y < 1088/2) {
+          if (touch.report[i].x < 1920/2) {
+            if (axis == 4)
+              val = 1.0f;
+          } else {
+            if (axis == 5)
+              val = 1.0f;
+          }
+        }
+      }
+    }
   }
 
-  if (fabsf(val) > 0.15f)
+  if (fabsf(val) > 0.2f)
     return val;
 
   return 0.0f;
@@ -438,10 +469,12 @@ int NVEventEGLInit(void) {
 
   eglMakeCurrent(display, surface, surface, context);
 
+  debugPrintf("GL_EXTENSIONS: %s\n", glGetString(GL_EXTENSIONS));
+
   return 1; // success
 }
 
-#define APK_PATH "sa.apk"
+#define APK_PATH "main.obb"
 
 char *OS_FileGetArchiveName(int mode) {
   char *out = malloc(strlen(APK_PATH) + 1);
@@ -461,42 +494,42 @@ FILE *fopen_hook(const char *filename, const char *mode) {
 void
 matmul4_neon(float m0[16], float m1[16], float d[16])
 {
-	asm volatile (
-	"vld1.32 		{d0, d1}, [%1]!			\n\t"	//q0 = m1
-	"vld1.32 		{d2, d3}, [%1]!			\n\t"	//q1 = m1+4
-	"vld1.32 		{d4, d5}, [%1]!			\n\t"	//q2 = m1+8
-	"vld1.32 		{d6, d7}, [%1]			\n\t"	//q3 = m1+12
-	"vld1.32 		{d16, d17}, [%0]!		\n\t"	//q8 = m0
-	"vld1.32 		{d18, d19}, [%0]!		\n\t"	//q9 = m0+4
-	"vld1.32 		{d20, d21}, [%0]!		\n\t"	//q10 = m0+8
-	"vld1.32 		{d22, d23}, [%0]		\n\t"	//q11 = m0+12
+  asm volatile (
+    "vld1.32  {d0, d1},   [%1]!\n\t" //q0 = m1
+    "vld1.32  {d2, d3},   [%1]!\n\t" //q1 = m1+4
+    "vld1.32  {d4, d5},   [%1]!\n\t" //q2 = m1+8
+    "vld1.32  {d6, d7},   [%1]\n\t"  //q3 = m1+12
+    "vld1.32  {d16, d17}, [%0]!\n\t" //q8 = m0
+    "vld1.32  {d18, d19}, [%0]!\n\t" //q9 = m0+4
+    "vld1.32  {d20, d21}, [%0]!\n\t" //q10 = m0+8
+    "vld1.32  {d22, d23}, [%0]\n\t"  //q11 = m0+12
 
-	"vmul.f32 		q12, q8, d0[0] 			\n\t"	//q12 = q8 * d0[0]
-	"vmul.f32 		q13, q8, d2[0] 			\n\t"	//q13 = q8 * d2[0]
-	"vmul.f32 		q14, q8, d4[0] 			\n\t"	//q14 = q8 * d4[0]
-	"vmul.f32 		q15, q8, d6[0]	 		\n\t"	//q15 = q8 * d6[0]
-	"vmla.f32 		q12, q9, d0[1] 			\n\t"	//q12 = q9 * d0[1]
-	"vmla.f32 		q13, q9, d2[1] 			\n\t"	//q13 = q9 * d2[1]
-	"vmla.f32 		q14, q9, d4[1] 			\n\t"	//q14 = q9 * d4[1]
-	"vmla.f32 		q15, q9, d6[1] 			\n\t"	//q15 = q9 * d6[1]
-	"vmla.f32 		q12, q10, d1[0] 		\n\t"	//q12 = q10 * d0[0]
-	"vmla.f32 		q13, q10, d3[0] 		\n\t"	//q13 = q10 * d2[0]
-	"vmla.f32 		q14, q10, d5[0] 		\n\t"	//q14 = q10 * d4[0]
-	"vmla.f32 		q15, q10, d7[0] 		\n\t"	//q15 = q10 * d6[0]
-	"vmla.f32 		q12, q11, d1[1] 		\n\t"	//q12 = q11 * d0[1]
-	"vmla.f32 		q13, q11, d3[1] 		\n\t"	//q13 = q11 * d2[1]
-	"vmla.f32 		q14, q11, d5[1] 		\n\t"	//q14 = q11 * d4[1]
-	"vmla.f32 		q15, q11, d7[1]	 		\n\t"	//q15 = q11 * d6[1]
+    "vmul.f32 q12, q8,  d0[0]\n\t"   //q12 = q8 * d0[0]
+    "vmul.f32 q13, q8,  d2[0]\n\t"   //q13 = q8 * d2[0]
+    "vmul.f32 q14, q8,  d4[0]\n\t"   //q14 = q8 * d4[0]
+    "vmul.f32 q15, q8,  d6[0]\n\t"   //q15 = q8 * d6[0]
+    "vmla.f32 q12, q9,  d0[1]\n\t"   //q12 = q9 * d0[1]
+    "vmla.f32 q13, q9,  d2[1]\n\t"   //q13 = q9 * d2[1]
+    "vmla.f32 q14, q9,  d4[1]\n\t"   //q14 = q9 * d4[1]
+    "vmla.f32 q15, q9,  d6[1]\n\t"   //q15 = q9 * d6[1]
+    "vmla.f32 q12, q10, d1[0]\n\t"   //q12 = q10 * d0[0]
+    "vmla.f32 q13, q10, d3[0]\n\t"   //q13 = q10 * d2[0]
+    "vmla.f32 q14, q10, d5[0]\n\t"   //q14 = q10 * d4[0]
+    "vmla.f32 q15, q10, d7[0]\n\t"   //q15 = q10 * d6[0]
+    "vmla.f32 q12, q11, d1[1]\n\t"   //q12 = q11 * d0[1]
+    "vmla.f32 q13, q11, d3[1]\n\t"   //q13 = q11 * d2[1]
+    "vmla.f32 q14, q11, d5[1]\n\t"   //q14 = q11 * d4[1]
+    "vmla.f32 q15, q11, d7[1]\n\t"   //q15 = q11 * d6[1]
 
-	"vst1.32 		{d24, d25}, [%2]! 		\n\t"	//d = q12
-	"vst1.32 		{d26, d27}, [%2]!		\n\t"	//d+4 = q13
-	"vst1.32 		{d28, d29}, [%2]! 		\n\t"	//d+8 = q14
-	"vst1.32 		{d30, d31}, [%2]	 	\n\t"	//d+12 = q15
+    "vst1.32  {d24, d25}, [%2]!\n\t"  //d = q12
+    "vst1.32  {d26, d27}, [%2]!\n\t"  //d+4 = q13
+    "vst1.32  {d28, d29}, [%2]!\n\t"  //d+8 = q14
+    "vst1.32  {d30, d31}, [%2]\n\t"   //d+12 = q15
 
-	: "+r"(m0), "+r"(m1), "+r"(d) :
+    : "+r"(m0), "+r"(m1), "+r"(d) :
     : "q0", "q1", "q2", "q3", "q8", "q9", "q10", "q11", "q12", "q13", "q14", "q15",
-	"memory"
-	);
+    "memory"
+  );
 }
 
 void *(* GetCurrentProjectionMatrix)();
@@ -556,6 +589,8 @@ void functions_patch() {
   hook_thumb(find_addr_by_symbol("_Z17OS_ScreenGetWidthv"), (uintptr_t)OS_ScreenGetWidth);
   hook_thumb(find_addr_by_symbol("_Z18OS_ScreenGetHeightv"), (uintptr_t)OS_ScreenGetHeight);
 
+  hook_thumb(find_addr_by_symbol("_Z13OS_SystemChipv"), (uintptr_t)OS_SystemChip);
+
   hook_thumb(find_addr_by_symbol("_Z14AND_DeviceTypev"), (uintptr_t)AND_DeviceType);
   hook_thumb(find_addr_by_symbol("_Z16AND_DeviceLocalev"), (uintptr_t)AND_DeviceLocale);
 
@@ -592,8 +627,10 @@ void functions_patch() {
   uint32_t nop = 0xbf00bf00;
   kuKernelCpuUnrestrictedMemcpy(text_base + 0x004D7A2A, &nop, 2);
 
+#ifdef MVP_OPTIMIZATION
   GetCurrentProjectionMatrix = (void *)find_addr_by_symbol("_Z26GetCurrentProjectionMatrixv");
   hook_thumb(find_addr_by_symbol("_ZN9ES2Shader17SetMatrixConstantE24RQShaderMatrixConstantIDPKf"), (uintptr_t)SetMatrixConstant);
+#endif
 
   // uint16_t bkpt = 0xbe00;
   // kuKernelCpuUnrestrictedMemcpy(text_base + 0x00194968, &bkpt, 2);
@@ -630,39 +667,39 @@ extern int __stack_chk_fail;
 extern int __stack_chk_guard;
 
 static const short _C_toupper_[] = {
-	-1,
-	0x00,	0x01,	0x02,	0x03,	0x04,	0x05,	0x06,	0x07,
-	0x08,	0x09,	0x0a,	0x0b,	0x0c,	0x0d,	0x0e,	0x0f,
-	0x10,	0x11,	0x12,	0x13,	0x14,	0x15,	0x16,	0x17,
-	0x18,	0x19,	0x1a,	0x1b,	0x1c,	0x1d,	0x1e,	0x1f,
-	0x20,	0x21,	0x22,	0x23,	0x24,	0x25,	0x26,	0x27,
-	0x28,	0x29,	0x2a,	0x2b,	0x2c,	0x2d,	0x2e,	0x2f,
-	0x30,	0x31,	0x32,	0x33,	0x34,	0x35,	0x36,	0x37,
-	0x38,	0x39,	0x3a,	0x3b,	0x3c,	0x3d,	0x3e,	0x3f,
-	0x40,	0x41,	0x42,	0x43,	0x44,	0x45,	0x46,	0x47,
-	0x48,	0x49,	0x4a,	0x4b,	0x4c,	0x4d,	0x4e,	0x4f,
-	0x50,	0x51,	0x52,	0x53,	0x54,	0x55,	0x56,	0x57,
-	0x58,	0x59,	0x5a,	0x5b,	0x5c,	0x5d,	0x5e,	0x5f,
-	0x60,	'A',	'B',	'C',	'D',	'E',	'F',	'G',
-	'H',	'I',	'J',	'K',	'L',	'M',	'N',	'O',
-	'P',	'Q',	'R',	'S',	'T',	'U',	'V',	'W',
-	'X',	'Y',	'Z',	0x7b,	0x7c,	0x7d,	0x7e,	0x7f,
-	0x80,	0x81,	0x82,	0x83,	0x84,	0x85,	0x86,	0x87,
-	0x88,	0x89,	0x8a,	0x8b,	0x8c,	0x8d,	0x8e,	0x8f,
-	0x90,	0x91,	0x92,	0x93,	0x94,	0x95,	0x96,	0x97,
-	0x98,	0x99,	0x9a,	0x9b,	0x9c,	0x9d,	0x9e,	0x9f,
-	0xa0,	0xa1,	0xa2,	0xa3,	0xa4,	0xa5,	0xa6,	0xa7,
-	0xa8,	0xa9,	0xaa,	0xab,	0xac,	0xad,	0xae,	0xaf,
-	0xb0,	0xb1,	0xb2,	0xb3,	0xb4,	0xb5,	0xb6,	0xb7,
-	0xb8,	0xb9,	0xba,	0xbb,	0xbc,	0xbd,	0xbe,	0xbf,
-	0xc0,	0xc1,	0xc2,	0xc3,	0xc4,	0xc5,	0xc6,	0xc7,
-	0xc8,	0xc9,	0xca,	0xcb,	0xcc,	0xcd,	0xce,	0xcf,
-	0xd0,	0xd1,	0xd2,	0xd3,	0xd4,	0xd5,	0xd6,	0xd7,
-	0xd8,	0xd9,	0xda,	0xdb,	0xdc,	0xdd,	0xde,	0xdf,
-	0xe0,	0xe1,	0xe2,	0xe3,	0xe4,	0xe5,	0xe6,	0xe7,
-	0xe8,	0xe9,	0xea,	0xeb,	0xec,	0xed,	0xee,	0xef,
-	0xf0,	0xf1,	0xf2,	0xf3,	0xf4,	0xf5,	0xf6,	0xf7,
-	0xf8,	0xf9,	0xfa,	0xfb,	0xfc,	0xfd,	0xfe,	0xff
+  -1,
+  0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+  0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
+  0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
+  0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f,
+  0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27,
+  0x28, 0x29, 0x2a, 0x2b, 0x2c, 0x2d, 0x2e, 0x2f,
+  0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37,
+  0x38, 0x39, 0x3a, 0x3b, 0x3c, 0x3d, 0x3e, 0x3f,
+  0x40, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47,
+  0x48, 0x49, 0x4a, 0x4b, 0x4c, 0x4d, 0x4e, 0x4f,
+  0x50, 0x51, 0x52, 0x53, 0x54, 0x55, 0x56, 0x57,
+  0x58, 0x59, 0x5a, 0x5b, 0x5c, 0x5d, 0x5e, 0x5f,
+  0x60, 'A', 'B', 'C', 'D', 'E', 'F', 'G',
+  'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O',
+  'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W',
+  'X', 'Y', 'Z', 0x7b, 0x7c, 0x7d, 0x7e, 0x7f,
+  0x80, 0x81, 0x82, 0x83, 0x84, 0x85, 0x86, 0x87,
+  0x88, 0x89, 0x8a, 0x8b, 0x8c, 0x8d, 0x8e, 0x8f,
+  0x90, 0x91, 0x92, 0x93, 0x94, 0x95, 0x96, 0x97,
+  0x98, 0x99, 0x9a, 0x9b, 0x9c, 0x9d, 0x9e, 0x9f,
+  0xa0, 0xa1, 0xa2, 0xa3, 0xa4, 0xa5, 0xa6, 0xa7,
+  0xa8, 0xa9, 0xaa, 0xab, 0xac, 0xad, 0xae, 0xaf,
+  0xb0, 0xb1, 0xb2, 0xb3, 0xb4, 0xb5, 0xb6, 0xb7,
+  0xb8, 0xb9, 0xba, 0xbb, 0xbc, 0xbd, 0xbe, 0xbf,
+  0xc0, 0xc1, 0xc2, 0xc3, 0xc4, 0xc5, 0xc6, 0xc7,
+  0xc8, 0xc9, 0xca, 0xcb, 0xcc, 0xcd, 0xce, 0xcf,
+  0xd0, 0xd1, 0xd2, 0xd3, 0xd4, 0xd5, 0xd6, 0xd7,
+  0xd8, 0xd9, 0xda, 0xdb, 0xdc, 0xdd, 0xde, 0xdf,
+  0xe0, 0xe1, 0xe2, 0xe3, 0xe4, 0xe5, 0xe6, 0xe7,
+  0xe8, 0xe9, 0xea, 0xeb, 0xec, 0xed, 0xee, 0xef,
+  0xf0, 0xf1, 0xf2, 0xf3, 0xf4, 0xf5, 0xf6, 0xf7,
+  0xf8, 0xf9, 0xfa, 0xfb, 0xfc, 0xfd, 0xfe, 0xff
 };
 
 const short *_toupper_tab_ = _C_toupper_;
@@ -675,35 +712,35 @@ int __stack_chk_guard_fake = 0x42424242;
 // Piglet does not use softfp, so we need to write some wrappers
 
 __attribute__((naked)) void glClearColor_wrapper(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha) {
-	asm volatile (
+  asm volatile (
     "vmov s0, r0\n"
     "vmov s1, r1\n"
     "vmov s2, r2\n"
     "vmov s3, r3\n"
     "b glClearColor\n"
-	);
+  );
 }
 
 __attribute__((naked)) void glClearDepthf_wrapper(GLfloat d) {
-	asm volatile (
+  asm volatile (
     "vmov s0, r0\n"
     "b glClearDepthf\n"
-	);
+  );
 }
 
 __attribute__((naked)) void glPolygonOffset_wrapper(GLfloat factor, GLfloat units) {
-	asm volatile (
+  asm volatile (
     "vmov s0, r0\n"
     "vmov s1, r1\n"
     "b glPolygonOffset\n"
-	);
+  );
 }
 
 __attribute__((naked)) void glTexParameterf_wrapper(GLenum target, GLenum pname, GLfloat param) {
-	asm volatile (
+  asm volatile (
     "vmov s0, r2\n"
     "b glTexParameterf\n"
-	);
+  );
 }
 
 int last_program = -1;
@@ -1066,13 +1103,14 @@ DynLibFunction dynlib_functions[] = {
 #define ALIGN_MEM(x, align) (((x) + ((align) - 1)) & ~((align) - 1))
 
 int main() {
-	sceCtrlSetSamplingModeExt(SCE_CTRL_MODE_ANALOG_WIDE);
-	scePowerSetArmClockFrequency(444);
-	scePowerSetBusClockFrequency(222);
-	scePowerSetGpuClockFrequency(222);
-	scePowerSetGpuXbarClockFrequency(166);
+  sceCtrlSetSamplingModeExt(SCE_CTRL_MODE_ANALOG_WIDE);
+  sceTouchSetSamplingState(SCE_TOUCH_PORT_FRONT, SCE_TOUCH_SAMPLING_STATE_START);
+  scePowerSetArmClockFrequency(444);
+  scePowerSetBusClockFrequency(222);
+  scePowerSetGpuClockFrequency(222);
+  scePowerSetGpuXbarClockFrequency(166);
 
-  pibInit(PIB_SHACCCG);
+  pibInit(PIB_SHACCCG | PIB_ENABLE_MSAA);
 
   void *so_data, *prog_data;
   SceUID so_blockid, prog_blockid;

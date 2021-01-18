@@ -12,18 +12,43 @@ void hook_thumb(uintptr_t addr, uintptr_t dst);
 static char pxlbuf[8192];
 static char vtxbuf[8192];
 
-static int disable_amp = 0;
-static int is_mali_chip = 0;
-static int byte_5D6B42 = 0;
+typedef struct {
+  // Checks for GL_OES_depth24
+  char has24BitDepthCap;                   // 0x00
+  // Checks for GL_OES_packed_depth_stencil
+  char hasPackedDepthStencilCap;           // 0x01
+  // Checks for GL_NV_depth_nonlinear
+  char hasDepthNonLinearCap;               // 0x02
+  // Checks for GL_EXT_texture_compression_dxt1 or GL_EXT_texture_compression_s3tc
+  char hasTextureCompressionDXT1OrS3TCCap; // 0x03
+  // Checks for GL_AMD_compressed_ATC_texture
+  char hasTextureCompressionATCCap;        // 0x04
+  // Checks for GL_IMG_texture_compression_pvrtc
+  char hasTextureCompressionPVRTCCap;      // 0x05
+  // Checks for GL_OES_rgb8_rgba8
+  char has32BitRenderTargetCap;            // 0x06
+  // Checks for GL_EXT_texture_filter_anisotropic
+  char hasAnisotropicFilteringCap;         // 0x07
+  // Set when OS_SystemChip() <= 1
+  char unk_08;                             // 0x08
+  // Always set to 0
+  char unk_09;                             // 0x09
+  // Checks for GL_QCOM_binning_control
+  char hasBinningControlCap;               // 0x0A
+  // Checks for GL_QCOM_alpha_test
+  char hasAlphaTestCap;                    // 0x0B
+  // Set when there is no compression support
+  char isMaliChip;                         // 0x0D
+  // Checks for 225 or 540
+  char isSlowGPU;                          // 0x0E
+  char unk_0f;                             // 0x0F
+} RQCapabilities;
+
+static RQCapabilities *RQCaps;
 static int *RQMaxBones;
 
-int GetMobileEffectSetting() {
-  return 0; // 3
-}
-
-int OS_SystemChip() {
-  return 0; // 7, 8, 9, 10
-}
+int (* GetMobileEffectSetting)();
+int OS_SystemChip();
 
 #define FLAG_ALPHA_TEST           0x01
 #define FLAG_LIGHTING             0x02
@@ -64,19 +89,14 @@ int OS_SystemChip() {
     strcat(vtxbuf, tmp);                     \
   } while (0)
 
-// glBindAttribLocation(*((_DWORD *)v3 + 250), 0, "Position");
-// glBindAttribLocation(*((_DWORD *)v3 + 250), 1, "TexCoord0");
-// glBindAttribLocation(*((_DWORD *)v3 + 250), 2, "Normal");
-// glBindAttribLocation(*((_DWORD *)v3 + 250), 3, "GlobalColor");
-// glBindAttribLocation(*((_DWORD *)v3 + 250), 4, "BoneWeight");
-// glBindAttribLocation(*((_DWORD *)v3 + 250), 5, "BoneIndices");
-// glBindAttribLocation(*((_DWORD *)v3 + 250), 6, "Color2");
+#define DISABLED_FLAGS (FLAG_TEX1 | FLAG_ENVMAP | FLAG_FOG | FLAG_WATER | FLAG_REFLECTION | FLAG_REFL_OUT)
 
 void BuildVertexSource(int flags) {
   char tmp[512];
   char *arg;
 
   flags |= FLAG_TEX0;
+  // flags &= ~DISABLED_FLAGS;
 
   VTX_EMIT("void main(");
 
@@ -242,7 +262,7 @@ void BuildVertexSource(int flags) {
       VTX_EMIT("float3 WorldNormal = float3(0.0, 0.0, 0.0);");
   }
 
-  if (!disable_amp && (flags & FLAG_FOG)) {
+  if (!RQCaps->unk_08 && (flags & FLAG_FOG)) {
     VTX_EMIT("Out_FogAmt = clamp((length(WorldPos.xyz - CameraPosition.xyz) - FogDistances.x) * FogDistances.z, 0.0, 0.90);");
   }
 
@@ -315,15 +335,16 @@ void BuildVertexSource(int flags) {
       VTX_EMIT("Out_Color = %s;", arg);
   }
 
-  if (!disable_amp && (flags & FLAG_LIGHT1)) {
+  if (!RQCaps->unk_08 && (flags & FLAG_LIGHT1)) {
     if (flags & (FLAG_REFL_OUT | FLAG_TEX1)) {
-      VTX_EMIT("float specAmt = max(pow(dot(reflVector, DirLightDirection), %.1f), 0.0) * EnvMapCoefficient * 2.0;", is_mali_chip ? 9.0f : 10.0f);
-      VTX_EMIT("Out_Spec = specAmt * DirLightDiffuseColor;");
+      // VTX_EMIT("float specAmt = max(pow(dot(reflVector, DirLightDirection), %.1f), 0.0) * EnvMapCoefficient * 2.0;", RQCaps->isMaliChip ? 9.0f : 10.0f);
+      // VTX_EMIT("Out_Spec = specAmt * DirLightDiffuseColor;");
     } else if (flags & (FLAG_BONE3 | FLAG_BONE4)) {
-      VTX_EMIT("float3 reflVector = normalize(WorldPos.xyz - CameraPosition.xyz);");
-      VTX_EMIT("reflVector = reflVector - 2.0 * dot(reflVector, WorldNormal) * WorldNormal;");
-      VTX_EMIT("float specAmt = max(pow(dot(reflVector, DirLightDirection), %.1f), 0.0) * 0.125;", is_mali_chip ? 5.0f : 4.0f);
-      VTX_EMIT("Out_Spec = specAmt * DirLightDiffuseColor;");
+      // VTX_EMIT("float3 reflVector = normalize(WorldPos.xyz - CameraPosition.xyz);");
+      // VTX_EMIT("reflVector = reflVector - 2.0 * dot(reflVector, WorldNormal) * WorldNormal;");
+      // VTX_EMIT("float specAmt = max(pow(dot(reflVector, DirLightDirection), %.1f), 0.0) * 0.125;", RQCaps->isMaliChip ? 5.0f : 4.0f);
+      // VTX_EMIT("Out_Spec = specAmt * DirLightDiffuseColor;");
+      VTX_EMIT("Out_Spec = 0.0f;");
     }
   }
 
@@ -338,6 +359,8 @@ void BuildVertexSource(int flags) {
 
 void BuildPixelSource(int flags) {
   char tmp[512];
+
+  // flags &= ~DISABLED_FLAGS;
 
   PXL_EMIT("float4 main(");
 
@@ -392,7 +415,7 @@ void BuildPixelSource(int flags) {
   if (flags & FLAG_TEX0) {
     if (flags & FLAG_TEXBIAS)
       PXL_EMIT("half4 diffuseColor = tex2Dbias(Diffuse, float4(Out_Tex0, 0.0, -1.5));");
-    else if (!byte_5D6B42)
+    else if (!RQCaps->isSlowGPU)
       PXL_EMIT("half4 diffuseColor = tex2Dbias(Diffuse, float4(Out_Tex0, 0.0, -0.5));");
     else
       PXL_EMIT("half4 diffuseColor = tex2D(Diffuse, Out_Tex0);");
@@ -439,7 +462,7 @@ void BuildPixelSource(int flags) {
     PXL_EMIT("fcolor.w += ReflTexture.b * 0.125;");
   }
 
-  if (!disable_amp) {
+  if (!RQCaps->unk_08) {
     if ((flags & FLAG_LIGHT1) && (flags & (FLAG_TEX1 | FLAG_BONE3 | FLAG_BONE4 | FLAG_CAMERA_BASED_NORMALS | FLAG_FOG | FLAG_REFL_OUT)))
       PXL_EMIT("fcolor.xyz += Out_Spec;");
     if (flags & FLAG_FOG)
@@ -745,6 +768,9 @@ void opengl_patch() {
   *(char **)find_addr_by_symbol("contrastPShader") = contrastPShader;
   *(char **)find_addr_by_symbol("contrastVShader") = contrastVShader;
 
+  GetMobileEffectSetting = (void *)find_addr_by_symbol("_Z22GetMobileEffectSettingv");
+
+  RQCaps = (RQCapabilities *)find_addr_by_symbol("RQCaps");
   RQMaxBones = (int *)find_addr_by_symbol("RQMaxBones");
   hook_thumb(find_addr_by_symbol("_ZN8RQShader11BuildSourceEjPPKcS2_"), (uintptr_t)BuildSource);
 }
