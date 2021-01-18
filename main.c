@@ -34,6 +34,7 @@
 #include <semaphore.h>
 #include <setjmp.h>
 #include <sys/time.h>
+#include <sys/stat.h>
 
 #include <math_neon.h>
 
@@ -41,11 +42,11 @@
 
 #include "config.h"
 
-#define FAKE_MEM_SIZE 256
+#define MEMORY_MB 272
 
 int sceLibcHeapSize = 8 * 1024 * 1024;
 
-int _newlib_heap_size_user = 256 * 1024 * 1024;
+int _newlib_heap_size_user = MEMORY_MB * 1024 * 1024;
 
 void *memcpy_neon(void *destination, const void *source, size_t num);
 
@@ -183,14 +184,14 @@ char *GetRockstarID() {
 }
 
 int OS_SystemChip() {
-  return 11;
+  return 0;
 }
 
 int AND_DeviceType() {
   // 0x1: phone
   // 0x2: tegra
   // low memory is < 256
-  return (FAKE_MEM_SIZE << 6) | (3 << 2) | 0x1;
+  return (MEMORY_MB << 6) | (3 << 2) | 0x1;
 }
 
 int AND_DeviceLocale() {
@@ -311,14 +312,14 @@ int ProcessEvents() {
 }
 
 int pthread_mutex_init_fake(int *uid) {
-  *uid = sceKernelCreateSema("mutex", 0, 1, 1, NULL);
+  *uid = sceKernelCreateMutex("mutex", SCE_KERNEL_MUTEX_ATTR_RECURSIVE, 0, NULL);
   if (*uid < 0)
     return -1;
   return 0;
 }
 
 int pthread_mutex_destroy_fake(int *uid) {
-  if (sceKernelDeleteSema(*uid) < 0)
+  if (sceKernelDeleteMutex(*uid) < 0)
     return -1;
   return 0;
 }
@@ -326,13 +327,13 @@ int pthread_mutex_destroy_fake(int *uid) {
 int pthread_mutex_lock_fake(int *uid) {
   if (!*uid)
     pthread_mutex_init_fake(uid);
-  if (sceKernelWaitSema(*uid, 1, NULL) < 0)
+  if (sceKernelLockMutex(*uid, 1, NULL) < 0)
     return -1;
   return 0;
 }
 
 int pthread_mutex_unlock_fake(int *uid) {
-  if (sceKernelSignalSema(*uid, 1) < 0)
+  if (sceKernelUnlockMutex(*uid, 1) < 0)
     return -1;
   return 0;
 }
@@ -680,10 +681,10 @@ static const short _C_toupper_[] = {
   0x48, 0x49, 0x4a, 0x4b, 0x4c, 0x4d, 0x4e, 0x4f,
   0x50, 0x51, 0x52, 0x53, 0x54, 0x55, 0x56, 0x57,
   0x58, 0x59, 0x5a, 0x5b, 0x5c, 0x5d, 0x5e, 0x5f,
-  0x60, 'A', 'B', 'C', 'D', 'E', 'F', 'G',
-  'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O',
-  'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W',
-  'X', 'Y', 'Z', 0x7b, 0x7c, 0x7d, 0x7e, 0x7f,
+  0x60, 'A',  'B',  'C',  'D',  'E',  'F',  'G',
+  'H',  'I',  'J',  'K',  'L',  'M',  'N',  'O',
+  'P',  'Q',  'R',  'S',  'T',  'U',  'V',  'W',
+  'X',  'Y',  'Z',  0x7b, 0x7c, 0x7d, 0x7e, 0x7f,
   0x80, 0x81, 0x82, 0x83, 0x84, 0x85, 0x86, 0x87,
   0x88, 0x89, 0x8a, 0x8b, 0x8c, 0x8d, 0x8e, 0x8f,
   0x90, 0x91, 0x92, 0x93, 0x94, 0x95, 0x96, 0x97,
@@ -711,7 +712,7 @@ int __stack_chk_guard_fake = 0x42424242;
 
 // Piglet does not use softfp, so we need to write some wrappers
 
-__attribute__((naked)) void glClearColor_wrapper(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha) {
+__attribute__((naked)) void glClearColorWrapper(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha) {
   asm volatile (
     "vmov s0, r0\n"
     "vmov s1, r1\n"
@@ -721,14 +722,14 @@ __attribute__((naked)) void glClearColor_wrapper(GLfloat red, GLfloat green, GLf
   );
 }
 
-__attribute__((naked)) void glClearDepthf_wrapper(GLfloat d) {
+__attribute__((naked)) void glClearDepthfWrapper(GLfloat d) {
   asm volatile (
     "vmov s0, r0\n"
     "b glClearDepthf\n"
   );
 }
 
-__attribute__((naked)) void glPolygonOffset_wrapper(GLfloat factor, GLfloat units) {
+__attribute__((naked)) void glPolygonOffsetWrapper(GLfloat factor, GLfloat units) {
   asm volatile (
     "vmov s0, r0\n"
     "vmov s1, r1\n"
@@ -736,74 +737,11 @@ __attribute__((naked)) void glPolygonOffset_wrapper(GLfloat factor, GLfloat unit
   );
 }
 
-__attribute__((naked)) void glTexParameterf_wrapper(GLenum target, GLenum pname, GLfloat param) {
+__attribute__((naked)) void glTexParameterfWrapper(GLenum target, GLenum pname, GLfloat param) {
   asm volatile (
     "vmov s0, r2\n"
     "b glTexParameterf\n"
   );
-}
-
-int last_program = -1;
-
-void glUseProgramHook(GLuint program) {
-  last_program = program;
-  glUseProgram(program);
-}
-
-void glUniform4fvHook(GLint location, GLsizei count, const GLfloat *value) {
-  glUniform4fv(location, count, value);
-  if (glGetError() != 0) {
-    // if (count >= 9) {
-      // static float staticMatrix[4 * 4 * 64];
-      // for (int i = 0; i < count / 3; i++) {
-        // staticMatrix[i*16+0] = value[i*12+0];
-        // staticMatrix[i*16+4] = value[i*12+1];
-        // staticMatrix[i*16+8] = value[i*12+2];
-        // staticMatrix[i*16+12] = value[i*12+3];
-
-        // staticMatrix[i*16+1] = value[i*12+4];
-        // staticMatrix[i*16+5] = value[i*12+5];
-        // staticMatrix[i*16+9] = value[i*12+6];
-        // staticMatrix[i*16+13] = value[i*12+7];
-
-        // staticMatrix[i*16+2] = value[i*12+8];
-        // staticMatrix[i*16+6] = value[i*12+9];
-        // staticMatrix[i*16+10] = value[i*12+10];
-        // staticMatrix[i*16+14] = value[i*12+11];
-
-        // staticMatrix[i*16+3] = 0.0f;
-        // staticMatrix[i*16+7] = 0.0f;
-        // staticMatrix[i*16+11] = 0.0f;
-        // staticMatrix[i*16+15] = 1.0f;
-      // }
-
-      // glUniformMatrix4fv(location, count / 3, 0, staticMatrix);
-    // }
-
-    // debugPrintf("uniform 4fv with location:%d, count:%d\n", location, count);
-
-    // int num_uniforms = 0;
-    // glGetProgramiv(last_program, GL_ACTIVE_UNIFORMS, &num_uniforms);
-    // debugPrintf("Active Uniforms: %d\n", num_uniforms);
-
-    // for (int i = 0; i < num_uniforms; i++) {
-        // char name[128];
-        // int length = 0;
-        // int uniform_size = 0;
-        // int type = 0;
-        // glGetActiveUniform(last_program, (GLuint)i, sizeof(name), &length, &uniform_size, &type, name);
-
-        // debugPrintf("Uniform #%d Type: %d Size: %d, Name: %s\n", i, type, uniform_size, name);
-    // }
-  }
-}
-
-GLint glGetUniformLocationHook(GLuint program, const GLchar *name) {
-  int res = glGetUniformLocation(program, name);
-  // if (res >= 0) {
-    // debugPrintf("glGetUniformLocation(%s): %d\n", name, res);
-  // }
-  return res;
 }
 
 void glGetIntegervHook(GLenum pname, GLint *data) {
@@ -812,14 +750,17 @@ void glGetIntegervHook(GLenum pname, GLint *data) {
     *data = (63 * 3) + 32; // piglet hardcodes 128! this sets RQMaxBones=63
 }
 
+// Fails for:
+// 35841: GL_COMPRESSED_RGB_PVRTC_2BPPV1_IMG
+// 35842: GL_COMPRESSED_RGBA_PVRTC_4BPPV1_IMG
 void glCompressedTexImage2DHook(GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLint border, GLsizei imageSize, const void * data) {
-    if (!level)
-        glCompressedTexImage2D(target, level, internalformat, width, height, border, imageSize, data);
+  if (!level)
+    glCompressedTexImage2D(target, level, internalformat, width, height, border, imageSize, data);
 }
 
 void glTexImage2DHook(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const void * data) {
-    if (!level)
-        glTexImage2D(target, level, internalformat, width, height, border, format, type, data);
+  if (!level)
+    glTexImage2D(target, level, internalformat, width, height, border, format, type, data);
 }
 
 typedef struct {
@@ -972,8 +913,8 @@ DynLibFunction dynlib_functions[] = {
   { "glBufferData", (uintptr_t)&glBufferData },
   { "glCheckFramebufferStatus", (uintptr_t)&glCheckFramebufferStatus },
   { "glClear", (uintptr_t)&glClear },
-  { "glClearColor", (uintptr_t)&glClearColor_wrapper },
-  { "glClearDepthf", (uintptr_t)&glClearDepthf_wrapper },
+  { "glClearColor", (uintptr_t)&glClearColorWrapper },
+  { "glClearDepthf", (uintptr_t)&glClearDepthfWrapper },
   { "glClearStencil", (uintptr_t)&glClearStencil },
   { "glCompileShader", (uintptr_t)&glCompileShader },
   { "glCompressedTexImage2D", (uintptr_t)&glCompressedTexImage2DHook },
@@ -1009,10 +950,10 @@ DynLibFunction dynlib_functions[] = {
   { "glGetShaderInfoLog", (uintptr_t)&glGetShaderInfoLog },
   { "glGetShaderiv", (uintptr_t)&glGetShaderiv },
   { "glGetString", (uintptr_t)&glGetString },
-  { "glGetUniformLocation", (uintptr_t)&glGetUniformLocationHook },
+  { "glGetUniformLocation", (uintptr_t)&glGetUniformLocation },
   { "glHint", (uintptr_t)&glHint },
   { "glLinkProgram", (uintptr_t)&glLinkProgram },
-  { "glPolygonOffset", (uintptr_t)&glPolygonOffset_wrapper },
+  { "glPolygonOffset", (uintptr_t)&glPolygonOffsetWrapper },
   { "glReadPixels", (uintptr_t)&glReadPixels },
   { "glRenderbufferStorage", (uintptr_t)&glRenderbufferStorage },
   { "glScissor", (uintptr_t)&glScissor },
@@ -1024,10 +965,10 @@ DynLibFunction dynlib_functions[] = {
   { "glUniform1i", (uintptr_t)&glUniform1i },
   { "glUniform2fv", (uintptr_t)&glUniform2fv },
   { "glUniform3fv", (uintptr_t)&glUniform3fv },
-  { "glUniform4fv", (uintptr_t)&glUniform4fvHook },
+  { "glUniform4fv", (uintptr_t)&glUniform4fv },
   { "glUniformMatrix3fv", (uintptr_t)&glUniformMatrix3fv },
   { "glUniformMatrix4fv", (uintptr_t)&glUniformMatrix4fv },
-  { "glUseProgram", (uintptr_t)&glUseProgramHook },
+  { "glUseProgram", (uintptr_t)&glUseProgram },
   { "glVertexAttrib4fv", (uintptr_t)&glVertexAttrib4fv },
   { "glVertexAttribPointer", (uintptr_t)&glVertexAttribPointer },
   { "glViewport", (uintptr_t)&glViewport },
@@ -1070,8 +1011,7 @@ DynLibFunction dynlib_functions[] = {
   // { "opendir", (uintptr_t)&opendir },
   // { "read", (uintptr_t)&read },
   // { "readdir", (uintptr_t)&readdir },
-  // needed in OS_FileGetDate
-  { "stat", (uintptr_t)ret0 },
+  { "stat", (uintptr_t)stat },
   // { "write", (uintptr_t)&write },
 
   { "strcasecmp", (uintptr_t)&strcasecmp },

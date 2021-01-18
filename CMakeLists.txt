@@ -41,7 +41,6 @@ target_link_libraries(GTASA
   SceDisplay_stub
   SceGxm_stub
   SceHid_stub
-  SceShaccCg_stub
   SceSysmodule_stub
   ScePower_stub
   SceTouch_stub
