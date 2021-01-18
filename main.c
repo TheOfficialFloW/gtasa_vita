@@ -1,8 +1,8 @@
 /*
   TODO:
   - Fix street lamps
-  - Fix hud elements (touch buttons)
-    - Some compressed textures are not supported
+  - Fix compressed textures
+  - Fix mip map
   - Implement touch
   - Use math neon
   - Use 4th core
@@ -430,6 +430,7 @@ void NVEventEGLSwapBuffers() {
 }
 
 void NVEventEGLMakeCurrent() {
+  eglMakeCurrent(display, surface, surface, context);
 }
 
 void NVEventEGLUnmakeCurrent() {
@@ -447,7 +448,7 @@ int NVEventEGLInit(void) {
     EGL_GREEN_SIZE, 8,
     EGL_BLUE_SIZE, 8,
     EGL_ALPHA_SIZE, 8,
-    EGL_DEPTH_SIZE, 32,
+    EGL_DEPTH_SIZE, 16,
     EGL_STENCIL_SIZE, 8,
     EGL_SURFACE_TYPE, 5,
     EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
@@ -467,8 +468,6 @@ int NVEventEGLInit(void) {
 
   surface = eglCreateWindowSurface(display, config, VITA_WINDOW_960X544, NULL);
   context = eglCreateContext(display, config, EGL_NO_CONTEXT, contextAttribs);
-
-  eglMakeCurrent(display, surface, surface, context);
 
   debugPrintf("GL_EXTENSIONS: %s\n", glGetString(GL_EXTENSIONS));
 
@@ -804,7 +803,6 @@ DynLibFunction dynlib_functions[] = {
   { "_Jv_RegisterClasses", (uintptr_t)0 },
   { "_ITM_deregisterTMCloneTable", (uintptr_t)0 },
   { "_ITM_registerTMCloneTable", (uintptr_t)0 },
-
   { "__deregister_frame_info", (uintptr_t)0 },
   { "__register_frame_info", (uintptr_t)0 },
 
@@ -1050,7 +1048,7 @@ int main() {
   scePowerSetGpuClockFrequency(222);
   scePowerSetGpuXbarClockFrequency(166);
 
-  pibInit(PIB_SHACCCG | PIB_ENABLE_MSAA);
+  pibInit(PIB_SHACCCG);
 
   void *so_data, *prog_data;
   SceUID so_blockid, prog_blockid;
