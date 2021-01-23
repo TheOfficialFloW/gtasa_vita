@@ -413,7 +413,6 @@ void *OS_ThreadLaunch(int (* func)(), void *arg, int r2, char *name, int r4, int
 
 void NVEventEGLSwapBuffers() {
   vglStopRendering(GL_TRUE);
-  glFinish();
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
   vglStartRendering();
 }
