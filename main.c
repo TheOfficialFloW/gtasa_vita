@@ -6,7 +6,6 @@
   - Implement touch
   - Use math neon
   - Use 4th core
-  - Optimize bones matrix
 */
 
 #include <psp2/io/dirent.h>
@@ -16,11 +15,8 @@
 #include <psp2/ctrl.h>
 #include <psp2/power.h>
 #include <psp2/touch.h>
-#include <EGL/egl.h>
-#include <GLES2/gl2.h>
-#include <GLES2/gl2ext.h>
-#include <pib.h>
 #include <kubridge.h>
+#include <vitaGL.h>
 
 #include <stdio.h>
 #include <stdarg.h>
@@ -43,8 +39,6 @@
 #include "config.h"
 
 #define MEMORY_MB 272
-
-int sceLibcHeapSize = 8 * 1024 * 1024;
 
 int _newlib_heap_size_user = MEMORY_MB * 1024 * 1024;
 
@@ -417,60 +411,23 @@ void *OS_ThreadLaunch(int (* func)(), void *arg, int r2, char *name, int r4, int
   return NULL;
 }
 
-SceUID pigID;
-
-EGLDisplay display = NULL;
-EGLSurface surface = NULL;
-EGLContext context = NULL;
-
-EGLint surface_width, surface_height;
-
 void NVEventEGLSwapBuffers() {
-  eglSwapBuffers(display, surface);
+  vglStopRendering(GL_TRUE);
+  glFinish();
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+  vglStartRendering();
 }
 
 void NVEventEGLMakeCurrent() {
-  eglMakeCurrent(display, surface, surface, context);
 }
 
 void NVEventEGLUnmakeCurrent() {
 }
 
 int NVEventEGLInit(void) {
-  EGLint majorVersion;
-  EGLint minorVersion;
-  EGLint numConfigs = 0;
-  EGLConfig config;
-
-  EGLint configAttribs[] = {
-    EGL_CONFIG_ID, 2,
-    EGL_RED_SIZE, 8,
-    EGL_GREEN_SIZE, 8,
-    EGL_BLUE_SIZE, 8,
-    EGL_ALPHA_SIZE, 8,
-    EGL_DEPTH_SIZE, 16,
-    EGL_STENCIL_SIZE, 8,
-    EGL_SURFACE_TYPE, 5,
-    EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
-    EGL_NONE
-  };
-
-  const EGLint contextAttribs[] = {
-    EGL_CONTEXT_CLIENT_VERSION, 2,
-    EGL_NONE
-  };
-
-  display = eglGetDisplay(0);
-
-  eglInitialize(display, &majorVersion, &minorVersion);
-  eglBindAPI(EGL_OPENGL_ES_API);
-  eglChooseConfig(display, configAttribs, &config, 1, &numConfigs);
-
-  surface = eglCreateWindowSurface(display, config, VITA_WINDOW_960X544, NULL);
-  context = eglCreateContext(display, config, EGL_NO_CONTEXT, contextAttribs);
-
   debugPrintf("GL_EXTENSIONS: %s\n", glGetString(GL_EXTENSIONS));
 
+  vglWaitVblankStart(GL_TRUE);
   return 1; // success
 }
 
@@ -709,57 +666,67 @@ int SigningOutfromApp = 0;
 
 int __stack_chk_guard_fake = 0x42424242;
 
-// Piglet does not use softfp, so we need to write some wrappers
-
-__attribute__((naked)) void glClearColorWrapper(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha) {
-  asm volatile (
-    "vmov s0, r0\n"
-    "vmov s1, r1\n"
-    "vmov s2, r2\n"
-    "vmov s3, r3\n"
-    "b glClearColor\n"
-  );
+void glCompressedTexImage2DHook(GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLint border, GLsizei imageSize, const void * data) {
+	if (!level) {
+		glCompressedTexImage2D(target, level, internalformat, width, height, border, imageSize, data);
+	}
 }
 
-__attribute__((naked)) void glClearDepthfWrapper(GLfloat d) {
-  asm volatile (
-    "vmov s0, r0\n"
-    "b glClearDepthf\n"
-  );
+static GLint tex_to_kill;
+static GLboolean kill_rendering;
+void glTexImage2DHook(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const void * data) {
+	if (!level) {
+		if (width == 960 && height == 544) glGetIntegerv(GL_TEXTURE_BINDING_2D, &tex_to_kill);
+		else glTexImage2D(target, level, internalformat, width, height, border, format, type, data);
+	}
 }
 
-__attribute__((naked)) void glPolygonOffsetWrapper(GLfloat factor, GLfloat units) {
-  asm volatile (
-    "vmov s0, r0\n"
-    "vmov s1, r1\n"
-    "b glPolygonOffset\n"
-  );
+void glBindTextureHook(GLenum target, GLuint texture) {
+	kill_rendering = tex_to_kill == texture;
+	glBindTexture(target, texture);
 }
 
-__attribute__((naked)) void glTexParameterfWrapper(GLenum target, GLenum pname, GLfloat param) {
-  asm volatile (
-    "vmov s0, r2\n"
-    "b glTexParameterf\n"
-  );
+void glDrawArraysHook(GLenum mode, GLint first, GLsizei count) {
+	if (!kill_rendering) glDrawArrays(mode, first, count);
 }
 
+void glHintHook(GLenum target, GLenum mode) {
+	glHint(target, GL_FASTEST);
+}
+
+void glFramebufferTexture2DHook(GLenum target, GLenum attachment, GLenum textarget, GLuint tex_id, GLint level) {
+	if (attachment == GL_COLOR_ATTACHMENT0) {
+		glFramebufferTexture2D(target, attachment, textarget, tex_id, level);
+	}
+}
+
+void glDeleteFramebuffersHook(GLsizei n, GLuint *framebuffers) {}
+
+void glGetProgramiv(GLuint program, GLenum pname, GLint *params) {
+	//debugPrintf("glGetProgramiv pname: 0x%X\n", pname);
+	if (pname == GL_INFO_LOG_LENGTH)
+		*params = 0;
+	else
+		*params = GL_TRUE;
+}
+
+void glBindRenderbuffer(GLenum target, GLuint renderbuffer) {}
+void glDeleteRenderbuffers(GLsizei n, const GLuint *renderbuffers) {}
+void glGenRenderbuffers(GLsizei n, GLuint * renderbuffers) {}
+void glFramebufferRenderbuffer(GLenum target, GLenum attachment, GLenum renderbuffertarget, GLuint renderbuffer) {}
+void glRenderbufferStorage(GLenum target, GLenum internalformat, GLsizei width, GLsizei height) {}
+void glGetProgramInfoLog(GLuint program, GLsizei maxLength, GLsizei *length, GLchar *infoLog) {
+	if (length) *length = 0;
+}
+
+#define GL_MAX_VERTEX_UNIFORM_VECTORS 0x8DFB
 void glGetIntegervHook(GLenum pname, GLint *data) {
+  //debugPrintf("glGetIntegerv pname: 0x%X\n", pname);
   glGetIntegerv(pname, data);
   if (pname == GL_MAX_VERTEX_UNIFORM_VECTORS)
     *data = (63 * 3) + 32; // piglet hardcodes 128! this sets RQMaxBones=63
-}
-
-// Fails for:
-// 35841: GL_COMPRESSED_RGB_PVRTC_2BPPV1_IMG
-// 35842: GL_COMPRESSED_RGBA_PVRTC_4BPPV1_IMG
-void glCompressedTexImage2DHook(GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLint border, GLsizei imageSize, const void * data) {
-  if (!level)
-    glCompressedTexImage2D(target, level, internalformat, width, height, border, imageSize, data);
-}
-
-void glTexImage2DHook(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const void * data) {
-  if (!level)
-    glTexImage2D(target, level, internalformat, width, height, border, format, type, data);
+  else if (pname == 0x8B82)
+    *data = GL_TRUE;
 }
 
 typedef struct {
@@ -905,14 +872,14 @@ DynLibFunction dynlib_functions[] = {
   { "glBindBuffer", (uintptr_t)&glBindBuffer },
   { "glBindFramebuffer", (uintptr_t)&glBindFramebuffer },
   { "glBindRenderbuffer", (uintptr_t)&glBindRenderbuffer },
-  { "glBindTexture", (uintptr_t)&glBindTexture },
+  { "glBindTexture", (uintptr_t)&glBindTextureHook },
   { "glBlendFunc", (uintptr_t)&glBlendFunc },
   { "glBlendFuncSeparate", (uintptr_t)&glBlendFuncSeparate },
   { "glBufferData", (uintptr_t)&glBufferData },
   { "glCheckFramebufferStatus", (uintptr_t)&glCheckFramebufferStatus },
   { "glClear", (uintptr_t)&glClear },
-  { "glClearColor", (uintptr_t)&glClearColorWrapper },
-  { "glClearDepthf", (uintptr_t)&glClearDepthfWrapper },
+  { "glClearColor", (uintptr_t)&glClearColor },
+  { "glClearDepthf", (uintptr_t)&glClearDepthf },
   { "glClearStencil", (uintptr_t)&glClearStencil },
   { "glCompileShader", (uintptr_t)&glCompileShader },
   { "glCompressedTexImage2D", (uintptr_t)&glCompressedTexImage2DHook },
@@ -920,7 +887,7 @@ DynLibFunction dynlib_functions[] = {
   { "glCreateShader", (uintptr_t)&glCreateShader },
   { "glCullFace", (uintptr_t)&glCullFace },
   { "glDeleteBuffers", (uintptr_t)&glDeleteBuffers },
-  { "glDeleteFramebuffers", (uintptr_t)&glDeleteFramebuffers },
+  { "glDeleteFramebuffers", (uintptr_t)&glDeleteFramebuffersHook },
   { "glDeleteProgram", (uintptr_t)&glDeleteProgram },
   { "glDeleteRenderbuffers", (uintptr_t)&glDeleteRenderbuffers },
   { "glDeleteShader", (uintptr_t)&glDeleteShader },
@@ -929,12 +896,12 @@ DynLibFunction dynlib_functions[] = {
   { "glDepthMask", (uintptr_t)&glDepthMask },
   { "glDisable", (uintptr_t)&glDisable },
   { "glDisableVertexAttribArray", (uintptr_t)&glDisableVertexAttribArray },
-  { "glDrawArrays", (uintptr_t)&glDrawArrays },
+  { "glDrawArrays", (uintptr_t)&glDrawArraysHook },
   { "glDrawElements", (uintptr_t)&glDrawElements },
   { "glEnable", (uintptr_t)&glEnable },
   { "glEnableVertexAttribArray", (uintptr_t)&glEnableVertexAttribArray },
   { "glFramebufferRenderbuffer", (uintptr_t)&glFramebufferRenderbuffer },
-  { "glFramebufferTexture2D", (uintptr_t)&glFramebufferTexture2D },
+  { "glFramebufferTexture2D", (uintptr_t)&glFramebufferTexture2DHook },
   { "glFrontFace", (uintptr_t)&glFrontFace },
   { "glGenBuffers", (uintptr_t)&glGenBuffers },
   { "glGenFramebuffers", (uintptr_t)&glGenFramebuffers },
@@ -949,9 +916,9 @@ DynLibFunction dynlib_functions[] = {
   { "glGetShaderiv", (uintptr_t)&glGetShaderiv },
   { "glGetString", (uintptr_t)&glGetString },
   { "glGetUniformLocation", (uintptr_t)&glGetUniformLocation },
-  { "glHint", (uintptr_t)&glHint },
+  { "glHint", (uintptr_t)&glHintHook },
   { "glLinkProgram", (uintptr_t)&glLinkProgram },
-  { "glPolygonOffset", (uintptr_t)&glPolygonOffsetWrapper },
+  { "glPolygonOffset", (uintptr_t)&glPolygonOffset },
   { "glReadPixels", (uintptr_t)&glReadPixels },
   { "glRenderbufferStorage", (uintptr_t)&glRenderbufferStorage },
   { "glScissor", (uintptr_t)&glScissor },
@@ -1047,8 +1014,6 @@ int main() {
   scePowerSetBusClockFrequency(222);
   scePowerSetGpuClockFrequency(222);
   scePowerSetGpuXbarClockFrequency(166);
-
-  pibInit(PIB_SHACCCG);
 
   void *so_data, *prog_data;
   SceUID so_blockid, prog_blockid;
@@ -1169,6 +1134,10 @@ int main() {
       }
     }
   }
+
+  vglInitExtended(960, 544, 0x200000, SCE_GXM_MULTISAMPLE_4X);
+  vglUseVram(GL_TRUE);
+  vglStartRendering();
 
   openal_patch();
   opengl_patch();

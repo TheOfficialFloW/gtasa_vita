@@ -21,7 +21,6 @@ add_executable(GTASA
   main.c
   openal_patch.c
   opengl_patch.c
-  memcpy_neon.S
 )
 
 target_link_libraries(GTASA
@@ -32,7 +31,8 @@ target_link_libraries(GTASA
   openal
   SDL2
   vita2d
-  pib
+  vitaGL
+  vitashark
   kubridge_stub
   SceAppMgr_stub
   SceAudio_stub
@@ -41,6 +41,7 @@ target_link_libraries(GTASA
   SceDisplay_stub
   SceGxm_stub
   SceHid_stub
+  SceShaccCg_stub
   SceSysmodule_stub
   ScePower_stub
   SceTouch_stub

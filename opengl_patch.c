@@ -89,14 +89,9 @@ int OS_SystemChip();
     strcat(vtxbuf, tmp);                     \
   } while (0)
 
-#define DISABLED_FLAGS (FLAG_TEX1 | FLAG_ENVMAP | FLAG_FOG | FLAG_WATER | FLAG_REFLECTION | FLAG_REFL_OUT)
-
 void BuildVertexSource(int flags) {
   char tmp[512];
   char *arg;
-
-  flags |= FLAG_TEX0;
-  // flags &= ~DISABLED_FLAGS;
 
   VTX_EMIT("void main(");
 
@@ -351,8 +346,6 @@ void BuildVertexSource(int flags) {
 
 void BuildPixelSource(int flags) {
   char tmp[512];
-
-  // flags &= ~DISABLED_FLAGS;
 
   PXL_EMIT("float4 main(");
 
