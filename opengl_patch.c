@@ -195,11 +195,6 @@ void BuildVertexSource(int flags) {
   if (flags & (FLAG_BONE3 | FLAG_BONE4)) {
     VTX_EMIT("int4 BlendIndexArray = int4(BoneIndices);");
     VTX_EMIT("float4x4 BoneToLocal;");
-    // VTX_EMIT("BoneToLocal = Bones[BlendIndexArray.x] * BoneWeight.x;");
-    // VTX_EMIT("BoneToLocal += Bones[BlendIndexArray.y] * BoneWeight.y;");
-    // VTX_EMIT("BoneToLocal += Bones[BlendIndexArray.z] * BoneWeight.z;");
-    // if (flags & FLAG_BONE4)
-      // VTX_EMIT("BoneToLocal += Bones[BlendIndexArray.w] * BoneWeight.w;");
     VTX_EMIT("BoneToLocal[0] = Bones[BlendIndexArray.x*3] * BoneWeight.x;");
     VTX_EMIT("BoneToLocal[1] = Bones[BlendIndexArray.x*3+1] * BoneWeight.x;");
     VTX_EMIT("BoneToLocal[2] = Bones[BlendIndexArray.x*3+2] * BoneWeight.x;");

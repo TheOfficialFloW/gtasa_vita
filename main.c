@@ -178,7 +178,7 @@ char *GetRockstarID() {
 }
 
 int OS_SystemChip() {
-  return 0;
+  return 11;
 }
 
 int AND_DeviceType() {
