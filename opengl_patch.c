@@ -47,8 +47,7 @@ static int *RQMaxBones;
 static char pxlbuf[8192];
 static char vtxbuf[8192];
 
-int (* GetMobileEffectSetting)();
-int OS_SystemChip();
+static int (* GetMobileEffectSetting)();
 
 #define FLAG_ALPHA_TEST           0x01
 #define FLAG_LIGHTING             0x02
@@ -139,8 +138,6 @@ void BuildVertexSource(int flags) {
     }
   }
 
-  // if (flags & (FLAG_BONE3 | FLAG_BONE4))
-    // VTX_EMIT("uniform float4x4 Bones[%d],", *RQMaxBones);
   if (flags & (FLAG_BONE3 | FLAG_BONE4))
     VTX_EMIT("uniform float4 Bones[%d],", *RQMaxBones * 3 + 4);
 
@@ -153,7 +150,7 @@ void BuildVertexSource(int flags) {
   if (flags & (FLAG_TEX1 | FLAG_REFL_OUT | FLAG_BONE3 | FLAG_BONE4 | FLAG_CAMERA_BASED_NORMALS | FLAG_FOG | FLAG_WATER | FLAG_REFLECTION))
     VTX_EMIT("uniform float3 CameraPosition,");
 
-  if (!RQCaps->unk_08 && (flags & FLAG_FOG))
+  if (flags & FLAG_FOG)
     VTX_EMIT("uniform float3 FogDistances,");
 
   if (flags & FLAG_WATER)
@@ -179,10 +176,10 @@ void BuildVertexSource(int flags) {
   if (flags & (FLAG_COLOR | FLAG_LIGHTING))
     VTX_EMIT("half4 out Out_Color : COLOR0,");
 
-  if (!RQCaps->unk_08 && (flags & FLAG_LIGHT1) && (flags & (FLAG_TEX1 | FLAG_REFL_OUT | FLAG_BONE3 | FLAG_BONE4)))
+  if ((flags & FLAG_LIGHT1) && (flags & (FLAG_TEX1 | FLAG_REFL_OUT | FLAG_BONE3 | FLAG_BONE4)))
     VTX_EMIT("half3 out Out_Spec : COLOR1,");
 
-  if (!RQCaps->unk_08 && (flags & FLAG_FOG))
+  if (flags & FLAG_FOG)
     VTX_EMIT("half out Out_FogAmt : FOG,");
 
   VTX_EMIT("float4 out gl_Position : POSITION,");
@@ -249,7 +246,7 @@ void BuildVertexSource(int flags) {
       VTX_EMIT("float3 WorldNormal = float3(0.0, 0.0, 0.0);");
   }
 
-  if (!RQCaps->unk_08 && (flags & FLAG_FOG))
+  if (flags & FLAG_FOG)
     VTX_EMIT("Out_FogAmt = clamp((length(WorldPos.xyz - CameraPosition.xyz) - FogDistances.x) * FogDistances.z, 0.0, 0.90);");
 
   if (flags & FLAG_TEX0) {
@@ -321,12 +318,20 @@ void BuildVertexSource(int flags) {
   if (!RQCaps->unk_08 && (flags & FLAG_LIGHT1)) {
     if (flags & (FLAG_TEX1 | FLAG_REFL_OUT)) {
       VTX_EMIT("float specAmt = max(pow(dot(reflVector, DirLightDirection), %.1f), 0.0) * EnvMapCoefficient * 2.0;", RQCaps->isMaliChip ? 9.0f : 10.0f);
+#ifdef DISABLE_SPEC_AMT
+      VTX_EMIT("Out_Spec = 0.0;");
+#else
       VTX_EMIT("Out_Spec = specAmt * DirLightDiffuseColor;");
+#endif
     } else if (flags & (FLAG_BONE3 | FLAG_BONE4)) {
       VTX_EMIT("float3 reflVector = normalize(WorldPos.xyz - CameraPosition.xyz);");
       VTX_EMIT("reflVector = reflVector - 2.0 * dot(reflVector, WorldNormal) * WorldNormal;");
       VTX_EMIT("float specAmt = max(pow(dot(reflVector, DirLightDirection), %.1f), 0.0) * 0.125;", RQCaps->isMaliChip ? 5.0f : 4.0f);
+#ifdef DISABLE_SPEC_AMT
+      VTX_EMIT("Out_Spec = 0.0;");
+#else
       VTX_EMIT("Out_Spec = specAmt * DirLightDiffuseColor;");
+#endif
     }
   }
 
@@ -363,10 +368,10 @@ void BuildPixelSource(int flags) {
   if (flags & (FLAG_COLOR | FLAG_LIGHTING))
     PXL_EMIT("half4 Out_Color : COLOR0,");
 
-  if (!RQCaps->unk_08 && (flags & FLAG_LIGHT1) && (flags & (FLAG_TEX1 | FLAG_REFL_OUT | FLAG_BONE3 | FLAG_BONE4)))
+  if ((flags & FLAG_LIGHT1) && (flags & (FLAG_TEX1 | FLAG_REFL_OUT | FLAG_BONE3 | FLAG_BONE4)))
     PXL_EMIT("half3 Out_Spec : COLOR1,");
 
-  if (!RQCaps->unk_08 && (flags & FLAG_FOG))
+  if (flags & FLAG_FOG)
     PXL_EMIT("half Out_FogAmt : FOG,");
 
   if (flags & FLAG_TEX0)
@@ -380,7 +385,7 @@ void BuildPixelSource(int flags) {
     PXL_EMIT("uniform float DetailTiling,");
   }
 
-  if (!RQCaps->unk_08 && (flags & FLAG_FOG))
+  if (flags & FLAG_FOG)
     PXL_EMIT("uniform half3 FogColor,");
 
   if (flags & FLAG_ALPHA_MODULATE)

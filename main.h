@@ -6,5 +6,6 @@
 int debugPrintf(char *text, ...);
 
 int ret0();
+int OS_SystemChip();
 
 #endif

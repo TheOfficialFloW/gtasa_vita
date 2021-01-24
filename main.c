@@ -355,13 +355,9 @@ int NVEventEGLInit(void) {
   return 1; // success
 }
 
-#define APK_PATH "main.obb"
-
 char *OS_FileGetArchiveName(int mode) {
-  char *out = malloc(strlen(APK_PATH) + 1);
+  char *out = malloc(1);
   out[0] = '\0';
-  if (mode == 1) // main
-    strcpy(out, APK_PATH);
   return out;
 }
 
@@ -631,14 +627,14 @@ static const short _C_toupper_[] = {
   0xf8, 0xf9, 0xfa, 0xfb, 0xfc, 0xfd, 0xfe, 0xff
 };
 
-const short *_toupper_tab_ = _C_toupper_;
+static const short *_toupper_tab_ = _C_toupper_;
 
-int EnterGameFromSCFunc = 0;
-int SigningOutfromApp = 0;
+static int EnterGameFromSCFunc = 0;
+static int SigningOutfromApp = 0;
 
-int __stack_chk_guard_fake = 0x42424242;
+static int __stack_chk_guard_fake = 0x42424242;
 
-DynLibFunction dynlib_functions[] = {
+static DynLibFunction dynlib_functions[] = {
   { "_Znwj", (uintptr_t)&_Znwj },
   { "_ZdlPv", (uintptr_t)&_ZdlPv },
   { "_Znaj", (uintptr_t)&_Znaj },
@@ -920,10 +916,6 @@ int main(int argc, char *argv[]) {
   so_load(SO_PATH);
   so_resolve(dynlib_functions, sizeof(dynlib_functions) / sizeof(DynLibFunction));
 
-  vglSetupRuntimeShaderCompiler(SHARK_OPT_UNSAFE, SHARK_ENABLE, SHARK_ENABLE, SHARK_ENABLE);
-  vglInitExtended(960, 544, 0x1000000, SCE_GXM_MULTISAMPLE_4X);
-  vglUseVram(GL_TRUE);
-
   openal_patch();
   opengl_patch();
   game_patch();
@@ -931,6 +923,10 @@ int main(int argc, char *argv[]) {
 
   so_excute_init();
   so_free_temp();
+
+  vglSetupRuntimeShaderCompiler(SHARK_OPT_UNSAFE, SHARK_ENABLE, SHARK_ENABLE, SHARK_ENABLE);
+  vglInitExtended(960, 544, 0x1000000, SCE_GXM_MULTISAMPLE_4X);
+  vglUseVram(GL_TRUE);
 
   strcpy((char *)so_find_addr("StorageRootBuffer"), STORAGE_ROOT_BUFFER);
   *(uintptr_t *)so_find_addr("IsAndroidPaused") = 0; // it's 1 by default
