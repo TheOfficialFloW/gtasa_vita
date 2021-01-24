@@ -1,11 +1,10 @@
-/*
-  TODO:
-  - Fix compressed textures
-  - Fix mip map
-  - Implement touch
-  - Use math neon
-  - Use 4th core
-*/
+/* main.c -- Grant Theft Auto: San Andreas .so loader
+ *
+ * Copyright (C) 2021 Andy Nguyen
+ *
+ * This software may be modified and distributed under the terms
+ * of the MIT license.  See the LICENSE file for details.
+ */
 
 #include <psp2/io/dirent.h>
 #include <psp2/io/fcntl.h>
@@ -60,15 +59,6 @@ int debugPrintf(char *text, ...) {
   return 0;
 }
 
-// Only used in ReadALConfig
-char *getenv(const char *name) {
-  return NULL;
-}
-
-void __aeabi_atexit(void) {
-  return;
-}
-
 int __android_log_print(int prio, const char *tag, const char *fmt, ...) {
   va_list list;
   static char string[0x1000];
@@ -90,13 +80,7 @@ int ret1(void) {
   return 1;
 }
 
-int NvAPKOpen(char *path) {
-  // debugPrintf("NvAPKOpen: %s\n", path);
-  return 0;
-}
-
 int mkdir(const char *pathname, mode_t mode) {
-  // debugPrintf("mkdir: %s\n", pathname);
   if (sceIoMkdir(pathname, mode) < 0)
     return -1;
   return 0;
@@ -344,12 +328,6 @@ void NVEventEGLSwapBuffers(void) {
   vglSwapBuffers();
 }
 
-void NVEventEGLMakeCurrent(void) {
-}
-
-void NVEventEGLUnmakeCurrent(void) {
-}
-
 int NVEventEGLInit(void) {
   vglWaitVblankStart(GL_TRUE);
   return 1; // success
@@ -361,12 +339,7 @@ char *OS_FileGetArchiveName(int mode) {
   return out;
 }
 
-FILE *fopen_hook(const char *filename, const char *mode) {
-  FILE *file = fopen(filename, mode);
-  if (!file)
-    debugPrintf("fopen failed for %s\n", filename);
-  return file;
-}
+#ifdef MVP_OPTIMIZATION
 
 void
 matmul4_neon(float m0[16], float m1[16], float d[16])
@@ -412,7 +385,6 @@ matmul4_neon(float m0[16], float m1[16], float d[16])
 void *(* GetCurrentProjectionMatrix)();
 
 void SetMatrixConstant(void *ES2Shader, int MatrixConstantID, float *matrix) {
-#ifdef MVP_OPTIMIZATION
   if (MatrixConstantID == 0) { // Projection matrix
     void *MvpMatrix = ES2Shader + 0x4C * 0;
     float *MvpMatrixData = MvpMatrix + 0x2AC;
@@ -432,18 +404,17 @@ void SetMatrixConstant(void *ES2Shader, int MatrixConstantID, float *matrix) {
       *(uint8_t *)(MvpMatrix + 0x2A8) = 1;
     }
   }
-#endif
 
   void *UniformMatrix = ES2Shader + 0x4C * MatrixConstantID;
   float *UniformMatrixData = UniformMatrix + 0x2AC;
-
-  // That check is so useless IMO. If you need to go through both matrices anways, why just don't copy.
-  // if (memcmp(UniformMatrixData, matrix, 16 * 4) != 0) {
+  if (memcmp(UniformMatrixData, matrix, 16 * 4) != 0) {
     memcpy(UniformMatrixData, matrix, 16 * 4);
     *(uint8_t *)(UniformMatrix + 0x2EC) = 1;
     *(uint8_t *)(UniformMatrix + 0x2A8) = 1;
-  // }
+  }
 }
+
+#endif
 
 void game_patch(void) {
   // used for openal
@@ -459,9 +430,9 @@ void game_patch(void) {
 
   // egl
   hook_thumb(so_find_addr("_Z14NVEventEGLInitv"), (uintptr_t)NVEventEGLInit);
-  hook_thumb(so_find_addr("_Z21NVEventEGLMakeCurrentv"), (uintptr_t)NVEventEGLMakeCurrent);
-  hook_thumb(so_find_addr("_Z23NVEventEGLUnmakeCurrentv"), (uintptr_t)NVEventEGLUnmakeCurrent);
   hook_thumb(so_find_addr("_Z21NVEventEGLSwapBuffersv"), (uintptr_t)NVEventEGLSwapBuffers);
+  hook_thumb(so_find_addr("_Z21NVEventEGLMakeCurrentv"), (uintptr_t)ret0);
+  hook_thumb(so_find_addr("_Z23NVEventEGLUnmakeCurrentv"), (uintptr_t)ret0);
 
   hook_thumb(so_find_addr("_Z17OS_ScreenGetWidthv"), (uintptr_t)OS_ScreenGetWidth);
   hook_thumb(so_find_addr("_Z18OS_ScreenGetHeightv"), (uintptr_t)OS_ScreenGetHeight);
@@ -481,11 +452,10 @@ void game_patch(void) {
   hook_thumb(so_find_addr("_Z28WarGamepad_GetGamepadButtonsv"), (uintptr_t)WarGamepad_GetGamepadButtons);
   hook_thumb(so_find_addr("_Z25WarGamepad_GetGamepadAxisi"), (uintptr_t)WarGamepad_GetGamepadAxis);
 
-  // oh this is used for obb files!
-  // let's extract files, so it's faster
+  // no obb
   hook_thumb(so_find_addr("_Z22AND_FileGetArchiveName13OSFileArchive"), (uintptr_t)OS_FileGetArchiveName);
 
-  // this is for the apk file!
+  // no apk
   hook_thumb(so_find_addr("_Z9NvAPKOpenPKc"), (uintptr_t)ret0);
 
   // no cloud
@@ -494,7 +464,7 @@ void game_patch(void) {
   // no touchsense
   hook_thumb(so_find_addr("_ZN10TouchSenseC2Ev"), (uintptr_t)ret0);
 
-  // no telemetry check
+  // no telemetry
   // this is triggered after 10s of no input btw
   hook_thumb(so_find_addr("_Z11updateUsageb"), (uintptr_t)ret0);
 
@@ -514,39 +484,34 @@ void game_patch(void) {
 }
 
 void glCompressedTexImage2DHook(GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLint border, GLsizei imageSize, const void * data) {
-	if (!level) {
-		glCompressedTexImage2D(target, level, internalformat, width, height, border, imageSize, data);
-	}
+  if (!level) {
+    glCompressedTexImage2D(target, level, internalformat, width, height, border, imageSize, data);
+  }
 }
 
 void glTexImage2DHook(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const void * data) {
-	if (!level) {
-		glTexImage2D(target, level, internalformat, width, height, border, format, type, data);
-	}
+  if (!level) {
+    glTexImage2D(target, level, internalformat, width, height, border, format, type, data);
+  }
 }
 
 void glFramebufferTexture2DHook(GLenum target, GLenum attachment, GLenum textarget, GLuint tex_id, GLint level) {
-	if (attachment == GL_COLOR_ATTACHMENT0) {
-		if (glCheckFramebufferStatus(target) == GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT)
-			glFramebufferTexture2D(target, attachment, textarget, tex_id, level);
-	}
+  if (attachment == GL_COLOR_ATTACHMENT0) {
+    if (glCheckFramebufferStatus(target) == GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT)
+      glFramebufferTexture2D(target, attachment, textarget, tex_id, level);
+  }
 }
 
 void glGetProgramiv(GLuint program, GLenum pname, GLint *params) {
-	//debugPrintf("glGetProgramiv pname: 0x%X\n", pname);
-	if (pname == GL_INFO_LOG_LENGTH)
-		*params = 0;
-	else
-		*params = GL_TRUE;
+  //debugPrintf("glGetProgramiv pname: 0x%X\n", pname);
+  if (pname == GL_INFO_LOG_LENGTH)
+    *params = 0;
+  else
+    *params = GL_TRUE;
 }
 
-void glBindRenderbuffer(GLenum target, GLuint renderbuffer) {}
-void glDeleteRenderbuffers(GLsizei n, const GLuint *renderbuffers) {}
-void glGenRenderbuffers(GLsizei n, GLuint * renderbuffers) {}
-void glFramebufferRenderbuffer(GLenum target, GLenum attachment, GLenum renderbuffertarget, GLuint renderbuffer) {}
-void glRenderbufferStorage(GLenum target, GLenum internalformat, GLsizei width, GLsizei height) {}
 void glGetProgramInfoLog(GLuint program, GLsizei maxLength, GLsizei *length, GLchar *infoLog) {
-	if (length) *length = 0;
+  if (length) *length = 0;
 }
 
 #define GL_MAX_VERTEX_UNIFORM_VECTORS 0x8DFB
@@ -554,11 +519,11 @@ void glGetIntegervHook(GLenum pname, GLint *data) {
   //debugPrintf("glGetIntegerv pname: 0x%X\n", pname);
   glGetIntegerv(pname, data);
   if (pname == GL_MAX_VERTEX_UNIFORM_VECTORS)
-    *data = (63 * 3) + 32; // piglet hardcodes 128! this sets RQMaxBones=63
+    *data = (63 * 3) + 32; // set RQMaxBones=63
   else if (pname == 0x8B82)
     *data = GL_TRUE;
   else if (pname == GL_DRAW_FRAMEBUFFER_BINDING)
-	*data = 0;
+    *data = 0;
 }
 
 extern void *_Znwj;
@@ -566,7 +531,7 @@ extern void *_ZdlPv;
 extern void *_Znaj;
 extern void *_ZdaPv;
 
-// extern void *__aeabi_atexit;
+extern void *__aeabi_atexit;
 
 extern void *__aeabi_dcmplt;
 extern void *__aeabi_dmul;
@@ -763,7 +728,7 @@ static DynLibFunction dynlib_functions[] = {
   { "ftell", (uintptr_t)&ftell },
   { "fwrite", (uintptr_t)&fwrite },
 
-  { "getenv", (uintptr_t)&getenv },
+  { "getenv", (uintptr_t)&ret0 },
   // { "gettid", (uintptr_t)&gettid },
 
   { "glActiveTexture", (uintptr_t)&glActiveTexture },
@@ -771,7 +736,7 @@ static DynLibFunction dynlib_functions[] = {
   { "glBindAttribLocation", (uintptr_t)&glBindAttribLocation },
   { "glBindBuffer", (uintptr_t)&glBindBuffer },
   { "glBindFramebuffer", (uintptr_t)&glBindFramebuffer },
-  { "glBindRenderbuffer", (uintptr_t)&glBindRenderbuffer },
+  { "glBindRenderbuffer", (uintptr_t)&ret0 },
   { "glBindTexture", (uintptr_t)&glBindTexture },
   { "glBlendFunc", (uintptr_t)&glBlendFunc },
   { "glBlendFuncSeparate", (uintptr_t)&glBlendFuncSeparate },
@@ -789,7 +754,7 @@ static DynLibFunction dynlib_functions[] = {
   { "glDeleteBuffers", (uintptr_t)&glDeleteBuffers },
   { "glDeleteFramebuffers", (uintptr_t)&glDeleteFramebuffers },
   { "glDeleteProgram", (uintptr_t)&glDeleteProgram },
-  { "glDeleteRenderbuffers", (uintptr_t)&glDeleteRenderbuffers },
+  { "glDeleteRenderbuffers", (uintptr_t)&ret0 },
   { "glDeleteShader", (uintptr_t)&glDeleteShader },
   { "glDeleteTextures", (uintptr_t)&glDeleteTextures },
   { "glDepthFunc", (uintptr_t)&glDepthFunc },
@@ -800,12 +765,12 @@ static DynLibFunction dynlib_functions[] = {
   { "glDrawElements", (uintptr_t)&glDrawElements },
   { "glEnable", (uintptr_t)&glEnable },
   { "glEnableVertexAttribArray", (uintptr_t)&glEnableVertexAttribArray },
-  { "glFramebufferRenderbuffer", (uintptr_t)&glFramebufferRenderbuffer },
+  { "glFramebufferRenderbuffer", (uintptr_t)&ret0 },
   { "glFramebufferTexture2D", (uintptr_t)&glFramebufferTexture2DHook },
   { "glFrontFace", (uintptr_t)&glFrontFace },
   { "glGenBuffers", (uintptr_t)&glGenBuffers },
   { "glGenFramebuffers", (uintptr_t)&glGenFramebuffers },
-  { "glGenRenderbuffers", (uintptr_t)&glGenRenderbuffers },
+  { "glGenRenderbuffers", (uintptr_t)&ret0 },
   { "glGenTextures", (uintptr_t)&glGenTextures },
   { "glGetAttribLocation", (uintptr_t)&glGetAttribLocation },
   { "glGetError", (uintptr_t)&glGetError },
@@ -820,7 +785,7 @@ static DynLibFunction dynlib_functions[] = {
   { "glLinkProgram", (uintptr_t)&glLinkProgram },
   { "glPolygonOffset", (uintptr_t)&glPolygonOffset },
   { "glReadPixels", (uintptr_t)&glReadPixels },
-  { "glRenderbufferStorage", (uintptr_t)&glRenderbufferStorage },
+  { "glRenderbufferStorage", (uintptr_t)&ret0 },
   { "glScissor", (uintptr_t)&glScissor },
   { "glShaderSource", (uintptr_t)&glShaderSource },
   { "glTexImage2D", (uintptr_t)&glTexImage2DHook },

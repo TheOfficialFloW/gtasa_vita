@@ -1,3 +1,11 @@
+/* so_util.c -- utils to load and hook .so modules
+ *
+ * Copyright (C) 2021 Andy Nguyen
+ *
+ * This software may be modified and distributed under the terms
+ * of the MIT license.  See the LICENSE file for details.
+ */
+
 #include <psp2/io/dirent.h>
 #include <psp2/io/fcntl.h>
 #include <psp2/kernel/sysmem.h>

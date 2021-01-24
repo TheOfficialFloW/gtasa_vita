@@ -1,3 +1,11 @@
+/* opengl_patch.c -- reverse engineered shader generator translated for cg
+ *
+ * Copyright (C) 2021 Andy Nguyen
+ *
+ * This software may be modified and distributed under the terms
+ * of the MIT license.  See the LICENSE file for details.
+ */
+
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>
