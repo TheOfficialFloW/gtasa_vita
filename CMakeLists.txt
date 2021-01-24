@@ -19,6 +19,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=c++11")
 
 add_executable(GTASA
   main.c
+  so_util.c
   openal_patch.c
   opengl_patch.c
 )

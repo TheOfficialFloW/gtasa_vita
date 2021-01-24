@@ -1,6 +1,5 @@
 /*
   TODO:
-  - Fix street lamps
   - Fix compressed textures
   - Fix mip map
   - Implement touch
@@ -16,6 +15,7 @@
 #include <psp2/power.h>
 #include <psp2/touch.h>
 #include <kubridge.h>
+#include <vitashark.h>
 #include <vitaGL.h>
 
 #include <stdio.h>
@@ -34,26 +34,14 @@
 
 #include <math_neon.h>
 
-#include "elf.h"
-
-#include "config.h"
+#include "main.h"
+#include "so_util.h"
+#include "openal_patch.h"
+#include "opengl_patch.h"
 
 #define MEMORY_MB 272
 
 int _newlib_heap_size_user = MEMORY_MB * 1024 * 1024;
-
-void *memcpy_neon(void *destination, const void *source, size_t num);
-
-void openal_patch();
-void opengl_patch();
-
-void *text_base, *data_base;
-uint32_t text_size, data_size;
-
-static Elf32_Sym *syms;
-static int n_syms;
-
-static char *dynstrtab;
 
 int debugPrintf(char *text, ...) {
   va_list list;
@@ -72,71 +60,12 @@ int debugPrintf(char *text, ...) {
   return 0;
 }
 
-int load_file(char *filename, void **data) {
-  SceUID fd;
-  SceUID blockid;
-  size_t size;
-
-  fd = sceIoOpen(filename, SCE_O_RDONLY, 0);
-  if (fd < 0)
-    return fd;
-
-  size = sceIoLseek(fd, 0, SCE_SEEK_END);
-  sceIoLseek(fd, 0, SCE_SEEK_SET);
-
-  blockid = sceKernelAllocMemBlock("file", SCE_KERNEL_MEMBLOCK_TYPE_USER_RW, (size + 0xfff) & ~0xfff, NULL);
-  if (blockid < 0)
-    return blockid;
-
-  sceKernelGetMemBlockBase(blockid, data);
-
-  sceIoRead(fd, *data, size);
-  sceIoClose(fd);
-
-  return blockid;
-}
-
-uintptr_t find_addr_by_symbol(char *symbol) {
-  for (int i = 0; i < n_syms; i++) {
-    char *name = dynstrtab + syms[i].st_name;
-    if (strcmp(name, symbol) == 0)
-      return (uintptr_t)text_base + syms[i].st_value;
-  }
-
-  debugPrintf("Could not find symbol %s\n", symbol);
-  return 0;
-}
-
-void hook_thumb(uintptr_t addr, uintptr_t dst) {
-  if (addr == 0)
-    return;
-  addr &= ~1;
-  if (addr & 2) {
-    uint16_t nop = 0xbf00;
-    kuKernelCpuUnrestrictedMemcpy((void *)addr, &nop, sizeof(nop));
-    addr += 2;
-  }
-  uint32_t hook[2];
-  hook[0] = 0xf000f8df; // LDR PC, [PC]
-  hook[1] = dst;
-  kuKernelCpuUnrestrictedMemcpy((void *)addr, hook, sizeof(hook));
-}
-
-void hook_arm(uintptr_t addr, uintptr_t dst) {
-  if (addr == 0)
-    return;
-  uint32_t hook[2];
-  hook[0] = 0xe51ff004; // LDR PC, [PC, #-0x4]
-  hook[1] = dst;
-  kuKernelCpuUnrestrictedMemcpy((void *)addr, hook, sizeof(hook));
-}
-
 // Only used in ReadALConfig
 char *getenv(const char *name) {
   return NULL;
 }
 
-void __aeabi_atexit() {
+void __aeabi_atexit(void) {
   return;
 }
 
@@ -153,11 +82,11 @@ int __android_log_print(int prio, const char *tag, const char *fmt, ...) {
   return 0;
 }
 
-int ret0() {
+int ret0(void) {
   return 0;
 }
 
-int ret1() {
+int ret1(void) {
   return 1;
 }
 
@@ -173,30 +102,30 @@ int mkdir(const char *pathname, mode_t mode) {
   return 0;
 }
 
-char *GetRockstarID() {
+char *GetRockstarID(void) {
   return "flow";
 }
 
-int OS_SystemChip() {
+int OS_SystemChip(void) {
   return 11;
 }
 
-int AND_DeviceType() {
+int AND_DeviceType(void) {
   // 0x1: phone
   // 0x2: tegra
   // low memory is < 256
   return (MEMORY_MB << 6) | (3 << 2) | 0x1;
 }
 
-int AND_DeviceLocale() {
+int AND_DeviceLocale(void) {
   return 0; // english
 }
 
-int OS_ScreenGetHeight() {
+int OS_ScreenGetHeight(void) {
   return 544;
 }
 
-int OS_ScreenGetWidth() {
+int OS_ScreenGetWidth(void) {
   return 960;
 }
 
@@ -206,11 +135,11 @@ int OS_ScreenGetWidth() {
 // 8: PS3
 // 9: IOSExtended
 // 10: IOSSimple
-int WarGamepad_GetGamepadType() {
+int WarGamepad_GetGamepadType(void) {
   return 8;
 }
 
-int WarGamepad_GetGamepadButtons() {
+int WarGamepad_GetGamepadButtons(void) {
   int mask = 0;
 
   SceCtrlData pad;
@@ -301,7 +230,7 @@ float WarGamepad_GetGamepadAxis(int axis) {
   return 0.0f;
 }
 
-int ProcessEvents() {
+int ProcessEvents(void) {
   return 0; // 1 is exit!
 }
 
@@ -411,19 +340,17 @@ void *OS_ThreadLaunch(int (* func)(), void *arg, int r2, char *name, int r4, int
   return NULL;
 }
 
-void NVEventEGLSwapBuffers() {
+void NVEventEGLSwapBuffers(void) {
   vglSwapBuffers();
 }
 
-void NVEventEGLMakeCurrent() {
+void NVEventEGLMakeCurrent(void) {
 }
 
-void NVEventEGLUnmakeCurrent() {
+void NVEventEGLUnmakeCurrent(void) {
 }
 
 int NVEventEGLInit(void) {
-  debugPrintf("GL_EXTENSIONS: %s\n", glGetString(GL_EXTENSIONS));
-
   vglWaitVblankStart(GL_TRUE);
   return 1; // success
 }
@@ -516,109 +443,157 @@ void SetMatrixConstant(void *ES2Shader, int MatrixConstantID, float *matrix) {
 
   // That check is so useless IMO. If you need to go through both matrices anways, why just don't copy.
   // if (memcmp(UniformMatrixData, matrix, 16 * 4) != 0) {
-    memcpy_neon(UniformMatrixData, matrix, 16 * 4);
+    memcpy(UniformMatrixData, matrix, 16 * 4);
     *(uint8_t *)(UniformMatrix + 0x2EC) = 1;
     *(uint8_t *)(UniformMatrix + 0x2A8) = 1;
   // }
 }
 
-void functions_patch() {
+void game_patch(void) {
   // used for openal
-  hook_thumb(find_addr_by_symbol("InitializeCriticalSection"), (uintptr_t)ret0);
+  hook_thumb(so_find_addr("InitializeCriticalSection"), (uintptr_t)ret0);
 
   // used in NVEventAppMain
-  hook_thumb(find_addr_by_symbol("_Z21OS_ApplicationPreinitv"), (uintptr_t)ret0);
+  hook_thumb(so_find_addr("_Z21OS_ApplicationPreinitv"), (uintptr_t)ret0);
 
   // used to check some flags
-  hook_thumb(find_addr_by_symbol("_Z20OS_ServiceAppCommandPKcS0_"), (uintptr_t)ret0);
+  hook_thumb(so_find_addr("_Z20OS_ServiceAppCommandPKcS0_"), (uintptr_t)ret0);
 
-  hook_thumb(find_addr_by_symbol("_Z15OS_ThreadLaunchPFjPvES_jPKci16OSThreadPriority"), (uintptr_t)OS_ThreadLaunch);
+  hook_thumb(so_find_addr("_Z15OS_ThreadLaunchPFjPvES_jPKci16OSThreadPriority"), (uintptr_t)OS_ThreadLaunch);
 
   // egl
-  hook_thumb(find_addr_by_symbol("_Z14NVEventEGLInitv"), (uintptr_t)NVEventEGLInit);
-  hook_thumb(find_addr_by_symbol("_Z21NVEventEGLMakeCurrentv"), (uintptr_t)NVEventEGLMakeCurrent);
-  hook_thumb(find_addr_by_symbol("_Z23NVEventEGLUnmakeCurrentv"), (uintptr_t)NVEventEGLUnmakeCurrent);
-  hook_thumb(find_addr_by_symbol("_Z21NVEventEGLSwapBuffersv"), (uintptr_t)NVEventEGLSwapBuffers);
+  hook_thumb(so_find_addr("_Z14NVEventEGLInitv"), (uintptr_t)NVEventEGLInit);
+  hook_thumb(so_find_addr("_Z21NVEventEGLMakeCurrentv"), (uintptr_t)NVEventEGLMakeCurrent);
+  hook_thumb(so_find_addr("_Z23NVEventEGLUnmakeCurrentv"), (uintptr_t)NVEventEGLUnmakeCurrent);
+  hook_thumb(so_find_addr("_Z21NVEventEGLSwapBuffersv"), (uintptr_t)NVEventEGLSwapBuffers);
 
-  hook_thumb(find_addr_by_symbol("_Z17OS_ScreenGetWidthv"), (uintptr_t)OS_ScreenGetWidth);
-  hook_thumb(find_addr_by_symbol("_Z18OS_ScreenGetHeightv"), (uintptr_t)OS_ScreenGetHeight);
+  hook_thumb(so_find_addr("_Z17OS_ScreenGetWidthv"), (uintptr_t)OS_ScreenGetWidth);
+  hook_thumb(so_find_addr("_Z18OS_ScreenGetHeightv"), (uintptr_t)OS_ScreenGetHeight);
 
-  hook_thumb(find_addr_by_symbol("_Z13OS_SystemChipv"), (uintptr_t)OS_SystemChip);
+  hook_thumb(so_find_addr("_Z13OS_SystemChipv"), (uintptr_t)OS_SystemChip);
 
-  hook_thumb(find_addr_by_symbol("_Z14AND_DeviceTypev"), (uintptr_t)AND_DeviceType);
-  hook_thumb(find_addr_by_symbol("_Z16AND_DeviceLocalev"), (uintptr_t)AND_DeviceLocale);
+  hook_thumb(so_find_addr("_Z14AND_DeviceTypev"), (uintptr_t)AND_DeviceType);
+  hook_thumb(so_find_addr("_Z16AND_DeviceLocalev"), (uintptr_t)AND_DeviceLocale);
 
   // TODO: set deviceChip, definedDevice
-  hook_thumb(find_addr_by_symbol("_Z20AND_SystemInitializev"), (uintptr_t)ret0);
+  hook_thumb(so_find_addr("_Z20AND_SystemInitializev"), (uintptr_t)ret0);
 
   // TODO: implement touch here
-  hook_thumb(find_addr_by_symbol("_Z13ProcessEventsb"), (uintptr_t)ProcessEvents);
+  hook_thumb(so_find_addr("_Z13ProcessEventsb"), (uintptr_t)ProcessEvents);
 
-  hook_thumb(find_addr_by_symbol("_Z25WarGamepad_GetGamepadTypev"), (uintptr_t)WarGamepad_GetGamepadType);
-  hook_thumb(find_addr_by_symbol("_Z28WarGamepad_GetGamepadButtonsv"), (uintptr_t)WarGamepad_GetGamepadButtons);
-  hook_thumb(find_addr_by_symbol("_Z25WarGamepad_GetGamepadAxisi"), (uintptr_t)WarGamepad_GetGamepadAxis);
+  hook_thumb(so_find_addr("_Z25WarGamepad_GetGamepadTypev"), (uintptr_t)WarGamepad_GetGamepadType);
+  hook_thumb(so_find_addr("_Z28WarGamepad_GetGamepadButtonsv"), (uintptr_t)WarGamepad_GetGamepadButtons);
+  hook_thumb(so_find_addr("_Z25WarGamepad_GetGamepadAxisi"), (uintptr_t)WarGamepad_GetGamepadAxis);
 
   // oh this is used for obb files!
   // let's extract files, so it's faster
-  hook_thumb(find_addr_by_symbol("_Z22AND_FileGetArchiveName13OSFileArchive"), (uintptr_t)OS_FileGetArchiveName);
+  hook_thumb(so_find_addr("_Z22AND_FileGetArchiveName13OSFileArchive"), (uintptr_t)OS_FileGetArchiveName);
 
   // this is for the apk file!
-  hook_thumb(find_addr_by_symbol("_Z9NvAPKOpenPKc"), (uintptr_t)ret0);
+  hook_thumb(so_find_addr("_Z9NvAPKOpenPKc"), (uintptr_t)ret0);
 
   // no cloud
-  hook_thumb(find_addr_by_symbol("_Z22SCCloudSaveStateUpdatev"), (uintptr_t)ret0);
+  hook_thumb(so_find_addr("_Z22SCCloudSaveStateUpdatev"), (uintptr_t)ret0);
 
   // no touchsense
-  hook_thumb(find_addr_by_symbol("_ZN10TouchSenseC2Ev"), (uintptr_t)ret0);
+  hook_thumb(so_find_addr("_ZN10TouchSenseC2Ev"), (uintptr_t)ret0);
 
   // no telemetry check
   // this is triggered after 10s of no input btw
-  hook_thumb(find_addr_by_symbol("_Z11updateUsageb"), (uintptr_t)ret0);
+  hook_thumb(so_find_addr("_Z11updateUsageb"), (uintptr_t)ret0);
 
-  // hook_thumb(find_addr_by_symbol("_Z24NVThreadGetCurrentJNIEnvv"), (uintptr_t)0x1337);
+  // hook_thumb(so_find_addr("_Z24NVThreadGetCurrentJNIEnvv"), (uintptr_t)0x1337);
 
   // do not check result of CFileMgr::OpenFile in CWaterLevel::WaterLevelInitialise
   uint32_t nop = 0xbf00bf00;
   kuKernelCpuUnrestrictedMemcpy(text_base + 0x004D7A2A, &nop, 2);
 
 #ifdef MVP_OPTIMIZATION
-  GetCurrentProjectionMatrix = (void *)find_addr_by_symbol("_Z26GetCurrentProjectionMatrixv");
-  hook_thumb(find_addr_by_symbol("_ZN9ES2Shader17SetMatrixConstantE24RQShaderMatrixConstantIDPKf"), (uintptr_t)SetMatrixConstant);
+  GetCurrentProjectionMatrix = (void *)so_find_addr("_Z26GetCurrentProjectionMatrixv");
+  hook_thumb(so_find_addr("_ZN9ES2Shader17SetMatrixConstantE24RQShaderMatrixConstantIDPKf"), (uintptr_t)SetMatrixConstant);
 #endif
 
   // uint16_t bkpt = 0xbe00;
   // kuKernelCpuUnrestrictedMemcpy(text_base + 0x00194968, &bkpt, 2);
 }
 
-extern int _Znwj;
-extern int _ZdlPv;
-extern int _Znaj;
-extern int _ZdaPv;
+void glCompressedTexImage2DHook(GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLint border, GLsizei imageSize, const void * data) {
+	if (!level) {
+		glCompressedTexImage2D(target, level, internalformat, width, height, border, imageSize, data);
+	}
+}
 
-// extern int __aeabi_atexit;
+void glTexImage2DHook(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const void * data) {
+	if (!level) {
+		glTexImage2D(target, level, internalformat, width, height, border, format, type, data);
+	}
+}
 
-extern int __aeabi_dcmplt;
-extern int __aeabi_dmul;
-extern int __aeabi_dsub;
-extern int __aeabi_idiv;
-extern int __aeabi_idivmod;
-extern int __aeabi_l2d;
-extern int __aeabi_l2f;
-extern int __aeabi_ldivmod;
-extern int __aeabi_ui2d;
-extern int __aeabi_uidiv;
-extern int __aeabi_uidivmod;
-extern int __aeabi_ul2d;
-extern int __aeabi_ul2f;
-extern int __aeabi_uldivmod;
+void glFramebufferTexture2DHook(GLenum target, GLenum attachment, GLenum textarget, GLuint tex_id, GLint level) {
+	if (attachment == GL_COLOR_ATTACHMENT0) {
+		if (glCheckFramebufferStatus(target) == GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT)
+			glFramebufferTexture2D(target, attachment, textarget, tex_id, level);
+	}
+}
 
-// extern int __assert2;
-// extern int __errno;
+void glGetProgramiv(GLuint program, GLenum pname, GLint *params) {
+	//debugPrintf("glGetProgramiv pname: 0x%X\n", pname);
+	if (pname == GL_INFO_LOG_LENGTH)
+		*params = 0;
+	else
+		*params = GL_TRUE;
+}
 
-extern int __isfinitef;
+void glBindRenderbuffer(GLenum target, GLuint renderbuffer) {}
+void glDeleteRenderbuffers(GLsizei n, const GLuint *renderbuffers) {}
+void glGenRenderbuffers(GLsizei n, GLuint * renderbuffers) {}
+void glFramebufferRenderbuffer(GLenum target, GLenum attachment, GLenum renderbuffertarget, GLuint renderbuffer) {}
+void glRenderbufferStorage(GLenum target, GLenum internalformat, GLsizei width, GLsizei height) {}
+void glGetProgramInfoLog(GLuint program, GLsizei maxLength, GLsizei *length, GLchar *infoLog) {
+	if (length) *length = 0;
+}
 
-extern int __stack_chk_fail;
-extern int __stack_chk_guard;
+#define GL_MAX_VERTEX_UNIFORM_VECTORS 0x8DFB
+void glGetIntegervHook(GLenum pname, GLint *data) {
+  //debugPrintf("glGetIntegerv pname: 0x%X\n", pname);
+  glGetIntegerv(pname, data);
+  if (pname == GL_MAX_VERTEX_UNIFORM_VECTORS)
+    *data = (63 * 3) + 32; // piglet hardcodes 128! this sets RQMaxBones=63
+  else if (pname == 0x8B82)
+    *data = GL_TRUE;
+  else if (pname == GL_DRAW_FRAMEBUFFER_BINDING)
+	*data = 0;
+}
+
+extern void *_Znwj;
+extern void *_ZdlPv;
+extern void *_Znaj;
+extern void *_ZdaPv;
+
+// extern void *__aeabi_atexit;
+
+extern void *__aeabi_dcmplt;
+extern void *__aeabi_dmul;
+extern void *__aeabi_dsub;
+extern void *__aeabi_idiv;
+extern void *__aeabi_idivmod;
+extern void *__aeabi_l2d;
+extern void *__aeabi_l2f;
+extern void *__aeabi_ldivmod;
+extern void *__aeabi_ui2d;
+extern void *__aeabi_uidiv;
+extern void *__aeabi_uidivmod;
+extern void *__aeabi_ul2d;
+extern void *__aeabi_ul2f;
+extern void *__aeabi_uldivmod;
+
+// extern void *__assert2;
+// extern void *__errno;
+
+extern void *__isfinitef;
+
+extern void *__stack_chk_fail;
+extern void *__stack_chk_guard;
 
 static const short _C_toupper_[] = {
   -1,
@@ -662,61 +637,6 @@ int EnterGameFromSCFunc = 0;
 int SigningOutfromApp = 0;
 
 int __stack_chk_guard_fake = 0x42424242;
-
-void glCompressedTexImage2DHook(GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLint border, GLsizei imageSize, const void * data) {
-	if (!level) {
-		glCompressedTexImage2D(target, level, internalformat, width, height, border, imageSize, data);
-	}
-}
-
-void glTexImage2DHook(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const void * data) {
-	if (!level) {
-		glTexImage2D(target, level, internalformat, width, height, border, format, type, data);
-	}
-}
-
-void glFramebufferTexture2DHook(GLenum target, GLenum attachment, GLenum textarget, GLuint tex_id, GLint level) {
-	if (attachment == GL_COLOR_ATTACHMENT0) {
-		if (glCheckFramebufferStatus(target) == GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT)
-			glFramebufferTexture2D(target, attachment, textarget, tex_id, level);
-	}
-}
-
-void glDeleteFramebuffersHook(GLsizei n, GLuint *framebuffers) {}
-
-void glGetProgramiv(GLuint program, GLenum pname, GLint *params) {
-	//debugPrintf("glGetProgramiv pname: 0x%X\n", pname);
-	if (pname == GL_INFO_LOG_LENGTH)
-		*params = 0;
-	else
-		*params = GL_TRUE;
-}
-
-void glBindRenderbuffer(GLenum target, GLuint renderbuffer) {}
-void glDeleteRenderbuffers(GLsizei n, const GLuint *renderbuffers) {}
-void glGenRenderbuffers(GLsizei n, GLuint * renderbuffers) {}
-void glFramebufferRenderbuffer(GLenum target, GLenum attachment, GLenum renderbuffertarget, GLuint renderbuffer) {}
-void glRenderbufferStorage(GLenum target, GLenum internalformat, GLsizei width, GLsizei height) {}
-void glGetProgramInfoLog(GLuint program, GLsizei maxLength, GLsizei *length, GLchar *infoLog) {
-	if (length) *length = 0;
-}
-
-#define GL_MAX_VERTEX_UNIFORM_VECTORS 0x8DFB
-void glGetIntegervHook(GLenum pname, GLint *data) {
-  //debugPrintf("glGetIntegerv pname: 0x%X\n", pname);
-  glGetIntegerv(pname, data);
-  if (pname == GL_MAX_VERTEX_UNIFORM_VECTORS)
-    *data = (63 * 3) + 32; // piglet hardcodes 128! this sets RQMaxBones=63
-  else if (pname == 0x8B82)
-    *data = GL_TRUE;
-  else if (pname == GL_DRAW_FRAMEBUFFER_BINDING)
-	*data = 0;
-}
-
-typedef struct {
-  char *symbol;
-  uintptr_t func;
-} DynLibFunction;
 
 DynLibFunction dynlib_functions[] = {
   { "_Znwj", (uintptr_t)&_Znwj },
@@ -927,7 +847,7 @@ DynLibFunction dynlib_functions[] = {
   // { "setjmp", (uintptr_t)&setjmp },
 
   { "memcmp", (uintptr_t)&memcmp },
-  { "memcpy", (uintptr_t)&memcpy_neon },
+  { "memcpy", (uintptr_t)&memcpy },
   { "memmove", (uintptr_t)&memmove },
   { "memset", (uintptr_t)&memset },
 
@@ -989,9 +909,7 @@ DynLibFunction dynlib_functions[] = {
   { "usleep", (uintptr_t)&usleep },
 };
 
-#define ALIGN_MEM(x, align) (((x) + ((align) - 1)) & ~((align) - 1))
-
-int main() {
+int main(int argc, char *argv[]) {
   sceCtrlSetSamplingModeExt(SCE_CTRL_MODE_ANALOG_WIDE);
   sceTouchSetSamplingState(SCE_TOUCH_PORT_FRONT, SCE_TOUCH_SAMPLING_STATE_START);
   scePowerSetArmClockFrequency(444);
@@ -999,155 +917,26 @@ int main() {
   scePowerSetGpuClockFrequency(222);
   scePowerSetGpuXbarClockFrequency(166);
 
-  void *so_data, *prog_data;
-  SceUID so_blockid, prog_blockid;
+  so_load(SO_PATH);
+  so_resolve(dynlib_functions, sizeof(dynlib_functions) / sizeof(DynLibFunction));
 
-  so_blockid = load_file("ux0:data/gtasa/libGTASA.so", &so_data);
-
-  Elf32_Ehdr *elf_hdr = (Elf32_Ehdr *)so_data;
-  Elf32_Phdr *prog_hdrs = (Elf32_Phdr *)((uintptr_t)so_data + elf_hdr->e_phoff);
-  Elf32_Shdr *sec_hdrs = (Elf32_Shdr *)((uintptr_t)so_data + elf_hdr->e_shoff);
-
-  prog_data = (void *)0x98000000;
-
-  for (int i = 0; i < elf_hdr->e_phnum; i++) {
-    if (prog_hdrs[i].p_type == PT_LOAD) {
-      uint32_t prog_size = ALIGN_MEM(prog_hdrs[i].p_memsz, prog_hdrs[i].p_align);
-
-      if ((prog_hdrs[i].p_flags & PF_X) == PF_X) {
-        SceKernelAllocMemBlockKernelOpt opt;
-        memset(&opt, 0, sizeof(SceKernelAllocMemBlockKernelOpt));
-        opt.size = sizeof(SceKernelAllocMemBlockKernelOpt);
-        opt.attr = 0x1;
-        opt.field_C = (SceUInt32)(prog_data);
-        prog_blockid = kuKernelAllocMemBlock("rx_block", SCE_KERNEL_MEMBLOCK_TYPE_USER_RX, prog_size, &opt);
-
-        sceKernelGetMemBlockBase(prog_blockid, &prog_data);
-
-        prog_hdrs[i].p_vaddr += (Elf32_Addr)prog_data;
-
-        text_base = (void *)prog_hdrs[i].p_vaddr;
-        text_size = prog_size;
-      } else {
-        SceKernelAllocMemBlockKernelOpt opt;
-        memset(&opt, 0, sizeof(SceKernelAllocMemBlockKernelOpt));
-        opt.size = sizeof(SceKernelAllocMemBlockKernelOpt);
-        opt.attr = 0x1;
-        opt.field_C = (SceUInt32)(text_base + text_size);
-        prog_blockid = kuKernelAllocMemBlock("rw_block", SCE_KERNEL_MEMBLOCK_TYPE_USER_RW, prog_size, &opt);
-
-        sceKernelGetMemBlockBase(prog_blockid, &prog_data);
-
-        prog_hdrs[i].p_vaddr += (Elf32_Addr)text_base;
-
-        data_base = (void *)prog_hdrs[i].p_vaddr;
-        data_size = prog_size;
-      }
-
-      char *zero = malloc(prog_size);
-      memset(zero, 0, prog_size);
-      kuKernelCpuUnrestrictedMemcpy(prog_data, zero, prog_size);
-      free(zero);
-
-      kuKernelCpuUnrestrictedMemcpy((void *)prog_hdrs[i].p_vaddr, (void *)((uintptr_t)so_data + prog_hdrs[i].p_offset), prog_hdrs[i].p_filesz);
-    }
-  }
-
-  char *shstrtab = (char *)((uintptr_t)so_data + sec_hdrs[elf_hdr->e_shstrndx].sh_offset);
-
-  int dynsyn_idx = -1;
-
-  for (int i = 0; i < elf_hdr->e_shnum; i++) {
-    char *sh_name = shstrtab + sec_hdrs[i].sh_name;
-
-    if (strcmp(sh_name, ".dynsym") == 0) {
-      dynsyn_idx = i;
-      syms = (Elf32_Sym *)((uintptr_t)text_base + sec_hdrs[dynsyn_idx].sh_addr);
-      n_syms = sec_hdrs[dynsyn_idx].sh_size / sizeof(Elf32_Sym);
-    } else if (strcmp(sh_name, ".dynstr") == 0) {
-      dynstrtab = (char *)((uintptr_t)text_base + sec_hdrs[i].sh_addr);
-    } else if (strcmp(sh_name, ".rel.dyn") == 0 || strcmp(sh_name, ".rel.plt") == 0) {
-      Elf32_Rel *rels = (Elf32_Rel *)((uintptr_t)text_base + sec_hdrs[i].sh_addr);
-      int n_rels = sec_hdrs[i].sh_size / sizeof(Elf32_Rel);
-
-      for (int j = 0; j < n_rels; j++) {
-        uint32_t *ptr = (uint32_t *)(text_base + rels[j].r_offset);
-        int sym_idx = ELF32_R_SYM(rels[j].r_info);
-        Elf32_Sym *sym = &syms[sym_idx];
-
-        switch (ELF32_R_TYPE(rels[j].r_info)) {
-          case R_ARM_ABS32:
-          {
-            *ptr = (uintptr_t)text_base + sym->st_value;
-            break;
-          }
-
-          case R_ARM_RELATIVE:
-          {
-            *ptr += (uintptr_t)text_base;
-            break;
-          }
-
-          case R_ARM_GLOB_DAT:
-          case R_ARM_JUMP_SLOT:
-          {
-            if (sym->st_shndx != SHN_UNDEF) {
-              *ptr = (uintptr_t)text_base + sym->st_value;
-              break;
-            }
-
-            // make it crash for debugging
-            *ptr = rels[j].r_offset;
-
-            char *name = dynstrtab + sym->st_name;
-
-            for (int k = 0; k < sizeof(dynlib_functions) / sizeof(DynLibFunction); k++) {
-              if (strcmp(name, dynlib_functions[k].symbol) == 0) {
-                *ptr = dynlib_functions[k].func;
-                break;
-              }
-            }
-
-            break;
-          }
-
-          default:
-            debugPrintf("Unknown relocation type: %x\n", ELF32_R_TYPE(rels[j].r_info));
-            break;
-        }
-      }
-    }
-  }
-
+  vglSetupRuntimeShaderCompiler(SHARK_OPT_UNSAFE, SHARK_ENABLE, SHARK_ENABLE, SHARK_ENABLE);
   vglInitExtended(960, 544, 0x1000000, SCE_GXM_MULTISAMPLE_4X);
   vglUseVram(GL_TRUE);
 
   openal_patch();
   opengl_patch();
-  functions_patch();
+  game_patch();
+  so_flush_caches();
 
-  kuFlushIcache(text_base, text_size);
+  so_excute_init();
+  so_free_temp();
 
-  for (int i = 0; i < elf_hdr->e_shnum; i++) {
-    char *sh_name = shstrtab + sec_hdrs[i].sh_name;
+  strcpy((char *)so_find_addr("StorageRootBuffer"), STORAGE_ROOT_BUFFER);
+  *(uintptr_t *)so_find_addr("IsAndroidPaused") = 0; // it's 1 by default
+  *(uintptr_t *)so_find_addr("DoInitGraphics") = 1;
 
-    if (strcmp(sh_name, ".init_array") == 0) {
-      int (** init_array)() = (void *)((uintptr_t)text_base + sec_hdrs[i].sh_addr);
-      int n_array = sec_hdrs[i].sh_size / 4;
-      for (int j = 0; j < n_array; j++) {
-        if (init_array[j] != 0)
-          init_array[j]();
-      }
-    }
-  }
-
-  sceKernelFreeMemBlock(so_blockid);
-
-  strcpy((char *)find_addr_by_symbol("StorageRootBuffer"), "ux0:data/gtasa");
-  *(uint32_t *)find_addr_by_symbol("IsAndroidPaused") = 0; // it's 1 by default
-  *(uint32_t *)find_addr_by_symbol("DoInitGraphics") = 1;
-
-  int (* NVEventAppMain)(int argc, char *argv[]) = (void *)find_addr_by_symbol("_Z14NVEventAppMainiPPc");
+  int (* NVEventAppMain)(int argc, char *argv[]) = (void *)so_find_addr("_Z14NVEventAppMainiPPc");
   NVEventAppMain(0, NULL);
 
   return 0;

@@ -4,13 +4,10 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "main.h"
+#include "so_util.h"
+
 #include "config.h"
-
-uintptr_t find_addr_by_symbol(char *symbol);
-void hook_thumb(uintptr_t addr, uintptr_t dst);
-
-static char pxlbuf[8192];
-static char vtxbuf[8192];
 
 typedef struct {
   // Checks for GL_OES_depth24
@@ -46,6 +43,9 @@ typedef struct {
 
 static RQCapabilities *RQCaps;
 static int *RQMaxBones;
+
+static char pxlbuf[8192];
+static char vtxbuf[8192];
 
 int (* GetMobileEffectSetting)();
 int OS_SystemChip();
@@ -505,8 +505,6 @@ char **pxlbuf_orig, **vtxbuf_orig;
 
 int counter = 0;
 
-int debugPrintf(char *text, ...);
-
 void OutputShaderCode(const char *a1)
 {
   const char *v1; // r6
@@ -742,25 +740,23 @@ void main(
 }
 )";
 
-extern void *text_base;
-
-void opengl_patch() {
+void opengl_patch(void) {
   pxlbuf_orig = (char **)(text_base + 0x005D6B74);
   vtxbuf_orig = (char **)(text_base + 0x005D8B78);
 
-  _Z16BuildPixelSourcej = (void *)find_addr_by_symbol("_Z16BuildPixelSourcej");
-  _Z17BuildVertexSourcej = (void *)find_addr_by_symbol("_Z17BuildVertexSourcej");
-  _Z16OutputShaderCodePKc = (void *)find_addr_by_symbol("_Z16OutputShaderCodePKc");
+  _Z16BuildPixelSourcej = (void *)so_find_addr("_Z16BuildPixelSourcej");
+  _Z17BuildVertexSourcej = (void *)so_find_addr("_Z17BuildVertexSourcej");
+  _Z16OutputShaderCodePKc = (void *)so_find_addr("_Z16OutputShaderCodePKc");
 
-  *(char **)find_addr_by_symbol("shadowResolvePShader") = shadowResolvePShader;
-  *(char **)find_addr_by_symbol("blurPShader") = blurPShader;
-  *(char **)find_addr_by_symbol("gradingPShader") = gradingPShader;
-  *(char **)find_addr_by_symbol("contrastPShader") = contrastPShader;
-  *(char **)find_addr_by_symbol("contrastVShader") = contrastVShader;
+  *(char **)so_find_addr("shadowResolvePShader") = shadowResolvePShader;
+  *(char **)so_find_addr("blurPShader") = blurPShader;
+  *(char **)so_find_addr("gradingPShader") = gradingPShader;
+  *(char **)so_find_addr("contrastPShader") = contrastPShader;
+  *(char **)so_find_addr("contrastVShader") = contrastVShader;
 
-  GetMobileEffectSetting = (void *)find_addr_by_symbol("_Z22GetMobileEffectSettingv");
+  GetMobileEffectSetting = (void *)so_find_addr("_Z22GetMobileEffectSettingv");
 
-  RQCaps = (RQCapabilities *)find_addr_by_symbol("RQCaps");
-  RQMaxBones = (int *)find_addr_by_symbol("RQMaxBones");
-  hook_thumb(find_addr_by_symbol("_ZN8RQShader11BuildSourceEjPPKcS2_"), (uintptr_t)BuildSource);
+  RQCaps = (RQCapabilities *)so_find_addr("RQCaps");
+  RQMaxBones = (int *)so_find_addr("RQMaxBones");
+  hook_thumb(so_find_addr("_ZN8RQShader11BuildSourceEjPPKcS2_"), (uintptr_t)BuildSource);
 }
