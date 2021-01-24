@@ -412,9 +412,7 @@ void *OS_ThreadLaunch(int (* func)(), void *arg, int r2, char *name, int r4, int
 }
 
 void NVEventEGLSwapBuffers() {
-  vglStopRendering(GL_TRUE);
-  glBindFramebuffer(GL_FRAMEBUFFER, 0);
-  vglStartRendering();
+  vglSwapBuffers();
 }
 
 void NVEventEGLMakeCurrent() {
@@ -671,31 +669,16 @@ void glCompressedTexImage2DHook(GLenum target, GLint level, GLenum internalforma
 	}
 }
 
-static GLint tex_to_kill;
-static GLboolean kill_rendering;
 void glTexImage2DHook(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const void * data) {
 	if (!level) {
-		if (width == 960 && height == 544) glGetIntegerv(GL_TEXTURE_BINDING_2D, &tex_to_kill);
-		else glTexImage2D(target, level, internalformat, width, height, border, format, type, data);
+		glTexImage2D(target, level, internalformat, width, height, border, format, type, data);
 	}
-}
-
-void glBindTextureHook(GLenum target, GLuint texture) {
-	kill_rendering = tex_to_kill == texture;
-	glBindTexture(target, texture);
-}
-
-void glDrawArraysHook(GLenum mode, GLint first, GLsizei count) {
-	if (!kill_rendering) glDrawArrays(mode, first, count);
-}
-
-void glHintHook(GLenum target, GLenum mode) {
-	glHint(target, GL_FASTEST);
 }
 
 void glFramebufferTexture2DHook(GLenum target, GLenum attachment, GLenum textarget, GLuint tex_id, GLint level) {
 	if (attachment == GL_COLOR_ATTACHMENT0) {
-		glFramebufferTexture2D(target, attachment, textarget, tex_id, level);
+		if (glCheckFramebufferStatus(target) == GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT)
+			glFramebufferTexture2D(target, attachment, textarget, tex_id, level);
 	}
 }
 
@@ -726,6 +709,8 @@ void glGetIntegervHook(GLenum pname, GLint *data) {
     *data = (63 * 3) + 32; // piglet hardcodes 128! this sets RQMaxBones=63
   else if (pname == 0x8B82)
     *data = GL_TRUE;
+  else if (pname == GL_DRAW_FRAMEBUFFER_BINDING)
+	*data = 0;
 }
 
 typedef struct {
@@ -871,7 +856,7 @@ DynLibFunction dynlib_functions[] = {
   { "glBindBuffer", (uintptr_t)&glBindBuffer },
   { "glBindFramebuffer", (uintptr_t)&glBindFramebuffer },
   { "glBindRenderbuffer", (uintptr_t)&glBindRenderbuffer },
-  { "glBindTexture", (uintptr_t)&glBindTextureHook },
+  { "glBindTexture", (uintptr_t)&glBindTexture },
   { "glBlendFunc", (uintptr_t)&glBlendFunc },
   { "glBlendFuncSeparate", (uintptr_t)&glBlendFuncSeparate },
   { "glBufferData", (uintptr_t)&glBufferData },
@@ -886,7 +871,7 @@ DynLibFunction dynlib_functions[] = {
   { "glCreateShader", (uintptr_t)&glCreateShader },
   { "glCullFace", (uintptr_t)&glCullFace },
   { "glDeleteBuffers", (uintptr_t)&glDeleteBuffers },
-  { "glDeleteFramebuffers", (uintptr_t)&glDeleteFramebuffersHook },
+  { "glDeleteFramebuffers", (uintptr_t)&glDeleteFramebuffers },
   { "glDeleteProgram", (uintptr_t)&glDeleteProgram },
   { "glDeleteRenderbuffers", (uintptr_t)&glDeleteRenderbuffers },
   { "glDeleteShader", (uintptr_t)&glDeleteShader },
@@ -895,7 +880,7 @@ DynLibFunction dynlib_functions[] = {
   { "glDepthMask", (uintptr_t)&glDepthMask },
   { "glDisable", (uintptr_t)&glDisable },
   { "glDisableVertexAttribArray", (uintptr_t)&glDisableVertexAttribArray },
-  { "glDrawArrays", (uintptr_t)&glDrawArraysHook },
+  { "glDrawArrays", (uintptr_t)&glDrawArrays },
   { "glDrawElements", (uintptr_t)&glDrawElements },
   { "glEnable", (uintptr_t)&glEnable },
   { "glEnableVertexAttribArray", (uintptr_t)&glEnableVertexAttribArray },
@@ -915,7 +900,7 @@ DynLibFunction dynlib_functions[] = {
   { "glGetShaderiv", (uintptr_t)&glGetShaderiv },
   { "glGetString", (uintptr_t)&glGetString },
   { "glGetUniformLocation", (uintptr_t)&glGetUniformLocation },
-  { "glHint", (uintptr_t)&glHintHook },
+  { "glHint", (uintptr_t)&glHint },
   { "glLinkProgram", (uintptr_t)&glLinkProgram },
   { "glPolygonOffset", (uintptr_t)&glPolygonOffset },
   { "glReadPixels", (uintptr_t)&glReadPixels },
@@ -1134,9 +1119,8 @@ int main() {
     }
   }
 
-  vglInitExtended(960, 544, 0x200000, SCE_GXM_MULTISAMPLE_4X);
+  vglInitExtended(960, 544, 0x1000000, SCE_GXM_MULTISAMPLE_4X);
   vglUseVram(GL_TRUE);
-  vglStartRendering();
 
   openal_patch();
   opengl_patch();
