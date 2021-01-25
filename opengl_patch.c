@@ -612,7 +612,7 @@ half4 main(
   uniform sampler2D Diffuse,
   uniform half4 RedGrade
 ){
-  half4 color = tex2D(Diffuse, half2(Out_Tex0.x, 1.0-Out_Tex0.y)); // We invert Y due to vitaGL having flipped fbos in mem
+  half4 color = tex2D(Diffuse, Out_Tex0);
   half4 gl_FragColor = half4(0, 0, 0, (1.0 - color.x) * RedGrade.a);
   return gl_FragColor;
 }
@@ -645,12 +645,12 @@ half4 main(
   uniform half4 GreenGrade,
   uniform half4 BlueGrade
 ){
-  half4 color = tex2D(Diffuse, half2(Out_Tex0.x, 1.0-Out_Tex0.y)) * 0.25; // We invert Y due to vitaGL having flipped fbos in mem
+  half4 color = tex2D(Diffuse, Out_Tex0) * 0.25;
   half2 dist = half2(0.001, 0.001) * Out_Z;
-  color += tex2D(Diffuse, half2(Out_Tex0.x, 1.0-Out_Tex0.y) + dist) * 0.175;
-  color += tex2D(Diffuse, half2(Out_Tex0.x, 1.0-Out_Tex0.y) - dist) * 0.175;
-  color += tex2D(Diffuse, half2(Out_Tex0.x, 1.0-Out_Tex0.y) + half2(dist.x, -dist.y)) * 0.2;
-  color += tex2D(Diffuse, half2(Out_Tex0.x, 1.0-Out_Tex0.y) + half2(-dist.x, dist.y)) * 0.2;
+  color += tex2D(Diffuse, Out_Tex0 + dist) * 0.175;
+  color += tex2D(Diffuse, Out_Tex0 - dist) * 0.175;
+  color += tex2D(Diffuse, Out_Tex0 + half2(dist.x, -dist.y)) * 0.2;
+  color += tex2D(Diffuse, Out_Tex0 + half2(-dist.x, dist.y)) * 0.2;
   half4 gl_FragColor;
   gl_FragColor.x = dot(color, RedGrade);
   gl_FragColor.y = dot(color, GreenGrade);
@@ -680,7 +680,7 @@ half4 main(
   uniform half4 GreenGrade,
   uniform half4 BlueGrade
 ){
-  half4 color = tex2D(Diffuse, half2(Out_Tex0.x, 1.0-Out_Tex0.y)); // We invert Y due to vitaGL having flipped fbos in mem
+  half4 color = tex2D(Diffuse, Out_Tex0);
   half4 gl_FragColor;
   gl_FragColor.x = dot(color, RedGrade);
   gl_FragColor.y = dot(color, GreenGrade);
@@ -705,7 +705,7 @@ half4 main(
   uniform half3 ContrastMult,
   uniform half3 ContrastAdd
 ){
-  half4 gl_FragColor = tex2D(Diffuse, half2(Out_Tex0.x, 1.0-Out_Tex0.y)); // We invert Y due to vitaGL having flipped fbos in mem
+  half4 gl_FragColor = tex2D(Diffuse, Out_Tex0);
   gl_FragColor.xyz = gl_FragColor.xyz * ContrastMult + ContrastAdd;
   return gl_FragColor;
 }

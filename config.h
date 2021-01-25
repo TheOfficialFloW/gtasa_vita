@@ -7,12 +7,14 @@
 
 #define DATA_PATH "ux0:data/gtasa"
 #define SO_PATH DATA_PATH "/" "libGTASA.so"
+#define SHADER_CACHE_PATH  DATA_PATH "/" "cache"
 
 #define SCREEN_W 960
 #define SCREEN_H 544
 
+#define ENABLE_SHADER_CACHE
 #define DISABLE_SPEC_AMT
-#define DISABLE_ALPHA_TESTING
+// #define DISABLE_ALPHA_TESTING
 #define SLOW_GPU
 
 #endif

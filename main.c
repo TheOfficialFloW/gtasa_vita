@@ -37,6 +37,7 @@
 #include "so_util.h"
 #include "openal_patch.h"
 #include "opengl_patch.h"
+#include "sha1.h"
 
 int _newlib_heap_size_user = MEMORY_MB * 1024 * 1024;
 
@@ -380,8 +381,8 @@ NameToMethodID name_to_method_ids[] = {
   { "GetGamepadAxis", GET_GAMEPAD_AXIS },
 };
 
-int NVThreadGetCurrentJNIEnv() {
-  return 0x1337;
+void *NVThreadGetCurrentJNIEnv(void) {
+  return (void *)0x1337;
 }
 
 int CallBooleanMethod(void *env, void *obj, int methodID, int a0, int a1, int a2) {
@@ -465,7 +466,7 @@ int GetEnvFake(void *vm, void **env, int r2) {
   return 0;
 }
 
-void Launch() {
+void launch_game(void) {
   strcpy((char *)so_find_addr("StorageRootBuffer"), "ux0:data/gtasa");
   *(int *)so_find_addr("IsAndroidPaused") = 0; // it's 1 by default
 
@@ -579,6 +580,64 @@ void glGetIntegervHook(GLenum pname, GLint *data) {
     *data = 0;
 }
 
+void glShaderSourceHook(GLuint shader, GLsizei count, const GLchar **string, const GLint *length) {
+#ifdef ENABLE_SHADER_CACHE
+  if (string) {
+    uint32_t sha1[5];
+    SHA1_CTX ctx;
+
+    sha1_init(&ctx);
+    sha1_update(&ctx, (uint8_t *)*string, *length);
+    sha1_final(&ctx, (uint8_t *)sha1);
+
+    char path[1024];
+    snprintf(path, sizeof(path), "%s/%08x%08x%08x%08x%08x.gxp", SHADER_CACHE_PATH, sha1[0], sha1[1], sha1[2], sha1[3], sha1[4]);
+
+    size_t shaderSize = 0;
+    void *shaderBuf = NULL;
+
+    SceUID fd = sceIoOpen(path, SCE_O_RDONLY, 0);
+    if (fd >= 0) {
+      shaderSize = sceIoLseek(fd, 0, SCE_SEEK_END);
+      sceIoLseek(fd, 0, SCE_SEEK_SET);
+
+      shaderBuf = malloc(shaderSize);
+      sceIoRead(fd, shaderBuf, shaderSize);
+      sceIoClose(fd);
+
+      glShaderBinary(1, &shader, 0, shaderBuf, shaderSize);
+      free(shaderBuf);
+    } else {
+      shaderSize = *length;
+
+      GLint type;
+      glGetShaderiv(shader, GL_SHADER_TYPE, &type);
+      shark_type sharkType = type == GL_FRAGMENT_SHADER ? SHARK_FRAGMENT_SHADER : SHARK_VERTEX_SHADER;
+      shaderBuf = shark_compile_shader_extended(*string, &shaderSize, sharkType, SHARK_OPT_UNSAFE, SHARK_ENABLE, SHARK_ENABLE, SHARK_ENABLE);
+
+      glShaderBinary(1, &shader, 0, shaderBuf, shaderSize);
+
+      fd = sceIoOpen(path, SCE_O_WRONLY | SCE_O_CREAT | SCE_O_TRUNC, 0777);
+      if (fd >= 0) {
+        sceIoWrite(fd, shaderBuf, shaderSize);
+        sceIoClose(fd);
+      }
+
+      shark_clear_output();
+    }
+    return;
+  }
+#endif
+
+  glShaderSource(shader, count, string, length);
+}
+
+void glCompileShaderHook(GLuint shader) {
+#ifndef ENABLE_SHADER_CACHE
+  glCompileShader(shader);
+#endif
+}
+
 extern void *_ZdaPv;
 extern void *_ZdlPv;
 extern void *_Znaj;
@@ -688,6 +747,8 @@ static DynLibFunction dynlib_functions[] = {
   { "GetRockstarID", (uintptr_t)&GetRockstarID },
   { "SigningOutfromApp", (uintptr_t)&SigningOutfromApp },
   { "hasTouchScreen", (uintptr_t)&hasTouchScreen },
+  { "_Z15EnterSocialCLubv", (uintptr_t)ret0 },
+  { "_Z12IsSCSignedInv", (uintptr_t)ret0 },
 
   { "pthread_cond_init", (uintptr_t)&ret0 },
   { "pthread_create", (uintptr_t)&pthread_create_fake },
@@ -800,7 +861,7 @@ static DynLibFunction dynlib_functions[] = {
   { "glClearColor", (uintptr_t)&glClearColor },
   { "glClearDepthf", (uintptr_t)&glClearDepthf },
   { "glClearStencil", (uintptr_t)&glClearStencil },
-  { "glCompileShader", (uintptr_t)&glCompileShader },
+  { "glCompileShader", (uintptr_t)&glCompileShaderHook },
   { "glCompressedTexImage2D", (uintptr_t)&glCompressedTexImage2D },
   { "glCreateProgram", (uintptr_t)&glCreateProgram },
   { "glCreateShader", (uintptr_t)&glCreateShader },
@@ -841,7 +902,7 @@ static DynLibFunction dynlib_functions[] = {
   { "glReadPixels", (uintptr_t)&glReadPixels },
   { "glRenderbufferStorage", (uintptr_t)&ret0 },
   { "glScissor", (uintptr_t)&glScissor },
-  { "glShaderSource", (uintptr_t)&glShaderSource },
+  { "glShaderSource", (uintptr_t)&glShaderSourceHook },
   { "glTexImage2D", (uintptr_t)&glTexImage2DHook },
   { "glTexParameterf", (uintptr_t)&glTexParameterf },
   { "glTexParameteri", (uintptr_t)&glTexParameteri },
@@ -920,6 +981,10 @@ int main(int argc, char *argv[]) {
   scePowerSetGpuClockFrequency(222);
   scePowerSetGpuXbarClockFrequency(166);
 
+#ifdef ENABLE_SHADER_CACHE
+  sceIoMkdir(SHADER_CACHE_PATH, 0777);
+#endif
+
   stderr_fake = stderr;
 
   so_load(SO_PATH);
@@ -937,7 +1002,7 @@ int main(int argc, char *argv[]) {
   vglInitExtended(SCREEN_W, SCREEN_H, 0x1000000, SCE_GXM_MULTISAMPLE_4X);
   vglUseVram(GL_TRUE);
 
-  Launch();
+  launch_game();
 
   return 0;
 }

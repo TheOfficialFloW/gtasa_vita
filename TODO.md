@@ -1,5 +1,4 @@
 TODO:
-- Fix compressed textures
 - Fix mip map
 - Implement touch
 - Use math neon
