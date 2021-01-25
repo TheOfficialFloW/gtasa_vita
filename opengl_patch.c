@@ -290,7 +290,7 @@ void BuildVertexSource(int flags) {
   }
 
   if (flags & FLAG_LIGHTING) {
-    VTX_EMIT("float3 Out_LightingColor;");
+    VTX_EMIT("half3 Out_LightingColor;");
     if (flags & FLAG_COLOR_EMISSIVE) {
       if (flags & FLAG_CAMERA_BASED_NORMALS)
         VTX_EMIT("Out_LightingColor = AmbientLightColor * MaterialAmbient.xyz * 1.5;");
@@ -315,9 +315,9 @@ void BuildVertexSource(int flags) {
 
     if (flags & (FLAG_COLOR | FLAG_LIGHTING)) {
       if (flags & FLAG_COLOR)
-        VTX_EMIT("Out_Color = float4((Out_LightingColor.xyz + %s.xyz * 1.5) * MaterialDiffuse.xyz, (MaterialAmbient.w) * %s.w);", arg, arg);
+        VTX_EMIT("Out_Color = half4((Out_LightingColor.xyz + %s.xyz * 1.5) * MaterialDiffuse.xyz, (MaterialAmbient.w) * %s.w);", arg, arg);
       else
-        VTX_EMIT("Out_Color = float4(Out_LightingColor * MaterialDiffuse.xyz, MaterialAmbient.w * %s.w);", arg);
+        VTX_EMIT("Out_Color = half4(Out_LightingColor * MaterialDiffuse.xyz, MaterialAmbient.w * %s.w);", arg);
       VTX_EMIT("Out_Color = clamp(Out_Color, 0.0, 1.0);");
     }
   } else {
@@ -328,12 +328,12 @@ void BuildVertexSource(int flags) {
 #ifndef DISABLE_SPEC_AMT
   if (!RQCaps->unk_08 && (flags & FLAG_LIGHT1)) {
     if (flags & (FLAG_TEX1 | FLAG_REFL_OUT)) {
-      VTX_EMIT("float specAmt = max(pow(dot(reflVector, DirLightDirection), %.1f), 0.0) * EnvMapCoefficient * 2.0;", RQCaps->isMaliChip ? 9.0f : 10.0f);
+      VTX_EMIT("half specAmt = max(pow(dot(reflVector, DirLightDirection), %.1f), 0.0) * EnvMapCoefficient * 2.0;", RQCaps->isMaliChip ? 9.0f : 10.0f);
       VTX_EMIT("Out_Spec = specAmt * DirLightDiffuseColor;");
     } else if (flags & (FLAG_BONE3 | FLAG_BONE4)) {
-      VTX_EMIT("float3 reflVector = normalize(WorldPos.xyz - CameraPosition.xyz);");
+      VTX_EMIT("half3 reflVector = normalize(WorldPos.xyz - CameraPosition.xyz);");
       VTX_EMIT("reflVector = reflVector - 2.0 * dot(reflVector, WorldNormal) * WorldNormal;");
-      VTX_EMIT("float specAmt = max(pow(dot(reflVector, DirLightDirection), %.1f), 0.0) * 0.125;", RQCaps->isMaliChip ? 5.0f : 4.0f);
+      VTX_EMIT("half specAmt = max(pow(dot(reflVector, DirLightDirection), %.1f), 0.0) * 0.125;", RQCaps->isMaliChip ? 5.0f : 4.0f);
       VTX_EMIT("Out_Spec = specAmt * DirLightDiffuseColor;");
     }
   }
@@ -351,7 +351,7 @@ void BuildVertexSource(int flags) {
 void BuildPixelSource(int flags) {
   char tmp[512];
 
-  PXL_EMIT("float4 main(");
+  PXL_EMIT("half4 main(");
 
   if (flags & FLAG_TEX0)
     PXL_EMIT("half2 Out_Tex0 : TEXCOORD0,");
@@ -388,7 +388,7 @@ void BuildPixelSource(int flags) {
     PXL_EMIT("uniform half EnvMapCoefficient,");
   } else if (flags & FLAG_ENVMAP) {
     PXL_EMIT("uniform sampler2D EnvMap,");
-    PXL_EMIT("uniform float DetailTiling,");
+    PXL_EMIT("uniform half DetailTiling,");
   }
 
   if (flags & FLAG_FOG)
@@ -405,17 +405,17 @@ void BuildPixelSource(int flags) {
   PXL_EMIT("half4 fcolor;");
   if (flags & FLAG_TEX0) {
     if (flags & FLAG_TEXBIAS)
-      PXL_EMIT("half4 diffuseColor = tex2Dbias(Diffuse, float4(Out_Tex0, 0.0, -1.5));");
+      PXL_EMIT("half4 diffuseColor = tex2Dbias(Diffuse, half4(Out_Tex0, 0.0, -1.5));");
 #ifndef SLOW_GPU
     else if (!RQCaps->isSlowGPU)
-      PXL_EMIT("half4 diffuseColor = tex2Dbias(Diffuse, float4(Out_Tex0, 0.0, -0.5));");
+      PXL_EMIT("half4 diffuseColor = tex2Dbias(Diffuse, half4(Out_Tex0, 0.0, -0.5));");
 #endif
     else
       PXL_EMIT("half4 diffuseColor = tex2D(Diffuse, Out_Tex0);");
 
 #ifndef OPTIMIZE_ALPHA_MODULATION
     if (flags & FLAG_ALPHA_MODULATE)
-      PXL_EMIT("fcolor = float4(diffuseColor.xyz, diffuseColor.w * AlphaModulate);");
+      PXL_EMIT("fcolor = half4(diffuseColor.xyz, diffuseColor.w * AlphaModulate);");
     else
 #endif
       PXL_EMIT("fcolor = diffuseColor;");
@@ -429,11 +429,11 @@ void BuildPixelSource(int flags) {
         PXL_EMIT("fcolor.a += Out_WaterAlphaBlend;");
     } else {
       if (flags & FLAG_WATER) {
-        PXL_EMIT("float waterDetail = tex2Dbias(EnvMap, float4(Out_WaterDetail, 0.0, -1.0)).x + tex2Dbias(EnvMap, float4(Out_WaterDetail2, 0.0, -1.0)).x;");
-        PXL_EMIT("fcolor *= float4(Out_Color.xyz * waterDetail * 1.1, Out_Color.w);");
+        PXL_EMIT("half waterDetail = tex2Dbias(EnvMap, half4(Out_WaterDetail, 0.0, -1.0)).x + tex2Dbias(EnvMap, half4(Out_WaterDetail2, 0.0, -1.0)).x;");
+        PXL_EMIT("fcolor *= half4(Out_Color.xyz * waterDetail * 1.1, Out_Color.w);");
         PXL_EMIT("fcolor.a += Out_WaterAlphaBlend;");
       } else {
-        PXL_EMIT("fcolor *= float4(Out_Color.xyz * tex2Dbias(EnvMap, float4(Out_Tex0.xy * DetailTiling, 0.0, -0.5)).xyz * 2.0, Out_Color.w);");
+        PXL_EMIT("fcolor *= half4(Out_Color.xyz * tex2Dbias(EnvMap, half4(Out_Tex0.xy * DetailTiling, 0.0, -0.5)).xyz * 2.0, Out_Color.w);");
       }
     }
   } else {
@@ -452,8 +452,8 @@ void BuildPixelSource(int flags) {
     PXL_EMIT("fcolor.xyz = lerp(fcolor.xyz, tex2D(EnvMap, Out_Tex1).xyz, EnvMapCoefficient);");
 
   if (flags & FLAG_REFL_OUT) {
-    PXL_EMIT("float2 ReflPos = normalize(Out_Refl.xy) * (Out_Refl.z * 0.5 + 0.5);");
-    PXL_EMIT("ReflPos = (ReflPos * float2(0.5, 0.5)) + float2(0.5, 0.5);");
+    PXL_EMIT("half2 ReflPos = normalize(Out_Refl.xy) * (Out_Refl.z * 0.5 + 0.5);");
+    PXL_EMIT("ReflPos = (ReflPos * half2(0.5, 0.5)) + half2(0.5, 0.5);");
     PXL_EMIT("half4 ReflTexture = tex2D(EnvMap, ReflPos);");
     PXL_EMIT("fcolor.xyz = lerp(fcolor.xyz, ReflTexture.xyz, EnvMapCoefficient);");
     PXL_EMIT("fcolor.w += ReflTexture.b * 0.125;");
@@ -471,7 +471,7 @@ void BuildPixelSource(int flags) {
   if (flags & FLAG_GAMMA)
     PXL_EMIT("fcolor.xyz += fcolor.xyz * 0.5;");
 
-  PXL_EMIT("float4 gl_FragColor = fcolor;");
+  PXL_EMIT("half4 gl_FragColor = fcolor;");
 
 #ifndef DISABLE_ALPHA_TESTING
   if (flags & FLAG_ALPHA_TEST) {
@@ -628,13 +628,14 @@ int BuildSource(int flags, char **pxlsrc, char **vtxsrc) {
   // gl_FragColor = vec4(0, 0, 0, (1.0 - color.x) * RedGrade.a);
 // }
 static char *shadowResolvePShader = R"(
-float4 main(
+half4 main(
   half2 Out_Tex0 : TEXCOORD0,
   uniform sampler2D Diffuse,
   uniform half4 RedGrade
 ){
-  float4 color = tex2D(Diffuse, half2(Out_Tex0.x, 1.0-Out_Tex0.y)); // We invert Y due to vitaGL having flipped fbos in mem
-  return half4(0, 0, 0, (1.0 - color.x) * RedGrade.a);
+  half4 color = tex2D(Diffuse, half2(Out_Tex0.x, 1.0-Out_Tex0.y)); // We invert Y due to vitaGL having flipped fbos in mem
+  half4 gl_FragColor = half4(0, 0, 0, (1.0 - color.x) * RedGrade.a);
+  return gl_FragColor;
 }
 )";
 
@@ -657,7 +658,7 @@ float4 main(
   // gl_FragColor.z = dot(color, BlueGrade);
 // }
 static char *blurPShader = R"(
-float4 main(
+half4 main(
   half2 Out_Tex0 : TEXCOORD0,
   half Out_Z : TEXCOORD1,
   uniform sampler2D Diffuse,
@@ -665,13 +666,13 @@ float4 main(
   uniform half4 GreenGrade,
   uniform half4 BlueGrade
 ){
-  float4 color = tex2D(Diffuse, half2(Out_Tex0.x, 1.0-Out_Tex0.y)) * 0.25; // We invert Y due to vitaGL having flipped fbos in mem
+  half4 color = tex2D(Diffuse, half2(Out_Tex0.x, 1.0-Out_Tex0.y)) * 0.25; // We invert Y due to vitaGL having flipped fbos in mem
   half2 dist = half2(0.001, 0.001) * Out_Z;
   color += tex2D(Diffuse, half2(Out_Tex0.x, 1.0-Out_Tex0.y) + dist) * 0.175;
   color += tex2D(Diffuse, half2(Out_Tex0.x, 1.0-Out_Tex0.y) - dist) * 0.175;
   color += tex2D(Diffuse, half2(Out_Tex0.x, 1.0-Out_Tex0.y) + half2(dist.x, -dist.y)) * 0.2;
   color += tex2D(Diffuse, half2(Out_Tex0.x, 1.0-Out_Tex0.y) + half2(-dist.x, dist.y)) * 0.2;
-  float4 gl_FragColor;
+  half4 gl_FragColor;
   gl_FragColor.x = dot(color, RedGrade);
   gl_FragColor.y = dot(color, GreenGrade);
   gl_FragColor.z = dot(color, BlueGrade);
@@ -693,7 +694,7 @@ float4 main(
 // }
 
 static char *gradingPShader = R"(
-float4 main(
+half4 main(
   half2 Out_Tex0 : TEXCOORD0,
   uniform sampler2D Diffuse,
   uniform half4 RedGrade,
@@ -701,7 +702,7 @@ float4 main(
   uniform half4 BlueGrade
 ){
   half4 color = tex2D(Diffuse, half2(Out_Tex0.x, 1.0-Out_Tex0.y)); // We invert Y due to vitaGL having flipped fbos in mem
-  float4 gl_FragColor;
+  half4 gl_FragColor;
   gl_FragColor.x = dot(color, RedGrade);
   gl_FragColor.y = dot(color, GreenGrade);
   gl_FragColor.z = dot(color, BlueGrade);
@@ -719,13 +720,13 @@ float4 main(
   // gl_FragColor.xyz = gl_FragColor.xyz * ContrastMult + ContrastAdd;
 // }
 static char *contrastPShader = R"(
-float4 main(
+half4 main(
   half2 Out_Tex0 : TEXCOORD0,
   uniform sampler2D Diffuse,
   uniform half3 ContrastMult,
   uniform half3 ContrastAdd
 ){
-  float4 gl_FragColor = tex2D(Diffuse, half2(Out_Tex0.x, 1.0-Out_Tex0.y)); // We invert Y due to vitaGL having flipped fbos in mem
+  half4 gl_FragColor = tex2D(Diffuse, half2(Out_Tex0.x, 1.0-Out_Tex0.y)); // We invert Y due to vitaGL having flipped fbos in mem
   gl_FragColor.xyz = gl_FragColor.xyz * ContrastMult + ContrastAdd;
   return gl_FragColor;
 }
