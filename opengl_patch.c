@@ -83,14 +83,14 @@ static int (* GetMobileEffectSetting)();
 #define FLAG_NORMAL               0x2000000
 #define FLAG_GAMMA                0x4000000
 
-#define PXL_EMIT(...)                       \
+#define PXL_EMIT(...)                        \
   do {                                       \
     snprintf(tmp, sizeof(tmp), __VA_ARGS__); \
     strcat(pxlbuf, tmp);                     \
   } while (0)
 
 
-#define VTX_EMIT(...)                       \
+#define VTX_EMIT(...)                        \
   do {                                       \
     snprintf(tmp, sizeof(tmp), __VA_ARGS__); \
     strcat(vtxbuf, tmp);                     \
@@ -184,8 +184,10 @@ void BuildVertexSource(int flags) {
   if (flags & (FLAG_COLOR | FLAG_LIGHTING))
     VTX_EMIT("half4 out Out_Color : COLOR0,");
 
+#ifndef DISABLE_SPEC_AMT
   if ((flags & FLAG_LIGHT1) && (flags & (FLAG_TEX1 | FLAG_REFL_OUT | FLAG_BONE3 | FLAG_BONE4)))
     VTX_EMIT("half3 out Out_Spec : COLOR1,");
+#endif
 
   if (flags & FLAG_FOG)
     VTX_EMIT("half out Out_FogAmt : FOG,");
@@ -227,7 +229,7 @@ void BuildVertexSource(int flags) {
     VTX_EMIT("ReflPos.xy = normalize(ReflPos.xy) * (ReflPos.z * 0.5 + 0.5);");
     VTX_EMIT("gl_Position = float4(ReflPos.xy, length(ReflVector) * 0.002, 1.0);");
   } else {
-#ifdef MVP_OPTIMIZATION
+#ifdef OPTIMIZE_MVP
     // With MVP optimization, ProjMatrix is the MVP matrix.
     if (flags & (FLAG_BONE3 | FLAG_BONE4)) {
       VTX_EMIT("float4 ViewPos = mul(BoneVertex, ProjMatrix);");
@@ -323,25 +325,19 @@ void BuildVertexSource(int flags) {
       VTX_EMIT("Out_Color = %s;", arg);
   }
 
+#ifndef DISABLE_SPEC_AMT
   if (!RQCaps->unk_08 && (flags & FLAG_LIGHT1)) {
     if (flags & (FLAG_TEX1 | FLAG_REFL_OUT)) {
       VTX_EMIT("float specAmt = max(pow(dot(reflVector, DirLightDirection), %.1f), 0.0) * EnvMapCoefficient * 2.0;", RQCaps->isMaliChip ? 9.0f : 10.0f);
-#ifdef DISABLE_SPEC_AMT
-      VTX_EMIT("Out_Spec = 0.0;");
-#else
       VTX_EMIT("Out_Spec = specAmt * DirLightDiffuseColor;");
-#endif
     } else if (flags & (FLAG_BONE3 | FLAG_BONE4)) {
       VTX_EMIT("float3 reflVector = normalize(WorldPos.xyz - CameraPosition.xyz);");
       VTX_EMIT("reflVector = reflVector - 2.0 * dot(reflVector, WorldNormal) * WorldNormal;");
       VTX_EMIT("float specAmt = max(pow(dot(reflVector, DirLightDirection), %.1f), 0.0) * 0.125;", RQCaps->isMaliChip ? 5.0f : 4.0f);
-#ifdef DISABLE_SPEC_AMT
-      VTX_EMIT("Out_Spec = 0.0;");
-#else
       VTX_EMIT("Out_Spec = specAmt * DirLightDiffuseColor;");
-#endif
     }
   }
+#endif
 
   if (flags & FLAG_WATER) {
     VTX_EMIT("Out_WaterDetail = (Out_Tex0 * 4.0) + float2(WaterSpecs.x * -0.3, WaterSpecs.x * 0.21);");
@@ -376,8 +372,10 @@ void BuildPixelSource(int flags) {
   if (flags & (FLAG_COLOR | FLAG_LIGHTING))
     PXL_EMIT("half4 Out_Color : COLOR0,");
 
+#ifndef DISABLE_SPEC_AMT
   if ((flags & FLAG_LIGHT1) && (flags & (FLAG_TEX1 | FLAG_REFL_OUT | FLAG_BONE3 | FLAG_BONE4)))
     PXL_EMIT("half3 Out_Spec : COLOR1,");
+#endif
 
   if (flags & FLAG_FOG)
     PXL_EMIT("half Out_FogAmt : FOG,");
@@ -408,14 +406,14 @@ void BuildPixelSource(int flags) {
   if (flags & FLAG_TEX0) {
     if (flags & FLAG_TEXBIAS)
       PXL_EMIT("half4 diffuseColor = tex2Dbias(Diffuse, float4(Out_Tex0, 0.0, -1.5));");
-#ifdef SLOW_GPU
+#ifndef SLOW_GPU
     else if (!RQCaps->isSlowGPU)
       PXL_EMIT("half4 diffuseColor = tex2Dbias(Diffuse, float4(Out_Tex0, 0.0, -0.5));");
 #endif
     else
       PXL_EMIT("half4 diffuseColor = tex2D(Diffuse, Out_Tex0);");
 
-#ifndef ALPHA_MODULATE_OPTIMIZATION
+#ifndef OPTIMIZE_ALPHA_MODULATION
     if (flags & FLAG_ALPHA_MODULATE)
       PXL_EMIT("fcolor = float4(diffuseColor.xyz, diffuseColor.w * AlphaModulate);");
     else
@@ -444,7 +442,7 @@ void BuildPixelSource(int flags) {
     else
       PXL_EMIT("fcolor = 0.0;");
 
-#ifndef ALPHA_MODULATE_OPTIMIZATION
+#ifndef OPTIMIZE_ALPHA_MODULATION
     if (flags & FLAG_ALPHA_MODULATE)
       PXL_EMIT("fcolor.w *= AlphaModulate;");
 #endif
@@ -462,8 +460,10 @@ void BuildPixelSource(int flags) {
   }
 
   if (!RQCaps->unk_08) {
+#ifndef DISABLE_SPEC_AMT
     if ((flags & FLAG_LIGHT1) && (flags & (FLAG_TEX1 | FLAG_REFL_OUT | FLAG_BONE3 | FLAG_BONE4)))
       PXL_EMIT("fcolor.xyz += Out_Spec;");
+#endif
     if (flags & FLAG_FOG)
       PXL_EMIT("fcolor.xyz = lerp(fcolor.xyz, FogColor, Out_FogAmt);");
   }
@@ -473,6 +473,7 @@ void BuildPixelSource(int flags) {
 
   PXL_EMIT("float4 gl_FragColor = fcolor;");
 
+#ifndef DISABLE_ALPHA_TESTING
   if (flags & FLAG_ALPHA_TEST) {
     PXL_EMIT("/*ATBEGIN*/");
     if ((OS_SystemChip() == 8) && (flags & FLAG_TEX0)) {
@@ -500,8 +501,9 @@ void BuildPixelSource(int flags) {
     }
     PXL_EMIT("/*ATEND*/");
   }
+#endif
 
-#ifdef ALPHA_MODULATE_OPTIMIZATION
+#ifdef OPTIMIZE_ALPHA_MODULATION
   if (flags & FLAG_ALPHA_MODULATE)
     PXL_EMIT("gl_FragColor.a *= AlphaModulate;");
 #endif
@@ -753,7 +755,7 @@ void main(
 }
 )";
 
-void opengl_patch(void) {
+void patch_opengl(void) {
   pxlbuf_orig = (char **)(text_base + 0x005D6B74);
   vtxbuf_orig = (char **)(text_base + 0x005D8B78);
 

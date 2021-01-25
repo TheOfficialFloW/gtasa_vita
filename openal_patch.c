@@ -6,8 +6,6 @@
  * of the MIT license.  See the LICENSE file for details.
  */
 
-#include <stdio.h>
-#include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -17,7 +15,7 @@
 #include "main.h"
 #include "so_util.h"
 
-void openal_patch(void) {
+void patch_openal(void) {
   hook_thumb(so_find_addr("alAuxiliaryEffectSlotf"), (uintptr_t)ret0);
   hook_thumb(so_find_addr("alAuxiliaryEffectSlotfv"), (uintptr_t)ret0);
   hook_thumb(so_find_addr("alAuxiliaryEffectSloti"), (uintptr_t)ret0);

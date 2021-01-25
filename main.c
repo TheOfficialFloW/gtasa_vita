@@ -1,4 +1,4 @@
-/* main.c -- Grant Theft Auto: San Andreas .so loader
+/* main.c -- Grand Theft Auto: San Andreas .so loader
  *
  * Copyright (C) 2021 Andy Nguyen
  *
@@ -37,8 +37,6 @@
 #include "so_util.h"
 #include "openal_patch.h"
 #include "opengl_patch.h"
-
-#define MEMORY_MB 272
 
 int _newlib_heap_size_user = MEMORY_MB * 1024 * 1024;
 
@@ -106,11 +104,11 @@ int AND_DeviceLocale(void) {
 }
 
 int OS_ScreenGetHeight(void) {
-  return 544;
+  return SCREEN_H;
 }
 
 int OS_ScreenGetWidth(void) {
-  return 960;
+  return SCREEN_W;
 }
 
 // 0, 5, 6: XBOX 360
@@ -208,7 +206,7 @@ float WarGamepad_GetGamepadAxis(int axis) {
     }
   }
 
-  if (fabsf(val) > 0.2f)
+  if (fabsf(val) > 0.25f)
     return val;
 
   return 0.0f;
@@ -270,7 +268,7 @@ int sem_destroy_fake(int *uid) {
   return 0;
 }
 
-int thread_stub(SceSize args, int *argp) {
+int thread_stub(SceSize args, uintptr_t *argp) {
   int (* func)(void *arg) = (void *)argp[0];
   void *arg = (void *)argp[1];
   char *out = (char *)argp[2];
@@ -339,7 +337,7 @@ char *OS_FileGetArchiveName(int mode) {
   return out;
 }
 
-#ifdef MVP_OPTIMIZATION
+#ifdef OPTIMIZE_MVP
 
 void
 matmul4_neon(float m0[16], float m1[16], float d[16])
@@ -385,13 +383,18 @@ matmul4_neon(float m0[16], float m1[16], float d[16])
 void *(* GetCurrentProjectionMatrix)();
 
 void SetMatrixConstant(void *ES2Shader, int MatrixConstantID, float *matrix) {
+  float temp[16];
+
   if (MatrixConstantID == 0) { // Projection matrix
     void *MvpMatrix = ES2Shader + 0x4C * 0;
     float *MvpMatrixData = MvpMatrix + 0x2AC;
     float *MvMatrixData = (ES2Shader + 0x4C * 1) + 0x2AC;
-    matmul4_neon(matrix, MvMatrixData, MvpMatrixData);
-    *(uint8_t *)(MvpMatrix + 0x2EC) = 1;
-    *(uint8_t *)(MvpMatrix + 0x2A8) = 1;
+    matmul4_neon(matrix, MvMatrixData, temp);
+    if (memcmp(MvpMatrixData, temp, 16 * 4) != 0) {
+      memcpy(MvpMatrixData, temp, 16 * 4);
+      *(uint8_t *)(MvpMatrix + 0x2EC) = 1;
+      *(uint8_t *)(MvpMatrix + 0x2A8) = 1;
+    }
     return;
   } else if (MatrixConstantID == 1) { // Model view matrix
     float *ProjMatrix = (float *)GetCurrentProjectionMatrix();
@@ -399,9 +402,12 @@ void SetMatrixConstant(void *ES2Shader, int MatrixConstantID, float *matrix) {
     if (((uint8_t *)ProjMatrix)[64] == 0) {
       void *MvpMatrix = ES2Shader + 0x4C * 0;
       float *MvpMatrixData = MvpMatrix + 0x2AC;
-      matmul4_neon(ProjMatrix, matrix, MvpMatrixData);
-      *(uint8_t *)(MvpMatrix + 0x2EC) = 1;
-      *(uint8_t *)(MvpMatrix + 0x2A8) = 1;
+      matmul4_neon(ProjMatrix, matrix, temp);
+      if (memcmp(MvpMatrixData, temp, 16 * 4) != 0) {
+        memcpy(MvpMatrixData, temp, 16 * 4);
+        *(uint8_t *)(MvpMatrix + 0x2EC) = 1;
+        *(uint8_t *)(MvpMatrix + 0x2A8) = 1;
+      }
     }
   }
 
@@ -416,7 +422,7 @@ void SetMatrixConstant(void *ES2Shader, int MatrixConstantID, float *matrix) {
 
 #endif
 
-void game_patch(void) {
+void patch_game(void) {
   // used for openal
   hook_thumb(so_find_addr("InitializeCriticalSection"), (uintptr_t)ret0);
 
@@ -474,7 +480,7 @@ void game_patch(void) {
   uint32_t nop = 0xbf00bf00;
   kuKernelCpuUnrestrictedMemcpy(text_base + 0x004D7A2A, &nop, 2);
 
-#ifdef MVP_OPTIMIZATION
+#ifdef OPTIMIZE_MVP
   GetCurrentProjectionMatrix = (void *)so_find_addr("_Z26GetCurrentProjectionMatrixv");
   hook_thumb(so_find_addr("_ZN9ES2Shader17SetMatrixConstantE24RQShaderMatrixConstantIDPKf"), (uintptr_t)SetMatrixConstant);
 #endif
@@ -881,19 +887,19 @@ int main(int argc, char *argv[]) {
   so_load(SO_PATH);
   so_resolve(dynlib_functions, sizeof(dynlib_functions) / sizeof(DynLibFunction));
 
-  openal_patch();
-  opengl_patch();
-  game_patch();
+  patch_openal();
+  patch_opengl();
+  patch_game();
   so_flush_caches();
 
-  so_excute_init();
+  so_execute_init_array();
   so_free_temp();
 
   vglSetupRuntimeShaderCompiler(SHARK_OPT_UNSAFE, SHARK_ENABLE, SHARK_ENABLE, SHARK_ENABLE);
-  vglInitExtended(960, 544, 0x1000000, SCE_GXM_MULTISAMPLE_4X);
+  vglInitExtended(SCREEN_W, SCREEN_H, 0x1000000, SCE_GXM_MULTISAMPLE_4X);
   vglUseVram(GL_TRUE);
 
-  strcpy((char *)so_find_addr("StorageRootBuffer"), STORAGE_ROOT_BUFFER);
+  strcpy((char *)so_find_addr("StorageRootBuffer"), DATA_PATH);
   *(uintptr_t *)so_find_addr("IsAndroidPaused") = 0; // it's 1 by default
   *(uintptr_t *)so_find_addr("DoInitGraphics") = 1;
 
