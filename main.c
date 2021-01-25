@@ -89,10 +89,10 @@ char *GetRockstarID(void) {
 }
 
 int OS_SystemChip(void) {
-  return 11;
+  return 9;
 }
 
-int AND_DeviceType(void) {
+int GetDeviceType(void) {
   // 0x1: phone
   // 0x2: tegra
   // low memory is < 256
@@ -117,11 +117,11 @@ int OS_ScreenGetWidth(void) {
 // 8: PS3
 // 9: IOSExtended
 // 10: IOSSimple
-int WarGamepad_GetGamepadType(void) {
+int GetGamepadType(void) {
   return 8;
 }
 
-int WarGamepad_GetGamepadButtons(void) {
+int GetGamepadButtons(void) {
   int mask = 0;
 
   SceCtrlData pad;
@@ -167,7 +167,7 @@ int WarGamepad_GetGamepadButtons(void) {
   return mask;
 }
 
-float WarGamepad_GetGamepadAxis(int axis) {
+float GetGamepadAxis(int r0, int axis) {
   SceCtrlData pad;
   sceCtrlPeekBufferPositiveExt2(0, &pad, 1);
 
@@ -214,6 +214,12 @@ float WarGamepad_GetGamepadAxis(int axis) {
 
 int ProcessEvents(void) {
   return 0; // 1 is exit!
+}
+
+// only used for NVEventAppMain
+int pthread_create_fake(int r0, int r1, int r2, void *arg) {
+  int (* func)() = *(void **)(arg + 4);
+  return func();
 }
 
 int pthread_mutex_init_fake(int *uid) {
@@ -322,11 +328,12 @@ void *OS_ThreadLaunch(int (* func)(), void *arg, int r2, char *name, int r4, int
   return NULL;
 }
 
-void NVEventEGLSwapBuffers(void) {
+int swapBuffers(void) {
   vglSwapBuffers();
+  return 1;
 }
 
-int NVEventEGLInit(void) {
+int InitEGLAndGLES2(void) {
   vglWaitVblankStart(GL_TRUE);
   return 1; // success
 }
@@ -337,92 +344,164 @@ char *OS_FileGetArchiveName(int mode) {
   return out;
 }
 
-#ifdef OPTIMIZE_MVP
-
-void
-matmul4_neon(float m0[16], float m1[16], float d[16])
-{
-  asm volatile (
-    "vld1.32  {d0, d1},   [%1]!\n\t" //q0 = m1
-    "vld1.32  {d2, d3},   [%1]!\n\t" //q1 = m1+4
-    "vld1.32  {d4, d5},   [%1]!\n\t" //q2 = m1+8
-    "vld1.32  {d6, d7},   [%1]\n\t"  //q3 = m1+12
-    "vld1.32  {d16, d17}, [%0]!\n\t" //q8 = m0
-    "vld1.32  {d18, d19}, [%0]!\n\t" //q9 = m0+4
-    "vld1.32  {d20, d21}, [%0]!\n\t" //q10 = m0+8
-    "vld1.32  {d22, d23}, [%0]\n\t"  //q11 = m0+12
-
-    "vmul.f32 q12, q8,  d0[0]\n\t"   //q12 = q8 * d0[0]
-    "vmul.f32 q13, q8,  d2[0]\n\t"   //q13 = q8 * d2[0]
-    "vmul.f32 q14, q8,  d4[0]\n\t"   //q14 = q8 * d4[0]
-    "vmul.f32 q15, q8,  d6[0]\n\t"   //q15 = q8 * d6[0]
-    "vmla.f32 q12, q9,  d0[1]\n\t"   //q12 = q9 * d0[1]
-    "vmla.f32 q13, q9,  d2[1]\n\t"   //q13 = q9 * d2[1]
-    "vmla.f32 q14, q9,  d4[1]\n\t"   //q14 = q9 * d4[1]
-    "vmla.f32 q15, q9,  d6[1]\n\t"   //q15 = q9 * d6[1]
-    "vmla.f32 q12, q10, d1[0]\n\t"   //q12 = q10 * d0[0]
-    "vmla.f32 q13, q10, d3[0]\n\t"   //q13 = q10 * d2[0]
-    "vmla.f32 q14, q10, d5[0]\n\t"   //q14 = q10 * d4[0]
-    "vmla.f32 q15, q10, d7[0]\n\t"   //q15 = q10 * d6[0]
-    "vmla.f32 q12, q11, d1[1]\n\t"   //q12 = q11 * d0[1]
-    "vmla.f32 q13, q11, d3[1]\n\t"   //q13 = q11 * d2[1]
-    "vmla.f32 q14, q11, d5[1]\n\t"   //q14 = q11 * d4[1]
-    "vmla.f32 q15, q11, d7[1]\n\t"   //q15 = q11 * d6[1]
-
-    "vst1.32  {d24, d25}, [%2]!\n\t"  //d = q12
-    "vst1.32  {d26, d27}, [%2]!\n\t"  //d+4 = q13
-    "vst1.32  {d28, d29}, [%2]!\n\t"  //d+8 = q14
-    "vst1.32  {d30, d31}, [%2]\n\t"   //d+12 = q15
-
-    : "+r"(m0), "+r"(m1), "+r"(d) :
-    : "q0", "q1", "q2", "q3", "q8", "q9", "q10", "q11", "q12", "q13", "q14", "q15",
-    "memory"
-  );
+void *TouchSense(void *this) {
+  return this;
 }
 
-void *(* GetCurrentProjectionMatrix)();
+enum MethodIDs {
+  UNKNOWN = 0,
+  INIT_EGL_AND_GLES2,
+  FINISH,
+  SWAP_BUFFERS,
+  MAKE_CURRENT,
+  UNMAKE_CURRENT,
+  GET_DEVICE_INFO,
+  GET_DEVICE_TYPE,
+  GET_GAMEPAD_TYPE,
+  GET_GAMEPAD_BUTTONS,
+  GET_GAMEPAD_AXIS,
+  GET_GAMEPAD_TRACK,
+} MethodIDs;
 
-void SetMatrixConstant(void *ES2Shader, int MatrixConstantID, float *matrix) {
-  float temp[16];
+typedef struct {
+  char *name;
+  enum MethodIDs id;
+} NameToMethodID;
 
-  if (MatrixConstantID == 0) { // Projection matrix
-    void *MvpMatrix = ES2Shader + 0x4C * 0;
-    float *MvpMatrixData = MvpMatrix + 0x2AC;
-    float *MvMatrixData = (ES2Shader + 0x4C * 1) + 0x2AC;
-    matmul4_neon(matrix, MvMatrixData, temp);
-    if (memcmp(MvpMatrixData, temp, 16 * 4) != 0) {
-      memcpy(MvpMatrixData, temp, 16 * 4);
-      *(uint8_t *)(MvpMatrix + 0x2EC) = 1;
-      *(uint8_t *)(MvpMatrix + 0x2A8) = 1;
-    }
-    return;
-  } else if (MatrixConstantID == 1) { // Model view matrix
-    float *ProjMatrix = (float *)GetCurrentProjectionMatrix();
-    // There will be no fresher ProjMatrix, so we should update MvpMatrix as well.
-    if (((uint8_t *)ProjMatrix)[64] == 0) {
-      void *MvpMatrix = ES2Shader + 0x4C * 0;
-      float *MvpMatrixData = MvpMatrix + 0x2AC;
-      matmul4_neon(ProjMatrix, matrix, temp);
-      if (memcmp(MvpMatrixData, temp, 16 * 4) != 0) {
-        memcpy(MvpMatrixData, temp, 16 * 4);
-        *(uint8_t *)(MvpMatrix + 0x2EC) = 1;
-        *(uint8_t *)(MvpMatrix + 0x2A8) = 1;
-      }
+NameToMethodID name_to_method_ids[] = {
+  { "InitEGLAndGLES2", INIT_EGL_AND_GLES2 },
+  { "swapBuffers", SWAP_BUFFERS },
+
+  { "GetDeviceInfo", GET_DEVICE_INFO },
+  { "GetDeviceType", GET_DEVICE_TYPE },
+
+  { "GetGamepadType", GET_GAMEPAD_TYPE },
+  { "GetGamepadButtons", GET_GAMEPAD_BUTTONS },
+  { "GetGamepadAxis", GET_GAMEPAD_AXIS },
+};
+
+int NVThreadGetCurrentJNIEnv() {
+  return 0x1337;
+}
+
+int CallBooleanMethod(void *env, void *obj, int methodID, int a0, int a1, int a2) {
+  // debugPrintf("%s\n", __FUNCTION__);
+  switch (methodID) {
+    case INIT_EGL_AND_GLES2:
+      return InitEGLAndGLES2();
+    case SWAP_BUFFERS:
+      return swapBuffers();
+    default:
+      break;
+  }
+
+  return 0;
+}
+
+int CallIntMethod(void *env, void *obj, int methodID, int a0, int a1, int a2) {
+  // debugPrintf("%s\n", __FUNCTION__);
+  switch (methodID) {
+    case GET_GAMEPAD_TYPE:
+      return GetGamepadType();
+    case GET_GAMEPAD_BUTTONS:
+      return GetGamepadButtons();
+    case GET_DEVICE_TYPE:
+      return GetDeviceType();
+    default:
+      break;
+  }
+
+  return 0;
+}
+
+float CallFloatMethod(void *env, void *obj, int methodID, int a0, int a1, int a2) {
+  // debugPrintf("%s\n", __FUNCTION__);
+  switch (methodID) {
+    case GET_GAMEPAD_AXIS:
+      return GetGamepadAxis(a0, a1);
+    default:
+      break;
+  }
+
+  return 0.0f;
+}
+
+int GetStaticMethodID(void *env, void *clazz, const char *name, const char *sig) {
+  debugPrintf("%s\n", name);
+
+  for (int i = 0; i < sizeof(name_to_method_ids) / sizeof(NameToMethodID); i++) {
+    if (strcmp(name, name_to_method_ids[i].name) == 0) {
+      debugPrintf("Return ID: %d\n", name_to_method_ids[i].id);
+      return name_to_method_ids[i].id;
     }
   }
 
-  void *UniformMatrix = ES2Shader + 0x4C * MatrixConstantID;
-  float *UniformMatrixData = UniformMatrix + 0x2AC;
-  if (memcmp(UniformMatrixData, matrix, 16 * 4) != 0) {
-    memcpy(UniformMatrixData, matrix, 16 * 4);
-    *(uint8_t *)(UniformMatrix + 0x2EC) = 1;
-    *(uint8_t *)(UniformMatrix + 0x2A8) = 1;
-  }
+  return UNKNOWN;
 }
 
-#endif
+static char fake_vm[0x1000];
+static char fake_env[0x1000];
+static void *natives;
 
+void RegisterNatives(void *env, int r1, void *r2) {
+  natives = r2;
+}
+
+int some_jni_function() {
+  return 0x42424242;
+}
+
+int GetEnvFake(void *vm, void **env, int r2) {
+  memset(fake_env, 'A', sizeof(fake_env));
+  *(uintptr_t *)(fake_env + 0x00) = (uintptr_t)fake_env; // just point to itself...
+  *(uintptr_t *)(fake_env + 0x18) = (uintptr_t)ret0;
+  *(uintptr_t *)(fake_env + 0x44) = (uintptr_t)ret0; // keyboard stuff
+  *(uintptr_t *)(fake_env + 0x54) = (uintptr_t)some_jni_function;
+  *(uintptr_t *)(fake_env + 0x84) = (uintptr_t)GetStaticMethodID;
+  *(uintptr_t *)(fake_env + 0x178) = (uintptr_t)ret0; // NvEventQueueActivity stuff
+  *(uintptr_t *)(fake_env + 0x240) = (uintptr_t)ret0; // keyboard stuff
+  *(uintptr_t *)(fake_env + 0x35C) = (uintptr_t)RegisterNatives;
+  *env = fake_env;
+  return 0;
+}
+
+void Launch() {
+  strcpy((char *)so_find_addr("StorageRootBuffer"), "ux0:data/gtasa");
+  *(int *)so_find_addr("IsAndroidPaused") = 0; // it's 1 by default
+
+  memset(fake_vm, 'A', sizeof(fake_vm));
+  *(uintptr_t *)(fake_vm + 0x00) = (uintptr_t)fake_vm; // just point to itself...
+  *(uintptr_t *)(fake_vm + 0x18) = (uintptr_t)GetEnvFake;
+
+  int (* JNI_OnLoad)(void *vm, void *reserved) = (void *)so_find_addr("JNI_OnLoad");
+  JNI_OnLoad(fake_vm, NULL);
+
+  int (* init)(void *env, int r1, int init_graphics) = *(void **)(natives + 8);
+  init(fake_env, 0, 1);
+}
+
+void *OS_ThreadSetValue(void *RenderQueue) {
+  *(uint8_t *)(RenderQueue + 601) = 0;
+  return NULL;
+}
+
+extern void *__cxa_guard_acquire;
+extern void *__cxa_guard_release;
+
+// TODO: be careful of inlining
 void patch_game(void) {
+  hook_thumb(so_find_addr("__cxa_guard_acquire"), (uintptr_t)&__cxa_guard_acquire);
+  hook_thumb(so_find_addr("__cxa_guard_release"), (uintptr_t)&__cxa_guard_release);
+
+  hook_thumb(so_find_addr("_Z24NVThreadGetCurrentJNIEnvv"), (uintptr_t)NVThreadGetCurrentJNIEnv);
+
+  hook_thumb(so_find_addr("_ZN7_JNIEnv17CallBooleanMethodEP8_jobjectP10_jmethodIDz"), (uintptr_t)CallBooleanMethod);
+  hook_thumb(so_find_addr("_ZN7_JNIEnv13CallIntMethodEP8_jobjectP10_jmethodIDz"), (uintptr_t)CallIntMethod);
+  hook_thumb(so_find_addr("_ZN7_JNIEnv15CallFloatMethodEP8_jobjectP10_jmethodIDz"), (uintptr_t)CallFloatMethod);
+
+  // dummy so we don't crash with NVThreadGetCurrentJNIEnv
+  hook_thumb(so_find_addr("_Z10NvUtilInitv"), (uintptr_t)ret0);
+
   // used for openal
   hook_thumb(so_find_addr("InitializeCriticalSection"), (uintptr_t)ret0);
 
@@ -434,18 +513,9 @@ void patch_game(void) {
 
   hook_thumb(so_find_addr("_Z15OS_ThreadLaunchPFjPvES_jPKci16OSThreadPriority"), (uintptr_t)OS_ThreadLaunch);
 
-  // egl
-  hook_thumb(so_find_addr("_Z14NVEventEGLInitv"), (uintptr_t)NVEventEGLInit);
-  hook_thumb(so_find_addr("_Z21NVEventEGLSwapBuffersv"), (uintptr_t)NVEventEGLSwapBuffers);
-  hook_thumb(so_find_addr("_Z21NVEventEGLMakeCurrentv"), (uintptr_t)ret0);
-  hook_thumb(so_find_addr("_Z23NVEventEGLUnmakeCurrentv"), (uintptr_t)ret0);
-
   hook_thumb(so_find_addr("_Z17OS_ScreenGetWidthv"), (uintptr_t)OS_ScreenGetWidth);
   hook_thumb(so_find_addr("_Z18OS_ScreenGetHeightv"), (uintptr_t)OS_ScreenGetHeight);
 
-  hook_thumb(so_find_addr("_Z13OS_SystemChipv"), (uintptr_t)OS_SystemChip);
-
-  hook_thumb(so_find_addr("_Z14AND_DeviceTypev"), (uintptr_t)AND_DeviceType);
   hook_thumb(so_find_addr("_Z16AND_DeviceLocalev"), (uintptr_t)AND_DeviceLocale);
 
   // TODO: set deviceChip, definedDevice
@@ -453,10 +523,6 @@ void patch_game(void) {
 
   // TODO: implement touch here
   hook_thumb(so_find_addr("_Z13ProcessEventsb"), (uintptr_t)ProcessEvents);
-
-  hook_thumb(so_find_addr("_Z25WarGamepad_GetGamepadTypev"), (uintptr_t)WarGamepad_GetGamepadType);
-  hook_thumb(so_find_addr("_Z28WarGamepad_GetGamepadButtonsv"), (uintptr_t)WarGamepad_GetGamepadButtons);
-  hook_thumb(so_find_addr("_Z25WarGamepad_GetGamepadAxisi"), (uintptr_t)WarGamepad_GetGamepadAxis);
 
   // no obb
   hook_thumb(so_find_addr("_Z22AND_FileGetArchiveName13OSFileArchive"), (uintptr_t)OS_FileGetArchiveName);
@@ -468,37 +534,18 @@ void patch_game(void) {
   hook_thumb(so_find_addr("_Z22SCCloudSaveStateUpdatev"), (uintptr_t)ret0);
 
   // no touchsense
-  hook_thumb(so_find_addr("_ZN10TouchSenseC2Ev"), (uintptr_t)ret0);
+  hook_thumb(so_find_addr("_ZN10TouchSenseC2Ev"), (uintptr_t)TouchSense);
 
   // no telemetry
-  // this is triggered after 10s of no input btw
   hook_thumb(so_find_addr("_Z11updateUsageb"), (uintptr_t)ret0);
 
-  // hook_thumb(so_find_addr("_Z24NVThreadGetCurrentJNIEnvv"), (uintptr_t)0x1337);
-
-  // do not check result of CFileMgr::OpenFile in CWaterLevel::WaterLevelInitialise
-  uint32_t nop = 0xbf00bf00;
-  kuKernelCpuUnrestrictedMemcpy(text_base + 0x004D7A2A, &nop, 2);
-
-#ifdef OPTIMIZE_MVP
-  GetCurrentProjectionMatrix = (void *)so_find_addr("_Z26GetCurrentProjectionMatrixv");
-  hook_thumb(so_find_addr("_ZN9ES2Shader17SetMatrixConstantE24RQShaderMatrixConstantIDPKf"), (uintptr_t)SetMatrixConstant);
-#endif
-
-  // uint16_t bkpt = 0xbe00;
-  // kuKernelCpuUnrestrictedMemcpy(text_base + 0x00194968, &bkpt, 2);
-}
-
-void glCompressedTexImage2DHook(GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLint border, GLsizei imageSize, const void * data) {
-  if (!level) {
-    glCompressedTexImage2D(target, level, internalformat, width, height, border, imageSize, data);
-  }
+  // do not use mutex for RenderQueue
+  hook_thumb(so_find_addr("_Z17OS_ThreadSetValuePv"), (uintptr_t)OS_ThreadSetValue);
 }
 
 void glTexImage2DHook(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const void * data) {
-  if (!level) {
+  if (level == 0)
     glTexImage2D(target, level, internalformat, width, height, border, format, type, data);
-  }
 }
 
 void glFramebufferTexture2DHook(GLenum target, GLenum attachment, GLenum textarget, GLuint tex_id, GLint level) {
@@ -532,22 +579,29 @@ void glGetIntegervHook(GLenum pname, GLint *data) {
     *data = 0;
 }
 
-extern void *_Znwj;
+extern void *_ZdaPv;
 extern void *_ZdlPv;
 extern void *_Znaj;
-extern void *_ZdaPv;
+extern void *_Znwj;
 
-extern void *__aeabi_atexit;
-
-extern void *__aeabi_dcmplt;
-extern void *__aeabi_dmul;
-extern void *__aeabi_dsub;
+extern void *__aeabi_d2ulz;
 extern void *__aeabi_idiv;
 extern void *__aeabi_idivmod;
 extern void *__aeabi_l2d;
 extern void *__aeabi_l2f;
 extern void *__aeabi_ldivmod;
-extern void *__aeabi_ui2d;
+extern void *__aeabi_memclr4;
+extern void *__aeabi_memclr8;
+extern void *__aeabi_memclr;
+extern void *__aeabi_memcpy4;
+extern void *__aeabi_memcpy8;
+extern void *__aeabi_memcpy;
+extern void *__aeabi_memmove4;
+extern void *__aeabi_memmove8;
+extern void *__aeabi_memmove;
+extern void *__aeabi_memset4;
+extern void *__aeabi_memset8;
+extern void *__aeabi_memset;
 extern void *__aeabi_uidiv;
 extern void *__aeabi_uidivmod;
 extern void *__aeabi_ul2d;
@@ -555,81 +609,97 @@ extern void *__aeabi_ul2f;
 extern void *__aeabi_uldivmod;
 
 // extern void *__assert2;
+extern void *__cxa_atexit;
+extern void *__cxa_finalize;
 // extern void *__errno;
-
-extern void *__isfinitef;
-
+// extern void *__isfinite;
+// extern void *__sF;
+// extern void *__signbit;
 extern void *__stack_chk_fail;
 extern void *__stack_chk_guard;
 
-static const short _C_toupper_[] = {
-  -1,
-  0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
-  0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
-  0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
-  0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f,
-  0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27,
-  0x28, 0x29, 0x2a, 0x2b, 0x2c, 0x2d, 0x2e, 0x2f,
-  0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37,
-  0x38, 0x39, 0x3a, 0x3b, 0x3c, 0x3d, 0x3e, 0x3f,
-  0x40, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47,
-  0x48, 0x49, 0x4a, 0x4b, 0x4c, 0x4d, 0x4e, 0x4f,
-  0x50, 0x51, 0x52, 0x53, 0x54, 0x55, 0x56, 0x57,
-  0x58, 0x59, 0x5a, 0x5b, 0x5c, 0x5d, 0x5e, 0x5f,
-  0x60, 'A',  'B',  'C',  'D',  'E',  'F',  'G',
-  'H',  'I',  'J',  'K',  'L',  'M',  'N',  'O',
-  'P',  'Q',  'R',  'S',  'T',  'U',  'V',  'W',
-  'X',  'Y',  'Z',  0x7b, 0x7c, 0x7d, 0x7e, 0x7f,
-  0x80, 0x81, 0x82, 0x83, 0x84, 0x85, 0x86, 0x87,
-  0x88, 0x89, 0x8a, 0x8b, 0x8c, 0x8d, 0x8e, 0x8f,
-  0x90, 0x91, 0x92, 0x93, 0x94, 0x95, 0x96, 0x97,
-  0x98, 0x99, 0x9a, 0x9b, 0x9c, 0x9d, 0x9e, 0x9f,
-  0xa0, 0xa1, 0xa2, 0xa3, 0xa4, 0xa5, 0xa6, 0xa7,
-  0xa8, 0xa9, 0xaa, 0xab, 0xac, 0xad, 0xae, 0xaf,
-  0xb0, 0xb1, 0xb2, 0xb3, 0xb4, 0xb5, 0xb6, 0xb7,
-  0xb8, 0xb9, 0xba, 0xbb, 0xbc, 0xbd, 0xbe, 0xbf,
-  0xc0, 0xc1, 0xc2, 0xc3, 0xc4, 0xc5, 0xc6, 0xc7,
-  0xc8, 0xc9, 0xca, 0xcb, 0xcc, 0xcd, 0xce, 0xcf,
-  0xd0, 0xd1, 0xd2, 0xd3, 0xd4, 0xd5, 0xd6, 0xd7,
-  0xd8, 0xd9, 0xda, 0xdb, 0xdc, 0xdd, 0xde, 0xdf,
-  0xe0, 0xe1, 0xe2, 0xe3, 0xe4, 0xe5, 0xe6, 0xe7,
-  0xe8, 0xe9, 0xea, 0xeb, 0xec, 0xed, 0xee, 0xef,
-  0xf0, 0xf1, 0xf2, 0xf3, 0xf4, 0xf5, 0xf6, 0xf7,
-  0xf8, 0xf9, 0xfa, 0xfb, 0xfc, 0xfd, 0xfe, 0xff
-};
+int __signbit(double d) {
+  return signbit(d);
+}
 
-static const short *_toupper_tab_ = _C_toupper_;
+int __isfinite(double d) {
+  return isfinite(d);
+}
 
 static int EnterGameFromSCFunc = 0;
 static int SigningOutfromApp = 0;
+static int hasTouchScreen = 0;
 
 static int __stack_chk_guard_fake = 0x42424242;
 
+static FILE *stderr_fake;
+static FILE __sF_fake[0x100][3];
+
 static DynLibFunction dynlib_functions[] = {
-  { "_Znwj", (uintptr_t)&_Znwj },
+  { "_ZdaPv", (uintptr_t)&_ZdaPv },
   { "_ZdlPv", (uintptr_t)&_ZdlPv },
   { "_Znaj", (uintptr_t)&_Znaj },
-  { "_ZdaPv", (uintptr_t)&_ZdaPv },
+  { "_Znwj", (uintptr_t)&_Znwj },
 
-  { "_toupper_tab_", (uintptr_t)&_toupper_tab_ },
+  { "__aeabi_d2ulz", (uintptr_t)&__aeabi_d2ulz },
+  { "__aeabi_idivmod", (uintptr_t)&__aeabi_idivmod },
+  { "__aeabi_idiv", (uintptr_t)&__aeabi_idiv },
+  { "__aeabi_l2d", (uintptr_t)&__aeabi_l2d },
+  { "__aeabi_l2f", (uintptr_t)&__aeabi_l2f },
+  { "__aeabi_ldivmod", (uintptr_t)&__aeabi_ldivmod },
+  { "__aeabi_memclr4", (uintptr_t)&__aeabi_memclr4 },
+  { "__aeabi_memclr8", (uintptr_t)&__aeabi_memclr8 },
+  { "__aeabi_memclr", (uintptr_t)&__aeabi_memclr },
+  { "__aeabi_memcpy4", (uintptr_t)&__aeabi_memcpy4 },
+  { "__aeabi_memcpy8", (uintptr_t)&__aeabi_memcpy8 },
+  { "__aeabi_memcpy", (uintptr_t)&__aeabi_memcpy },
+  { "__aeabi_memmove4", (uintptr_t)&__aeabi_memmove4 },
+  { "__aeabi_memmove8", (uintptr_t)&__aeabi_memmove8 },
+  { "__aeabi_memmove", (uintptr_t)&__aeabi_memmove },
+  { "__aeabi_memset4", (uintptr_t)&__aeabi_memset4 },
+  { "__aeabi_memset8", (uintptr_t)&__aeabi_memset8 },
+  { "__aeabi_memset", (uintptr_t)&__aeabi_memset },
+  { "__aeabi_uidivmod", (uintptr_t)&__aeabi_uidivmod },
+  { "__aeabi_uidiv", (uintptr_t)&__aeabi_uidiv },
+  { "__aeabi_ul2d", (uintptr_t)&__aeabi_ul2d },
+  { "__aeabi_ul2f", (uintptr_t)&__aeabi_ul2f },
+  { "__aeabi_uldivmod", (uintptr_t)&__aeabi_uldivmod },
+
+  { "__android_log_print", (uintptr_t)&__android_log_print },
+  // { "__assert2", (uintptr_t)&__assert2 },
+  { "__cxa_atexit", (uintptr_t)&__cxa_atexit },
+  { "__cxa_finalize", (uintptr_t)&__cxa_finalize },
+  { "__errno", (uintptr_t)&__errno },
+  { "__isfinite", (uintptr_t)&__isfinite },
+  { "__sF", (uintptr_t)&__sF_fake },
+  { "__signbit", (uintptr_t)&__signbit },
+  { "__stack_chk_fail", (uintptr_t)&__stack_chk_fail },
+  { "__stack_chk_guard", (uintptr_t)&__stack_chk_guard_fake },
+
+  { "AAssetManager_fromJava", (uintptr_t)&ret0 },
+  { "AAssetManager_open", (uintptr_t)&ret0 },
+  { "AAsset_close", (uintptr_t)&ret0 },
+  { "AAsset_getLength", (uintptr_t)&ret0 },
+  { "AAsset_getRemainingLength", (uintptr_t)&ret0 },
+  { "AAsset_read", (uintptr_t)&ret0 },
+  { "AAsset_seek", (uintptr_t)&ret0 },
 
   { "EnterGameFromSCFunc", (uintptr_t)&EnterGameFromSCFunc },
+  { "GetRockstarID", (uintptr_t)&GetRockstarID },
   { "SigningOutfromApp", (uintptr_t)&SigningOutfromApp },
-  { "_Z15EnterSocialCLubv", (uintptr_t)ret0 },
-  { "_Z12IsSCSignedInv", (uintptr_t)ret0 },
+  { "hasTouchScreen", (uintptr_t)&hasTouchScreen },
 
-  // Not sure how important this is. Used in some init_array.
-  { "pthread_key_create", (uintptr_t)&ret0 },
-
+  { "pthread_cond_init", (uintptr_t)&ret0 },
+  { "pthread_create", (uintptr_t)&pthread_create_fake },
   { "pthread_getspecific", (uintptr_t)&ret0 },
-  { "pthread_setspecific", (uintptr_t)&ret0 },
-
+  { "pthread_key_create", (uintptr_t)&ret0 },
   { "pthread_mutexattr_init", (uintptr_t)&ret0 },
   { "pthread_mutexattr_settype", (uintptr_t)&ret0 },
   { "pthread_mutex_destroy", (uintptr_t)&pthread_mutex_destroy_fake },
   { "pthread_mutex_init", (uintptr_t)&pthread_mutex_init_fake },
   { "pthread_mutex_lock", (uintptr_t)&pthread_mutex_lock_fake },
   { "pthread_mutex_unlock", (uintptr_t)&pthread_mutex_unlock_fake },
+  { "pthread_setspecific", (uintptr_t)&ret0 },
 
   { "sem_destroy", (uintptr_t)&sem_destroy_fake },
   // { "sem_getvalue", (uintptr_t)&sem_getvalue },
@@ -638,58 +708,27 @@ static DynLibFunction dynlib_functions[] = {
   // { "sem_trywait", (uintptr_t)&sem_trywait },
   { "sem_wait", (uintptr_t)&sem_wait_fake },
 
-  { "_Jv_RegisterClasses", (uintptr_t)0 },
-  { "_ITM_deregisterTMCloneTable", (uintptr_t)0 },
-  { "_ITM_registerTMCloneTable", (uintptr_t)0 },
-  { "__deregister_frame_info", (uintptr_t)0 },
-  { "__register_frame_info", (uintptr_t)0 },
+  { "sigaction", (uintptr_t)&ret0 },
+  { "sigemptyset", (uintptr_t)&ret0 },
 
-  { "GetRockstarID", (uintptr_t)&GetRockstarID },
-
-  { "__aeabi_atexit", (uintptr_t)&__aeabi_atexit },
-
-  { "__android_log_print", (uintptr_t)__android_log_print },
-
-  // { "__assert2", (uintptr_t)&__assert2 },
-  { "__errno", (uintptr_t)&__errno },
-  // { "__isfinitef", (uintptr_t)&__isfinitef },
-
-  { "__stack_chk_fail", (uintptr_t)&__stack_chk_fail },
-  // freezes with real __stack_chk_guard
-  { "__stack_chk_guard", (uintptr_t)&__stack_chk_guard_fake },
-
-  { "__aeabi_dcmplt", (uintptr_t)&__aeabi_dcmplt },
-  { "__aeabi_dmul", (uintptr_t)&__aeabi_dmul },
-  { "__aeabi_dsub", (uintptr_t)&__aeabi_dsub },
-  { "__aeabi_idiv", (uintptr_t)&__aeabi_idiv },
-  { "__aeabi_idivmod", (uintptr_t)&__aeabi_idivmod },
-  { "__aeabi_l2d", (uintptr_t)&__aeabi_l2d },
-  { "__aeabi_l2f", (uintptr_t)&__aeabi_l2f },
-  { "__aeabi_ldivmod", (uintptr_t)&__aeabi_ldivmod },
-  { "__aeabi_ui2d", (uintptr_t)&__aeabi_ui2d },
-  { "__aeabi_uidiv", (uintptr_t)&__aeabi_uidiv },
-  { "__aeabi_uidivmod", (uintptr_t)&__aeabi_uidivmod },
-  { "__aeabi_ul2d", (uintptr_t)&__aeabi_ul2d },
-  { "__aeabi_ul2f", (uintptr_t)&__aeabi_ul2f },
-  { "__aeabi_uldivmod", (uintptr_t)&__aeabi_uldivmod },
-
-   // TODO: use math neon?
-  { "acos", (uintptr_t)&acos },
   { "acosf", (uintptr_t)&acosf },
   { "asinf", (uintptr_t)&asinf },
-  { "atan2", (uintptr_t)&atan2 },
   { "atan2f", (uintptr_t)&atan2f },
   { "atanf", (uintptr_t)&atanf },
   { "ceilf", (uintptr_t)&ceilf },
   { "cos", (uintptr_t)&cos },
   { "cosf", (uintptr_t)&cosf },
+  { "exp2", (uintptr_t)&exp2 },
+  { "exp2f", (uintptr_t)&exp2f },
   { "exp", (uintptr_t)&exp },
   { "floor", (uintptr_t)&floor },
   { "floorf", (uintptr_t)&floorf },
-  { "fmod", (uintptr_t)&fmod },
   { "fmodf", (uintptr_t)&fmodf },
-  { "log", (uintptr_t)&log },
+  { "ldexpf", (uintptr_t)&ldexpf },
   { "log10f", (uintptr_t)&log10f },
+  { "log", (uintptr_t)&log },
+  { "logf", (uintptr_t)&logf },
+  { "modf", (uintptr_t)&modf },
   { "modff", (uintptr_t)&modff },
   { "pow", (uintptr_t)&pow },
   { "powf", (uintptr_t)&powf },
@@ -698,7 +737,11 @@ static DynLibFunction dynlib_functions[] = {
   { "tan", (uintptr_t)&tan },
   { "tanf", (uintptr_t)&tanf },
 
+  { "atof", (uintptr_t)&atof },
   { "atoi", (uintptr_t)&atoi },
+
+  { "islower", (uintptr_t)&islower },
+  { "isprint", (uintptr_t)&isprint },
   { "isspace", (uintptr_t)&isspace },
 
   { "calloc", (uintptr_t)&calloc },
@@ -710,31 +753,36 @@ static DynLibFunction dynlib_functions[] = {
   { "ctime", (uintptr_t)&ctime },
   { "gettimeofday", (uintptr_t)&gettimeofday },
   { "gmtime", (uintptr_t)&gmtime },
+  { "localtime_r", (uintptr_t)&localtime_r },
   { "time", (uintptr_t)&time },
 
-  // { "eglGetDisplay", (uintptr_t)&eglGetDisplay },
-  // { "eglGetProcAddress", (uintptr_t)&eglGetProcAddress },
-  // { "eglQueryString", (uintptr_t)&eglQueryString },
+  { "eglGetDisplay", (uintptr_t)&ret0 },
+  { "eglGetProcAddress", (uintptr_t)&ret0 },
+  { "eglQueryString", (uintptr_t)&ret0 },
 
   { "abort", (uintptr_t)&abort },
   { "exit", (uintptr_t)&exit },
 
   { "fclose", (uintptr_t)&fclose },
   { "fdopen", (uintptr_t)&fdopen },
+  // { "fegetround", (uintptr_t)&fegetround },
+  { "feof", (uintptr_t)&feof },
+  { "ferror", (uintptr_t)&ferror },
+  // { "fesetround", (uintptr_t)&fesetround },
   { "fflush", (uintptr_t)&fflush },
   { "fgetc", (uintptr_t)&fgetc },
   { "fgets", (uintptr_t)&fgets },
-
   { "fopen", (uintptr_t)&fopen },
   // { "fprintf", (uintptr_t)&fprintf },
   // { "fputc", (uintptr_t)&fputc },
   // { "fputs", (uintptr_t)&fputs },
+  // { "fputwc", (uintptr_t)&fputwc },
   { "fread", (uintptr_t)&fread },
   { "fseek", (uintptr_t)&fseek },
   { "ftell", (uintptr_t)&ftell },
   { "fwrite", (uintptr_t)&fwrite },
 
-  { "getenv", (uintptr_t)&ret0 },
+  { "getenv", (uintptr_t)&getenv },
   // { "gettid", (uintptr_t)&gettid },
 
   { "glActiveTexture", (uintptr_t)&glActiveTexture },
@@ -753,7 +801,7 @@ static DynLibFunction dynlib_functions[] = {
   { "glClearDepthf", (uintptr_t)&glClearDepthf },
   { "glClearStencil", (uintptr_t)&glClearStencil },
   { "glCompileShader", (uintptr_t)&glCompileShader },
-  { "glCompressedTexImage2D", (uintptr_t)&glCompressedTexImage2DHook },
+  { "glCompressedTexImage2D", (uintptr_t)&glCompressedTexImage2D },
   { "glCreateProgram", (uintptr_t)&glCreateProgram },
   { "glCreateShader", (uintptr_t)&glCreateShader },
   { "glCullFace", (uintptr_t)&glCullFace },
@@ -809,33 +857,20 @@ static DynLibFunction dynlib_functions[] = {
   { "glVertexAttribPointer", (uintptr_t)&glVertexAttribPointer },
   { "glViewport", (uintptr_t)&glViewport },
 
-  // TODO: check if they are compatible
   // { "longjmp", (uintptr_t)&longjmp },
   // { "setjmp", (uintptr_t)&setjmp },
 
+  { "memchr", (uintptr_t)&memchr },
   { "memcmp", (uintptr_t)&memcmp },
-  { "memcpy", (uintptr_t)&memcpy },
-  { "memmove", (uintptr_t)&memmove },
-  { "memset", (uintptr_t)&memset },
 
-  { "printf", (uintptr_t)&debugPrintf },
-  // { "puts", (uintptr_t)&puts },
-
+  { "puts", (uintptr_t)&puts },
   { "qsort", (uintptr_t)&qsort },
 
   // { "raise", (uintptr_t)&raise },
   // { "rewind", (uintptr_t)&rewind },
 
-  // { "scmainUpdate", (uintptr_t)&scmainUpdate },
-  // { "slCreateEngine", (uintptr_t)&slCreateEngine },
-
-  { "lrand48", (uintptr_t)&lrand48 },
-  { "srand48", (uintptr_t)&srand48 },
-
-  { "snprintf", (uintptr_t)&snprintf },
-  { "sprintf", (uintptr_t)&sprintf },
-  { "vsnprintf", (uintptr_t)&vsnprintf },
-  { "vsprintf", (uintptr_t)&vsprintf },
+  { "rand", (uintptr_t)&rand },
+  { "srand", (uintptr_t)&srand },
 
   { "sscanf", (uintptr_t)&sscanf },
 
@@ -847,9 +882,10 @@ static DynLibFunction dynlib_functions[] = {
   // { "opendir", (uintptr_t)&opendir },
   // { "read", (uintptr_t)&read },
   // { "readdir", (uintptr_t)&readdir },
+  // { "remove", (uintptr_t)&remove },
   { "stat", (uintptr_t)stat },
-  // { "write", (uintptr_t)&write },
 
+  { "stderr", (uintptr_t)&stderr_fake },
   { "strcasecmp", (uintptr_t)&strcasecmp },
   { "strcat", (uintptr_t)&strcat },
   { "strchr", (uintptr_t)&strchr },
@@ -864,13 +900,13 @@ static DynLibFunction dynlib_functions[] = {
   { "strpbrk", (uintptr_t)&strpbrk },
   { "strrchr", (uintptr_t)&strrchr },
   { "strstr", (uintptr_t)&strstr },
-  { "strtod", (uintptr_t)&strtod },
+  { "strtof", (uintptr_t)&strtof },
   { "strtok", (uintptr_t)&strtok },
   { "strtol", (uintptr_t)&strtol },
   { "strtoul", (uintptr_t)&strtoul },
 
-  // { "syscall", (uintptr_t)&syscall },
-  // { "sysconf", (uintptr_t)&sysconf },
+  { "toupper", (uintptr_t)&toupper },
+  { "vasprintf", (uintptr_t)&vasprintf },
 
   // { "nanosleep", (uintptr_t)&nanosleep },
   { "usleep", (uintptr_t)&usleep },
@@ -883,6 +919,8 @@ int main(int argc, char *argv[]) {
   scePowerSetBusClockFrequency(222);
   scePowerSetGpuClockFrequency(222);
   scePowerSetGpuXbarClockFrequency(166);
+
+  stderr_fake = stderr;
 
   so_load(SO_PATH);
   so_resolve(dynlib_functions, sizeof(dynlib_functions) / sizeof(DynLibFunction));
@@ -899,12 +937,7 @@ int main(int argc, char *argv[]) {
   vglInitExtended(SCREEN_W, SCREEN_H, 0x1000000, SCE_GXM_MULTISAMPLE_4X);
   vglUseVram(GL_TRUE);
 
-  strcpy((char *)so_find_addr("StorageRootBuffer"), DATA_PATH);
-  *(uintptr_t *)so_find_addr("IsAndroidPaused") = 0; // it's 1 by default
-  *(uintptr_t *)so_find_addr("DoInitGraphics") = 1;
-
-  int (* NVEventAppMain)(int argc, char *argv[]) = (void *)so_find_addr("_Z14NVEventAppMainiPPc");
-  NVEventAppMain(0, NULL);
+  Launch();
 
   return 0;
 }

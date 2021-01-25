@@ -121,6 +121,7 @@ void BuildVertexSource(int flags) {
     VTX_EMIT("float4 Color2,");
 
   VTX_EMIT("uniform float4x4 ProjMatrix,");
+  VTX_EMIT("uniform float4x4 ViewMatrix,");
   VTX_EMIT("uniform float4x4 ObjMatrix,");
 
   if (flags & FLAG_LIGHTING) {
@@ -217,8 +218,7 @@ void BuildVertexSource(int flags) {
       VTX_EMIT("BoneToLocal[1] += Bones[BlendIndexArray.w*3+1] * BoneWeight.w;");
       VTX_EMIT("BoneToLocal[2] += Bones[BlendIndexArray.w*3+2] * BoneWeight.w;");
     }
-    VTX_EMIT("float4 BoneVertex = mul(BoneToLocal, float4(Position, 1.0));");
-    VTX_EMIT("float4 WorldPos = mul(BoneVertex, ObjMatrix);");
+    VTX_EMIT("float4 WorldPos = mul(mul(BoneToLocal, float4(Position, 1.0)), ObjMatrix);");
   } else {
     VTX_EMIT("float4 WorldPos = mul(float4(Position, 1.0), ObjMatrix);");
   }
@@ -229,17 +229,8 @@ void BuildVertexSource(int flags) {
     VTX_EMIT("ReflPos.xy = normalize(ReflPos.xy) * (ReflPos.z * 0.5 + 0.5);");
     VTX_EMIT("gl_Position = float4(ReflPos.xy, length(ReflVector) * 0.002, 1.0);");
   } else {
-#ifdef OPTIMIZE_MVP
-    // With MVP optimization, ProjMatrix is the MVP matrix.
-    if (flags & (FLAG_BONE3 | FLAG_BONE4)) {
-      VTX_EMIT("float4 ViewPos = mul(BoneVertex, ProjMatrix);");
-    } else {
-      VTX_EMIT("float4 ViewPos = mul(float4(Position, 1.0), ProjMatrix);");
-    }
-#else
-    VTX_EMIT("float4 ViewPos = mul(WorldPos, ProjMatrix);");
-#endif
-    VTX_EMIT("gl_Position = ViewPos;");
+    VTX_EMIT("float4 ViewPos = mul(WorldPos, ViewMatrix);");
+    VTX_EMIT("gl_Position = mul(ViewPos, ProjMatrix);");
   }
 
   if (flags & FLAG_LIGHTING) {
@@ -413,12 +404,7 @@ void BuildPixelSource(int flags) {
     else
       PXL_EMIT("half4 diffuseColor = tex2D(Diffuse, Out_Tex0);");
 
-#ifndef OPTIMIZE_ALPHA_MODULATION
-    if (flags & FLAG_ALPHA_MODULATE)
-      PXL_EMIT("fcolor = half4(diffuseColor.xyz, diffuseColor.w * AlphaModulate);");
-    else
-#endif
-      PXL_EMIT("fcolor = diffuseColor;");
+    PXL_EMIT("fcolor = diffuseColor;");
 
     if (!(flags & (FLAG_COLOR | FLAG_LIGHTING))) {
       if (flags & FLAG_WATER)
@@ -441,11 +427,6 @@ void BuildPixelSource(int flags) {
       PXL_EMIT("fcolor = Out_Color;");
     else
       PXL_EMIT("fcolor = 0.0;");
-
-#ifndef OPTIMIZE_ALPHA_MODULATION
-    if (flags & FLAG_ALPHA_MODULATE)
-      PXL_EMIT("fcolor.w *= AlphaModulate;");
-#endif
   }
 
   if (flags & FLAG_TEX1)
@@ -503,10 +484,8 @@ void BuildPixelSource(int flags) {
   }
 #endif
 
-#ifdef OPTIMIZE_ALPHA_MODULATION
   if (flags & FLAG_ALPHA_MODULATE)
     PXL_EMIT("gl_FragColor.a *= AlphaModulate;");
-#endif
 
   PXL_EMIT("return gl_FragColor;");
   PXL_EMIT("}");
@@ -757,8 +736,8 @@ void main(
 )";
 
 void patch_opengl(void) {
-  pxlbuf_orig = (char **)(text_base + 0x005D6B74);
-  vtxbuf_orig = (char **)(text_base + 0x005D8B78);
+  pxlbuf_orig = (char **)(text_base + 0x006B8BE8);
+  vtxbuf_orig = (char **)(text_base + 0x006BABE9);
 
   _Z16BuildPixelSourcej = (void *)so_find_addr("_Z16BuildPixelSourcej");
   _Z17BuildVertexSourcej = (void *)so_find_addr("_Z17BuildVertexSourcej");

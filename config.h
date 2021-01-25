@@ -13,8 +13,6 @@
 
 #define DISABLE_SPEC_AMT
 #define DISABLE_ALPHA_TESTING
-#define OPTIMIZE_ALPHA_MODULATION
-#define OPTIMIZE_MVP
 #define SLOW_GPU
 
 #endif
