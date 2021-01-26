@@ -548,30 +548,6 @@ void glTexImage2DHook(GLenum target, GLint level, GLint internalformat, GLsizei 
     glTexImage2D(target, level, internalformat, width, height, border, format, type, data);
 }
 
-void glGetProgramiv(GLuint program, GLenum pname, GLint *params) {
-  //debugPrintf("glGetProgramiv pname: 0x%X\n", pname);
-  if (pname == GL_INFO_LOG_LENGTH)
-    *params = 0;
-  else
-    *params = GL_TRUE;
-}
-
-void glGetProgramInfoLog(GLuint program, GLsizei maxLength, GLsizei *length, GLchar *infoLog) {
-  if (length) *length = 0;
-}
-
-#define GL_MAX_VERTEX_UNIFORM_VECTORS 0x8DFB
-void glGetIntegervHook(GLenum pname, GLint *data) {
-  //debugPrintf("glGetIntegerv pname: 0x%X\n", pname);
-  glGetIntegerv(pname, data);
-  if (pname == GL_MAX_VERTEX_UNIFORM_VECTORS)
-    *data = (63 * 3) + 32; // set RQMaxBones=63
-  else if (pname == 0x8B82)
-    *data = GL_TRUE;
-  else if (pname == GL_DRAW_FRAMEBUFFER_BINDING)
-    *data = 0;
-}
-
 void glShaderSourceHook(GLuint shader, GLsizei count, const GLchar **string, const GLint *length) {
 #ifdef ENABLE_SHADER_CACHE
   if (string) {
@@ -884,7 +860,7 @@ static DynLibFunction dynlib_functions[] = {
   { "glGenTextures", (uintptr_t)&glGenTextures },
   { "glGetAttribLocation", (uintptr_t)&glGetAttribLocation },
   { "glGetError", (uintptr_t)&glGetError },
-  { "glGetIntegerv", (uintptr_t)&glGetIntegervHook },
+  { "glGetIntegerv", (uintptr_t)&glGetIntegerv },
   { "glGetProgramInfoLog", (uintptr_t)&glGetProgramInfoLog },
   { "glGetProgramiv", (uintptr_t)&glGetProgramiv },
   { "glGetShaderInfoLog", (uintptr_t)&glGetShaderInfoLog },
