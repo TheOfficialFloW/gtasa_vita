@@ -16,6 +16,6 @@
 
 #define DISABLE_SPEC_AMT
 // #define DISABLE_ALPHA_TESTING
-#define SLOW_GPU
+// #define SLOW_GPU
 
 #endif

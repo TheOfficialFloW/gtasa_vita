@@ -90,7 +90,15 @@ char *GetRockstarID(void) {
 }
 
 int OS_SystemChip(void) {
-  return 9;
+  return 19; // default
+}
+
+int OS_ScreenGetHeight(void) {
+  return SCREEN_H;
+}
+
+int OS_ScreenGetWidth(void) {
+  return SCREEN_W;
 }
 
 int GetDeviceType(void) {
@@ -100,16 +108,8 @@ int GetDeviceType(void) {
   return (MEMORY_MB << 6) | (3 << 2) | 0x1;
 }
 
-int AND_DeviceLocale(void) {
+int GetDeviceLocale(void) {
   return 0; // english
-}
-
-int OS_ScreenGetHeight(void) {
-  return SCREEN_H;
-}
-
-int OS_ScreenGetWidth(void) {
-  return SCREEN_W;
 }
 
 // 0, 5, 6: XBOX 360
@@ -129,7 +129,7 @@ int GetGamepadButtons(void) {
   sceCtrlPeekBufferPositiveExt2(0, &pad, 1);
 
   SceTouchData touch;
-  sceTouchPeek(0, &touch, 1);
+  sceTouchPeek(SCE_TOUCH_PORT_FRONT, &touch, 1);
 
   if (pad.buttons & SCE_CTRL_CROSS)
     mask |= 0x1;
@@ -173,7 +173,7 @@ float GetGamepadAxis(int r0, int axis) {
   sceCtrlPeekBufferPositiveExt2(0, &pad, 1);
 
   SceTouchData touch;
-  sceTouchPeek(0, &touch, 1);
+  sceTouchPeek(SCE_TOUCH_PORT_BACK, &touch, 1);
 
   float val = 0.0f;
 
@@ -194,7 +194,7 @@ float GetGamepadAxis(int r0, int axis) {
     case 5: // R2
     {
       for (int i = 0; i < touch.reportNum; i++) {
-        if (touch.report[i].y < 1088/2) {
+        if (touch.report[i].y < (890+110)/2) {
           if (touch.report[i].x < 1920/2) {
             if (axis == 4)
               val = 1.0f;
@@ -358,6 +358,7 @@ enum MethodIDs {
   UNMAKE_CURRENT,
   GET_DEVICE_INFO,
   GET_DEVICE_TYPE,
+  GET_DEVICE_LOCALE,
   GET_GAMEPAD_TYPE,
   GET_GAMEPAD_BUTTONS,
   GET_GAMEPAD_AXIS,
@@ -375,6 +376,7 @@ NameToMethodID name_to_method_ids[] = {
 
   { "GetDeviceInfo", GET_DEVICE_INFO },
   { "GetDeviceType", GET_DEVICE_TYPE },
+  { "GetDeviceLocale", GET_DEVICE_LOCALE },
 
   { "GetGamepadType", GET_GAMEPAD_TYPE },
   { "GetGamepadButtons", GET_GAMEPAD_BUTTONS },
@@ -408,6 +410,8 @@ int CallIntMethod(void *env, void *obj, int methodID, int a0, int a1, int a2) {
       return GetGamepadButtons();
     case GET_DEVICE_TYPE:
       return GetDeviceType();
+    case GET_DEVICE_LOCALE:
+      return GetDeviceLocale();
     default:
       break;
   }
@@ -517,8 +521,6 @@ void patch_game(void) {
   hook_thumb(so_find_addr("_Z17OS_ScreenGetWidthv"), (uintptr_t)OS_ScreenGetWidth);
   hook_thumb(so_find_addr("_Z18OS_ScreenGetHeightv"), (uintptr_t)OS_ScreenGetHeight);
 
-  hook_thumb(so_find_addr("_Z16AND_DeviceLocalev"), (uintptr_t)AND_DeviceLocale);
-
   // TODO: set deviceChip, definedDevice
   hook_thumb(so_find_addr("_Z20AND_SystemInitializev"), (uintptr_t)ret0);
 
@@ -527,9 +529,6 @@ void patch_game(void) {
 
   // no obb
   hook_thumb(so_find_addr("_Z22AND_FileGetArchiveName13OSFileArchive"), (uintptr_t)OS_FileGetArchiveName);
-
-  // no apk
-  hook_thumb(so_find_addr("_Z9NvAPKOpenPKc"), (uintptr_t)ret0);
 
   // no cloud
   hook_thumb(so_find_addr("_Z22SCCloudSaveStateUpdatev"), (uintptr_t)ret0);
@@ -979,6 +978,10 @@ static DynLibFunction dynlib_functions[] = {
 int main(int argc, char *argv[]) {
   sceCtrlSetSamplingModeExt(SCE_CTRL_MODE_ANALOG_WIDE);
   sceTouchSetSamplingState(SCE_TOUCH_PORT_FRONT, SCE_TOUCH_SAMPLING_STATE_START);
+  sceTouchSetSamplingState(SCE_TOUCH_PORT_BACK, SCE_TOUCH_SAMPLING_STATE_START);
+  sceTouchEnableTouchForce(SCE_TOUCH_PORT_FRONT);
+  sceTouchEnableTouchForce(SCE_TOUCH_PORT_BACK);
+
   scePowerSetArmClockFrequency(444);
   scePowerSetBusClockFrequency(222);
   scePowerSetGpuClockFrequency(222);

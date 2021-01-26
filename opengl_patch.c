@@ -457,7 +457,7 @@ void BuildPixelSource(int flags) {
 #ifndef DISABLE_ALPHA_TESTING
   if (flags & FLAG_ALPHA_TEST) {
     PXL_EMIT("/*ATBEGIN*/");
-    if ((OS_SystemChip() == 8) && (flags & FLAG_TEX0)) {
+    if ((OS_SystemChip() == 13) && (flags & FLAG_TEX0)) {
       if (flags & FLAG_TEXBIAS) {
         PXL_EMIT("if (diffuseColor.a < 0.8) { discard; }");
       } else {

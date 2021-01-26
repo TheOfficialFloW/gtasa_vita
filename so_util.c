@@ -24,7 +24,7 @@ void *text_base, *data_base;
 size_t text_size, data_size;
 
 SceUID text_blockid, data_blockid;
-SceUID so_temp_blockid;
+SceUID temp_blockid;
 
 static Elf32_Ehdr *elf_hdr;
 static Elf32_Phdr *prog_hdr;
@@ -64,7 +64,7 @@ void so_flush_caches(void) {
 }
 
 int so_free_temp(void) {
-  return sceKernelFreeMemBlock(so_temp_blockid);
+  return sceKernelFreeMemBlock(temp_blockid);
 }
 
 int so_load(const char *filename) {
@@ -80,11 +80,11 @@ int so_load(const char *filename) {
   so_size = sceIoLseek(fd, 0, SCE_SEEK_END);
   sceIoLseek(fd, 0, SCE_SEEK_SET);
 
-  so_temp_blockid = sceKernelAllocMemBlock("file", SCE_KERNEL_MEMBLOCK_TYPE_USER_RW, (so_size + 0xfff) & ~0xfff, NULL);
-  if (so_temp_blockid < 0)
-    return so_temp_blockid;
+  temp_blockid = sceKernelAllocMemBlock("file", SCE_KERNEL_MEMBLOCK_TYPE_USER_RW, (so_size + 0xfff) & ~0xfff, NULL);
+  if (temp_blockid < 0)
+    return temp_blockid;
 
-  sceKernelGetMemBlockBase(so_temp_blockid, &so_data);
+  sceKernelGetMemBlockBase(temp_blockid, &so_data);
 
   sceIoRead(fd, so_data, so_size);
   sceIoClose(fd);
@@ -180,7 +180,7 @@ err_free_data:
 err_free_text:
   sceKernelFreeMemBlock(text_blockid);
 err_free_so:
-  sceKernelFreeMemBlock(so_temp_blockid);
+  sceKernelFreeMemBlock(temp_blockid);
 
   return res;
 }
@@ -196,16 +196,12 @@ int so_resolve(DynLibFunction *functions, int num_functions) {
 
         switch (ELF32_R_TYPE(rels[j].r_info)) {
           case R_ARM_ABS32:
-          {
             *ptr += (uintptr_t)text_base + sym->st_value;
             break;
-          }
 
           case R_ARM_RELATIVE:
-          {
             *ptr += (uintptr_t)text_base;
             break;
-          }
 
           case R_ARM_GLOB_DAT:
           case R_ARM_JUMP_SLOT:
