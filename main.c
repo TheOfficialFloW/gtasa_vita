@@ -549,13 +549,6 @@ void glTexImage2DHook(GLenum target, GLint level, GLint internalformat, GLsizei 
     glTexImage2D(target, level, internalformat, width, height, border, format, type, data);
 }
 
-void glFramebufferTexture2DHook(GLenum target, GLenum attachment, GLenum textarget, GLuint tex_id, GLint level) {
-  if (attachment == GL_COLOR_ATTACHMENT0) {
-    if (glCheckFramebufferStatus(target) == GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT)
-      glFramebufferTexture2D(target, attachment, textarget, tex_id, level);
-  }
-}
-
 void glGetProgramiv(GLuint program, GLenum pname, GLint *params) {
   //debugPrintf("glGetProgramiv pname: 0x%X\n", pname);
   if (pname == GL_INFO_LOG_LENGTH)
@@ -884,7 +877,7 @@ static DynLibFunction dynlib_functions[] = {
   { "glEnable", (uintptr_t)&glEnable },
   { "glEnableVertexAttribArray", (uintptr_t)&glEnableVertexAttribArray },
   { "glFramebufferRenderbuffer", (uintptr_t)&ret0 },
-  { "glFramebufferTexture2D", (uintptr_t)&glFramebufferTexture2DHook },
+  { "glFramebufferTexture2D", (uintptr_t)&glFramebufferTexture2D },
   { "glFrontFace", (uintptr_t)&glFrontFace },
   { "glGenBuffers", (uintptr_t)&glGenBuffers },
   { "glGenFramebuffers", (uintptr_t)&glGenFramebuffers },
