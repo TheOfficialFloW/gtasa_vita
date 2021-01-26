@@ -1,0 +1,7 @@
+build/*
+*.velf
+*.elf
+*.vpk
+*.sfo
+*.bin
+*.out
