@@ -613,7 +613,8 @@ half4 main(
   uniform half4 RedGrade
 ){
   half4 color = tex2D(Diffuse, Out_Tex0);
-  return half4(0, 0, 0, (1.0 - color.x) * RedGrade.a);
+  half4 gl_FragColor = half4(0, 0, 0, (1.0 - color.x) * RedGrade.a);
+  return gl_FragColor;
 }
 )";
 
