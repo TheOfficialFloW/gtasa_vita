@@ -490,11 +490,65 @@ void *OS_ThreadSetValue(void *RenderQueue) {
   return NULL;
 }
 
+void ColorFilterPS2(void *sp) {
+  float *red = (float *)(sp + 0x30);
+  float *green = (float *)(sp + 0x20);
+  float *blue = (float *)(sp + 0x10);
+
+  uint8_t *rgba1 = (uint8_t *)(sp + 0x0c);
+  uint8_t *rgba2 = (uint8_t *)(sp + 0x08);
+
+  float a = (float)rgba2[3] / 128.0f;
+  red[0] = (float)rgba1[0] / 128.0f + a * (float)rgba2[0] / 128.0f;
+  green[1] = (float)rgba1[1] / 128.0f + a * (float)rgba2[1] / 128.0f;
+  blue[2] = (float)rgba1[2] / 128.0f + a * (float)rgba2[2] / 128.0f;
+  red[1] = red[2] = red[3] = 0.0f;
+  green[0] = green[2] = green[3] = 0.0f;
+  blue[0] = blue[1] = blue[3] = 0.0f;
+}
+
+__attribute__((naked)) void _ColorFilterPS2_stub(void) {
+  asm volatile(
+    "add r0, sp, 0x10\n"
+    "bl ColorFilterPS2\n"
+    "vldr s2, [sp, #(0x30+0x10)]\n" // red.r
+    "vldr s4, [sp, #(0x24+0x10)]\n" // green.g
+    "vldr s6, [sp, #(0x18+0x10)]\n" // blue.b
+    "pop {r0-r3}\n"
+    "mov lr, %0\n"
+    "bx lr\n"
+  :: "r" (text_base + 0x005B6444 + 0x1) : "r0", "r1", "r2", "r3");
+}
+
+__attribute__((naked)) void ColorFilterPS2_stub(void) {
+  asm volatile(
+    "push {r0-r3}\n"
+    "b _ColorFilterPS2_stub\n"
+  );
+}
+
 extern void *__cxa_guard_acquire;
 extern void *__cxa_guard_release;
 
 // TODO: be careful of inlining
 void patch_game(void) {
+#ifdef ENABLE_COLOR_FILTER_PS2
+  // .text:005B63DC                 LDRB            R0, [R3] ; CPostEffects::m_bDarknessFilter
+  // .text:005B63DE                 STRB.W          R5, [SP,#0x68+rgba2+2]
+  // .text:005B63E2                 VADD.F32        S6, S6, S12
+  // .text:005B63E6                 VLDR            S12, [SP,#0x68+var_48+4]
+  // .text:005B63EA                 CMP             R0, #0
+  // ...
+  // .text:005B643C                 VSTR            S2, [SP,#0x30]
+  // .text:005B6440                 VSTR            S4, [SP,#0x24]
+  // .text:005B6444                 VSTR            S6, [SP,#0x18]
+  // .text:005B6448                 BEQ             loc_5B64EC
+  hook_thumb((uintptr_t)text_base + 0x005B643C, (uintptr_t)ColorFilterPS2_stub);
+
+  kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x005B6444), (void *)(text_base + 0x005B63DC), sizeof(uint16_t));
+  kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x005B6446), (void *)(text_base + 0x005B63EA), sizeof(uint16_t));
+#endif
+
   hook_thumb(so_find_addr("__cxa_guard_acquire"), (uintptr_t)&__cxa_guard_acquire);
   hook_thumb(so_find_addr("__cxa_guard_release"), (uintptr_t)&__cxa_guard_release);
 

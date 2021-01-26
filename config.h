@@ -14,6 +14,7 @@
 
 #define ENABLE_SHADER_CACHE
 
+// #define ENABLE_COLOR_FILTER_PS2
 #define DISABLE_SPEC_AMT
 // #define DISABLE_ALPHA_TESTING
 // #define SLOW_GPU
