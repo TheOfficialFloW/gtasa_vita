@@ -548,7 +548,10 @@ void patch_game(void) {
   kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x005B6444), (void *)(text_base + 0x005B63DC), sizeof(uint16_t));
   kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x005B6446), (void *)(text_base + 0x005B63EA), sizeof(uint16_t));
 #endif
-
+#ifdef ENABLE_SUN_CORONA_PS2
+  const uint32_t nop = 0xbf00bf00;
+  kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x005A26B0), &nop, sizeof(uint32_t));
+#endif
   hook_thumb(so_find_addr("__cxa_guard_acquire"), (uintptr_t)&__cxa_guard_acquire);
   hook_thumb(so_find_addr("__cxa_guard_release"), (uintptr_t)&__cxa_guard_release);
 
