@@ -593,8 +593,8 @@ void glShaderSourceHook(GLuint shader, GLsizei count, const GLchar **string, con
     char path[1024];
     snprintf(path, sizeof(path), "%s/%08x%08x%08x%08x%08x.gxp", SHADER_CACHE_PATH, sha1[0], sha1[1], sha1[2], sha1[3], sha1[4]);
 
-    size_t shaderSize = 0;
-    void *shaderBuf = NULL;
+    size_t shaderSize;
+    void *shaderBuf;
 
     SceUID fd = sceIoOpen(path, SCE_O_RDONLY, 0);
     if (fd >= 0) {
@@ -606,14 +606,17 @@ void glShaderSourceHook(GLuint shader, GLsizei count, const GLchar **string, con
       sceIoClose(fd);
 
       glShaderBinary(1, &shader, 0, shaderBuf, shaderSize);
+
       free(shaderBuf);
     } else {
-      shaderSize = *length;
-
       GLint type;
       glGetShaderiv(shader, GL_SHADER_TYPE, &type);
       shark_type sharkType = type == GL_FRAGMENT_SHADER ? SHARK_FRAGMENT_SHADER : SHARK_VERTEX_SHADER;
+
+      shaderSize = *length;
       shaderBuf = shark_compile_shader_extended(*string, &shaderSize, sharkType, SHARK_OPT_UNSAFE, SHARK_ENABLE, SHARK_ENABLE, SHARK_ENABLE);
+      if (shaderBuf == NULL)
+        debugPrintf("Could not compile shader: %s\n", *string);
 
       glShaderBinary(1, &shader, 0, shaderBuf, shaderSize);
 

@@ -259,7 +259,7 @@ void BuildVertexSource(int flags) {
       arg = "TexCoord0";
 
     if (flags & FLAG_NORMAL)
-      VTX_EMIT("Out_Tex0 = (mul(float3(%s, 1.0), NormalMatrix).xy;", arg);
+      VTX_EMIT("Out_Tex0 = mul(float3(%s, 1.0), NormalMatrix).xy;", arg);
     else
       VTX_EMIT("Out_Tex0 = %s;", arg);
   }
