@@ -12,6 +12,8 @@
 #define SCREEN_W 960
 #define SCREEN_H 544
 
+#define TOUCH_X_MARGIN 100
+
 #define ENABLE_SHADER_CACHE
 
 #define ENABLE_SKYGFX

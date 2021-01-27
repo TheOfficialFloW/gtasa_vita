@@ -42,6 +42,8 @@
 
 int _newlib_heap_size_user = MEMORY_MB * 1024 * 1024;
 
+static SceTouchPanelInfo panelInfoFront, panelInfoBack;
+
 int debugPrintf(char *text, ...) {
   va_list list;
   static char string[0x1000];
@@ -158,11 +160,16 @@ int GetGamepadButtons(void) {
     mask |= 0x800;
 
   for (int i = 0; i < touch.reportNum; i++) {
-    if (touch.report[i].y > 1088/2) {
-      if (touch.report[i].x < 1920/2)
-        mask |= 0x1000; // L3
-      else
-        mask |= 0x2000; // R3
+    for (int i = 0; i < touch.reportNum; i++) {
+      if (touch.report[i].y >= (panelInfoFront.minAaY + panelInfoFront.maxAaY) / 2) {
+        if (touch.report[i].x < (panelInfoFront.minAaX + panelInfoFront.maxAaX) / 2) {
+          if (touch.report[i].x >= TOUCH_X_MARGIN)
+            mask |= 0x1000; // L3
+        } else {
+          if (touch.report[i].x < (panelInfoFront.maxAaX - TOUCH_X_MARGIN))
+            mask |= 0x2000; // R3
+        }
+      }
     }
   }
 
@@ -195,13 +202,13 @@ float GetGamepadAxis(int r0, int axis) {
     case 5: // R2
     {
       for (int i = 0; i < touch.reportNum; i++) {
-        if (touch.report[i].y < (890+110)/2) {
-          if (touch.report[i].x < 1920/2) {
-            if (axis == 4)
-              val = 1.0f;
+        if (touch.report[i].y < (panelInfoBack.minAaY + panelInfoBack.maxAaY) / 2) {
+          if (touch.report[i].x < (panelInfoBack.minAaX + panelInfoBack.maxAaX) / 2) {
+            if (touch.report[i].x >= TOUCH_X_MARGIN)
+              if (axis == 4) val = 1.0f;
           } else {
-            if (axis == 5)
-              val = 1.0f;
+            if (touch.report[i].x < (panelInfoBack.maxAaX - TOUCH_X_MARGIN))
+              if (axis == 5) val = 1.0f;
           }
         }
       }
@@ -955,6 +962,8 @@ int main(int argc, char *argv[]) {
   sceTouchSetSamplingState(SCE_TOUCH_PORT_BACK, SCE_TOUCH_SAMPLING_STATE_START);
   sceTouchEnableTouchForce(SCE_TOUCH_PORT_FRONT);
   sceTouchEnableTouchForce(SCE_TOUCH_PORT_BACK);
+  sceTouchGetPanelInfo(SCE_TOUCH_PORT_FRONT, &panelInfoFront);
+  sceTouchGetPanelInfo(SCE_TOUCH_PORT_BACK, &panelInfoBack);
 
   scePowerSetArmClockFrequency(444);
   scePowerSetBusClockFrequency(222);
