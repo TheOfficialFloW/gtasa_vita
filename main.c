@@ -552,6 +552,10 @@ void patch_game(void) {
   const uint32_t nop = 0xbf00bf00;
   kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x005A26B0), &nop, sizeof(uint32_t));
 #endif
+#ifdef DISABLE_DETAIL_TEXTURES
+  *(int *)so_find_addr("gNoDetailTextures") = 1;
+#endif
+
   hook_thumb(so_find_addr("__cxa_guard_acquire"), (uintptr_t)&__cxa_guard_acquire);
   hook_thumb(so_find_addr("__cxa_guard_release"), (uintptr_t)&__cxa_guard_release);
 
