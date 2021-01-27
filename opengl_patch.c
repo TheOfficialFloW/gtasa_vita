@@ -63,7 +63,7 @@ static int (* GetMobileEffectSetting)();
 #define FLAG_COLOR_EMISSIVE       0x08
 #define FLAG_COLOR                0x10
 #define FLAG_TEX0                 0x20
-#define FLAG_TEX1                 0x40
+#define FLAG_ENVMAP               0x40          // normal envmap
 #define FLAG_BONE3                0x80
 #define FLAG_BONE4                0x100
 #define FLAG_CAMERA_BASED_NORMALS 0x200
@@ -73,15 +73,21 @@ static int (* GetMobileEffectSetting)();
 #define FLAG_LIGHT1               0x2000
 #define FLAG_LIGHT2               0x4000
 #define FLAG_LIGHT3               0x8000
-#define FLAG_ENVMAP               0x10000
+#define FLAG_DETAILMAP            0x10000
 #define FLAG_COMPRESSED_TEXCOORD  0x20000
 #define FLAG_PROJECT_TEXCOORD     0x40000
 #define FLAG_WATER                0x80000
 #define FLAG_COLOR2               0x100000
-#define FLAG_REFLECTION           0x800000
-#define FLAG_REFL_OUT             0x1000000
-#define FLAG_NORMAL               0x2000000
+#define FLAG_SPHERE_XFORM         0x800000      // this renders the scene as a sphere map for vehicle reflections
+#define FLAG_SPHERE_ENVMAP        0x1000000     // spherical real-time envmap
+#define FLAG_TEXMATRIX            0x2000000
 #define FLAG_GAMMA                0x4000000
+
+#ifdef DISABLE_SPEC_AMT
+#define PED_SPEC 0
+#else
+#define PED_SPEC (FLAG_BONE3 | FLAG_BONE4)
+#endif
 
 #define PXL_EMIT(...)                        \
   do {                                       \
@@ -150,13 +156,13 @@ void BuildVertexSource(int flags) {
   if (flags & (FLAG_BONE3 | FLAG_BONE4))
     VTX_EMIT("uniform float4 Bones[%d],", *RQMaxBones * 3 + 4);
 
-  if (flags & FLAG_NORMAL)
+  if (flags & FLAG_TEXMATRIX)
     VTX_EMIT("uniform float3x3 NormalMatrix,");
 
-  if (flags & (FLAG_TEX1 | FLAG_REFL_OUT))
+  if (flags & (FLAG_ENVMAP | FLAG_SPHERE_ENVMAP))
     VTX_EMIT("uniform half EnvMapCoefficient,");
 
-  if (flags & (FLAG_TEX1 | FLAG_REFL_OUT | FLAG_BONE3 | FLAG_BONE4 | FLAG_CAMERA_BASED_NORMALS | FLAG_FOG | FLAG_WATER | FLAG_REFLECTION))
+  if (flags & (FLAG_ENVMAP | FLAG_SPHERE_ENVMAP | FLAG_BONE3 | FLAG_BONE4 | FLAG_CAMERA_BASED_NORMALS | FLAG_FOG | FLAG_WATER | FLAG_SPHERE_XFORM))
     VTX_EMIT("uniform float3 CameraPosition,");
 
   if (flags & FLAG_FOG)
@@ -171,9 +177,9 @@ void BuildVertexSource(int flags) {
   if (flags & FLAG_TEX0)
     VTX_EMIT("half2 out Out_Tex0 : TEXCOORD0,");
 
-  if (flags & FLAG_TEX1)
+  if (flags & FLAG_ENVMAP)
     VTX_EMIT("half2 out Out_Tex1 : TEXCOORD1,");
-  else if (flags & FLAG_REFL_OUT)
+  else if (flags & FLAG_SPHERE_ENVMAP)
     VTX_EMIT("half3 out Out_Refl : TEXCOORD1,");
 
   if (flags & FLAG_WATER) {
@@ -185,10 +191,8 @@ void BuildVertexSource(int flags) {
   if (flags & (FLAG_COLOR | FLAG_LIGHTING))
     VTX_EMIT("half4 out Out_Color : COLOR0,");
 
-#ifndef DISABLE_SPEC_AMT
-  if ((flags & FLAG_LIGHT1) && (flags & (FLAG_TEX1 | FLAG_REFL_OUT | FLAG_BONE3 | FLAG_BONE4)))
+  if ((flags & FLAG_LIGHT1) && (flags & (FLAG_ENVMAP | FLAG_SPHERE_ENVMAP | PED_SPEC)))
     VTX_EMIT("half3 out Out_Spec : COLOR1,");
-#endif
 
   if (flags & FLAG_FOG)
     VTX_EMIT("half out Out_FogAmt : FOG,");
@@ -223,7 +227,7 @@ void BuildVertexSource(int flags) {
     VTX_EMIT("float4 WorldPos = mul(float4(Position, 1.0), ObjMatrix);");
   }
 
-  if (flags & FLAG_REFLECTION) {
+  if (flags & FLAG_SPHERE_XFORM) {
     VTX_EMIT("float3 ReflVector = WorldPos.xyz - CameraPosition.xyz;");
     VTX_EMIT("float3 ReflPos = normalize(ReflVector);");
     VTX_EMIT("ReflPos.xy = normalize(ReflPos.xy) * (ReflPos.z * 0.5 + 0.5);");
@@ -243,7 +247,7 @@ void BuildVertexSource(int flags) {
         VTX_EMIT("float3 WorldNormal = (mul(float4(Normal, 0.0), ObjMatrix)).xyz;");
     }
   } else {
-    if (flags & (FLAG_TEX1 | FLAG_REFL_OUT))
+    if (flags & (FLAG_ENVMAP | FLAG_SPHERE_ENVMAP))
       VTX_EMIT("float3 WorldNormal = float3(0.0, 0.0, 0.0);");
   }
 
@@ -258,16 +262,16 @@ void BuildVertexSource(int flags) {
     else
       arg = "TexCoord0";
 
-    if (flags & FLAG_NORMAL)
+    if (flags & FLAG_TEXMATRIX)
       VTX_EMIT("Out_Tex0 = mul(float3(%s, 1.0), NormalMatrix).xy;", arg);
     else
       VTX_EMIT("Out_Tex0 = %s;", arg);
   }
 
-  if (flags & (FLAG_TEX1 | FLAG_REFL_OUT)) {
+  if (flags & (FLAG_ENVMAP | FLAG_SPHERE_ENVMAP)) {
     VTX_EMIT("float3 reflVector = normalize(WorldPos.xyz - CameraPosition.xyz);");
     VTX_EMIT("reflVector = reflVector - 2.0 * dot(reflVector, WorldNormal) * WorldNormal;");
-    if (flags & FLAG_REFL_OUT)
+    if (flags & FLAG_SPHERE_ENVMAP)
       VTX_EMIT("Out_Refl = reflVector;");
     else
       VTX_EMIT("Out_Tex1 = float2(length(reflVector.xy), (reflVector.z * 0.5) + 0.25);");
@@ -316,19 +320,17 @@ void BuildVertexSource(int flags) {
       VTX_EMIT("Out_Color = %s;", arg);
   }
 
-#ifndef DISABLE_SPEC_AMT
   if (!RQCaps->unk_08 && (flags & FLAG_LIGHT1)) {
-    if (flags & (FLAG_TEX1 | FLAG_REFL_OUT)) {
+    if (flags & (FLAG_ENVMAP | FLAG_SPHERE_ENVMAP)) {
       VTX_EMIT("half specAmt = max(pow(dot(reflVector, DirLightDirection), %.1f), 0.0) * EnvMapCoefficient * 2.0;", RQCaps->isMaliChip ? 9.0f : 10.0f);
       VTX_EMIT("Out_Spec = specAmt * DirLightDiffuseColor;");
-    } else if (flags & (FLAG_BONE3 | FLAG_BONE4)) {
+    } else if (flags & PED_SPEC) {
       VTX_EMIT("half3 reflVector = normalize(WorldPos.xyz - CameraPosition.xyz);");
       VTX_EMIT("reflVector = reflVector - 2.0 * dot(reflVector, WorldNormal) * WorldNormal;");
       VTX_EMIT("half specAmt = max(pow(dot(reflVector, DirLightDirection), %.1f), 0.0) * 0.125;", RQCaps->isMaliChip ? 5.0f : 4.0f);
       VTX_EMIT("Out_Spec = specAmt * DirLightDiffuseColor;");
     }
   }
-#endif
 
   if (flags & FLAG_WATER) {
     VTX_EMIT("Out_WaterDetail = (Out_Tex0 * 4.0) + float2(WaterSpecs.x * -0.3, WaterSpecs.x * 0.21);");
@@ -347,8 +349,8 @@ void BuildPixelSource(int flags) {
   if (flags & FLAG_TEX0)
     PXL_EMIT("half2 Out_Tex0 : TEXCOORD0,");
 
-  if (flags & (FLAG_TEX1 | FLAG_REFL_OUT)) {
-    if (flags & FLAG_TEX1)
+  if (flags & (FLAG_ENVMAP | FLAG_SPHERE_ENVMAP)) {
+    if (flags & FLAG_ENVMAP)
       PXL_EMIT("half2 Out_Tex1 : TEXCOORD1,");
     else
       PXL_EMIT("half3 Out_Refl : TEXCOORD1,");
@@ -363,10 +365,8 @@ void BuildPixelSource(int flags) {
   if (flags & (FLAG_COLOR | FLAG_LIGHTING))
     PXL_EMIT("half4 Out_Color : COLOR0,");
 
-#ifndef DISABLE_SPEC_AMT
-  if ((flags & FLAG_LIGHT1) && (flags & (FLAG_TEX1 | FLAG_REFL_OUT | FLAG_BONE3 | FLAG_BONE4)))
+  if ((flags & FLAG_LIGHT1) && (flags & (FLAG_ENVMAP | FLAG_SPHERE_ENVMAP | PED_SPEC)))
     PXL_EMIT("half3 Out_Spec : COLOR1,");
-#endif
 
   if (flags & FLAG_FOG)
     PXL_EMIT("half Out_FogAmt : FOG,");
@@ -374,10 +374,10 @@ void BuildPixelSource(int flags) {
   if (flags & FLAG_TEX0)
     PXL_EMIT("uniform sampler2D Diffuse,");
 
-  if (flags & (FLAG_TEX1 | FLAG_REFL_OUT)) {
+  if (flags & (FLAG_ENVMAP | FLAG_SPHERE_ENVMAP)) {
     PXL_EMIT("uniform sampler2D EnvMap,");
     PXL_EMIT("uniform half EnvMapCoefficient,");
-  } else if (flags & FLAG_ENVMAP) {
+  } else if (flags & FLAG_DETAILMAP) {
     PXL_EMIT("uniform sampler2D EnvMap,");
     PXL_EMIT("uniform half DetailTiling,");
   }
@@ -409,7 +409,7 @@ void BuildPixelSource(int flags) {
     if (!(flags & (FLAG_COLOR | FLAG_LIGHTING))) {
       if (flags & FLAG_WATER)
         PXL_EMIT("fcolor.a += Out_WaterAlphaBlend;");
-    } else if (!(flags & FLAG_ENVMAP)) {
+    } else if (!(flags & FLAG_DETAILMAP)) {
       PXL_EMIT("fcolor *= Out_Color;");
       if (flags & FLAG_WATER)
         PXL_EMIT("fcolor.a += Out_WaterAlphaBlend;");
@@ -429,10 +429,10 @@ void BuildPixelSource(int flags) {
       PXL_EMIT("fcolor = 0.0;");
   }
 
-  if (flags & FLAG_TEX1)
+  if (flags & FLAG_ENVMAP)
     PXL_EMIT("fcolor.xyz = lerp(fcolor.xyz, tex2D(EnvMap, Out_Tex1).xyz, EnvMapCoefficient);");
 
-  if (flags & FLAG_REFL_OUT) {
+  if (flags & FLAG_SPHERE_ENVMAP) {
     PXL_EMIT("half2 ReflPos = normalize(Out_Refl.xy) * (Out_Refl.z * 0.5 + 0.5);");
     PXL_EMIT("ReflPos = (ReflPos * half2(0.5, 0.5)) + half2(0.5, 0.5);");
     PXL_EMIT("half4 ReflTexture = tex2D(EnvMap, ReflPos);");
@@ -441,10 +441,8 @@ void BuildPixelSource(int flags) {
   }
 
   if (!RQCaps->unk_08) {
-#ifndef DISABLE_SPEC_AMT
-    if ((flags & FLAG_LIGHT1) && (flags & (FLAG_TEX1 | FLAG_REFL_OUT | FLAG_BONE3 | FLAG_BONE4)))
+    if ((flags & FLAG_LIGHT1) && (flags & (FLAG_ENVMAP | FLAG_SPHERE_ENVMAP | PED_SPEC)))
       PXL_EMIT("fcolor.xyz += Out_Spec;");
-#endif
     if (flags & FLAG_FOG)
       PXL_EMIT("fcolor.xyz = lerp(fcolor.xyz, FogColor, Out_FogAmt);");
   }
