@@ -42,6 +42,8 @@
 
 int _newlib_heap_size_user = MEMORY_MB * 1024 * 1024;
 
+static SceTouchPanelInfo panelInfoFront, panelInfoBack;
+
 int debugPrintf(char *text, ...) {
   va_list list;
   static char string[0x1000];
@@ -156,13 +158,22 @@ int GetGamepadButtons(void) {
     mask |= 0x400;
   if (pad.buttons & SCE_CTRL_RIGHT)
     mask |= 0x800;
+  if (pad.buttons & SCE_CTRL_L3)
+    mask |= 0x1000;
+  if (pad.buttons & SCE_CTRL_R3)
+    mask |= 0x2000;
 
   for (int i = 0; i < touch.reportNum; i++) {
-    if (touch.report[i].y > 1088/2) {
-      if (touch.report[i].x < 1920/2)
-        mask |= 0x1000; // L3
-      else
-        mask |= 0x2000; // R3
+    for (int i = 0; i < touch.reportNum; i++) {
+      if (touch.report[i].y >= (panelInfoFront.minAaY + panelInfoFront.maxAaY) / 2) {
+        if (touch.report[i].x < (panelInfoFront.minAaX + panelInfoFront.maxAaX) / 2) {
+          if (touch.report[i].x >= TOUCH_X_MARGIN)
+            mask |= 0x1000; // L3
+        } else {
+          if (touch.report[i].x < (panelInfoFront.maxAaX - TOUCH_X_MARGIN))
+            mask |= 0x2000; // R3
+        }
+      }
     }
   }
 
@@ -194,14 +205,22 @@ float GetGamepadAxis(int r0, int axis) {
     case 4: // L2
     case 5: // R2
     {
+      if (axis == 4 && pad.buttons & SCE_CTRL_L2) {
+        val = 1.0f;
+        break;
+      } else if (axis == 5 && pad.buttons & SCE_CTRL_R2) {
+        val = 1.0f;
+        break;
+      }
+
       for (int i = 0; i < touch.reportNum; i++) {
-        if (touch.report[i].y < (890+110)/2) {
-          if (touch.report[i].x < 1920/2) {
-            if (axis == 4)
-              val = 1.0f;
+        if (touch.report[i].y < (panelInfoBack.minAaY + panelInfoBack.maxAaY) / 2) {
+          if (touch.report[i].x < (panelInfoBack.minAaX + panelInfoBack.maxAaX) / 2) {
+            if (touch.report[i].x >= TOUCH_X_MARGIN)
+              if (axis == 4) val = 1.0f;
           } else {
-            if (axis == 5)
-              val = 1.0f;
+            if (touch.report[i].x < (panelInfoBack.maxAaX - TOUCH_X_MARGIN))
+              if (axis == 5) val = 1.0f;
           }
         }
       }
@@ -546,6 +565,10 @@ void patch_game(void) {
 
   // do not use mutex for RenderQueue
   hook_thumb(so_find_addr("_Z17OS_ThreadSetValuePv"), (uintptr_t)OS_ThreadSetValue);
+
+  // no adjustable
+  hook_thumb(so_find_addr("_ZN14CAdjustableHUD10SaveToDiskEv"), (uintptr_t)ret0);
+  hook_thumb(so_find_addr("_ZN15CTouchInterface27RepositionAdjustableWidgetsEv"), (uintptr_t)ret0);
 }
 
 void glTexImage2DHook(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const void * data) {
@@ -953,8 +976,8 @@ int main(int argc, char *argv[]) {
   sceCtrlSetSamplingModeExt(SCE_CTRL_MODE_ANALOG_WIDE);
   sceTouchSetSamplingState(SCE_TOUCH_PORT_FRONT, SCE_TOUCH_SAMPLING_STATE_START);
   sceTouchSetSamplingState(SCE_TOUCH_PORT_BACK, SCE_TOUCH_SAMPLING_STATE_START);
-  sceTouchEnableTouchForce(SCE_TOUCH_PORT_FRONT);
-  sceTouchEnableTouchForce(SCE_TOUCH_PORT_BACK);
+  sceTouchGetPanelInfo(SCE_TOUCH_PORT_FRONT, &panelInfoFront);
+  sceTouchGetPanelInfo(SCE_TOUCH_PORT_BACK, &panelInfoBack);
 
   scePowerSetArmClockFrequency(444);
   scePowerSetBusClockFrequency(222);
