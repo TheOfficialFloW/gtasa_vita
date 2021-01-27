@@ -976,8 +976,6 @@ int main(int argc, char *argv[]) {
   sceCtrlSetSamplingModeExt(SCE_CTRL_MODE_ANALOG_WIDE);
   sceTouchSetSamplingState(SCE_TOUCH_PORT_FRONT, SCE_TOUCH_SAMPLING_STATE_START);
   sceTouchSetSamplingState(SCE_TOUCH_PORT_BACK, SCE_TOUCH_SAMPLING_STATE_START);
-  sceTouchEnableTouchForce(SCE_TOUCH_PORT_FRONT);
-  sceTouchEnableTouchForce(SCE_TOUCH_PORT_BACK);
   sceTouchGetPanelInfo(SCE_TOUCH_PORT_FRONT, &panelInfoFront);
   sceTouchGetPanelInfo(SCE_TOUCH_PORT_BACK, &panelInfoBack);
 
