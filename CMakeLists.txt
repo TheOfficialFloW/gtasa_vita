@@ -32,13 +32,12 @@ target_link_libraries(GTASA
   m
   mathneon
   openal
-  SDL2
-  vita2d
   vitaGL
   vitashark
   kubridge_stub
   SceAppMgr_stub
   SceAudio_stub
+  SceAudioIn_stub
   SceCtrl_stub
   SceCommonDialog_stub
   SceDisplay_stub
