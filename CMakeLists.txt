@@ -22,6 +22,7 @@ add_executable(GTASA
   so_util.c
   openal_patch.c
   opengl_patch.c
+  gfx_patch.c
   sha1.c
 )
 
