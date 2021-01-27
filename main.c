@@ -158,6 +158,10 @@ int GetGamepadButtons(void) {
     mask |= 0x400;
   if (pad.buttons & SCE_CTRL_RIGHT)
     mask |= 0x800;
+  if (pad.buttons & SCE_CTRL_L3)
+    mask |= 0x1000;
+  if (pad.buttons & SCE_CTRL_R3)
+    mask |= 0x2000;
 
   for (int i = 0; i < touch.reportNum; i++) {
     for (int i = 0; i < touch.reportNum; i++) {
@@ -201,6 +205,14 @@ float GetGamepadAxis(int r0, int axis) {
     case 4: // L2
     case 5: // R2
     {
+      if (axis == 4 && pad.buttons & SCE_CTRL_L2) {
+        val = 1.0f;
+        break;
+      } else if (axis == 5 && pad.buttons & SCE_CTRL_R2) {
+        val = 1.0f;
+        break;
+      }
+
       for (int i = 0; i < touch.reportNum; i++) {
         if (touch.report[i].y < (panelInfoBack.minAaY + panelInfoBack.maxAaY) / 2) {
           if (touch.report[i].x < (panelInfoBack.minAaX + panelInfoBack.maxAaX) / 2) {
@@ -553,6 +565,10 @@ void patch_game(void) {
 
   // do not use mutex for RenderQueue
   hook_thumb(so_find_addr("_Z17OS_ThreadSetValuePv"), (uintptr_t)OS_ThreadSetValue);
+
+  // no adjustable
+  hook_thumb(so_find_addr("_ZN14CAdjustableHUD10SaveToDiskEv"), (uintptr_t)ret0);
+  hook_thumb(so_find_addr("_ZN15CTouchInterface27RepositionAdjustableWidgetsEv"), (uintptr_t)ret0);
 }
 
 void glTexImage2DHook(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const void * data) {
