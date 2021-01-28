@@ -350,7 +350,7 @@ void *OS_ThreadLaunch(int (* func)(), void *arg, int r2, char *name, int r4, int
 }
 
 int swapBuffers(void) {
-  vglSwapBuffers();
+  vglSwapBuffers(GL_FALSE);
   return 1;
 }
 
