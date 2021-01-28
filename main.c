@@ -996,7 +996,9 @@ int main(int argc, char *argv[]) {
   patch_openal();
   patch_opengl();
   patch_game();
+#ifdef ENABLE_SKYGFX
   patch_gfx();
+#endif
   so_flush_caches();
 
   so_execute_init_array();

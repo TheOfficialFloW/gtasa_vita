@@ -142,11 +142,13 @@ struct RpLight
 	RwLinkList          WorldSectorsInLight; /**< WorldSectorsInLight */
 	RwLLLink            inWorld; /**< inWorld */
 	RwUInt16            lightFrame; /**< lightFrame */
-	RwUInt16            pad;
+	// war drum (?) change
+	RwUInt8             spec;
+	RwUInt8             pad;
+//	RwUInt16            pad;
 };
 #define RpLightGetParent(light) ((RwFrame*)rwObjectGetParent(light))
-
-RpLight *RpLightSetColor(RpLight *light, const RwRGBAReal *color) { light->color = *color; return light; }
+RpLight *(*RpLightSetColor)(RpLight *light, const RwRGBAReal *color);
 
 
 
@@ -250,10 +252,12 @@ RpLight **p_pAmbient;
 RwRGBAReal *p_AmbientLightColourForFrame;
 RwRGBAReal *p_AmbientLightColourForFrame_PedsCarsAndObjects;
 RwRGBAReal *p_DirectionalLightColourForFrame;
+RwRGBAReal *p_DirectionalLightColourFromDay;
 
 void
-SetLightsWithTimeOfDayColour(void)
+SetLightsWithTimeOfDayColour(void *world)
 {
+	(*p_pDirect)->spec = 1;
 	if(*p_pAmbient){
 		float ambMult = *p_gfLaRiotsLightMult * *p_CCoronas__LightsMult;
 		p_AmbientLightColourForFrame->red = p_CTimeCycle__m_CurrentColours->ambr * ambMult;
@@ -275,6 +279,8 @@ SetLightsWithTimeOfDayColour(void)
 			p_AmbientLightColourForFrame_PedsCarsAndObjects->green = 1.0f;
 			p_AmbientLightColourForFrame_PedsCarsAndObjects->blue = 1.0f;
 		}
+		// this is used by objects with alpha test for whatever reason
+		*p_DirectionalLightColourFromDay = *p_AmbientLightColourForFrame;
 	}
 
 	if(*p_pDirect){
@@ -368,6 +374,7 @@ patch_gfx(void)
 	p_AmbientLightColourForFrame = (RwRGBAReal*)so_find_addr("AmbientLightColourForFrame");
 	p_AmbientLightColourForFrame_PedsCarsAndObjects = (RwRGBAReal*)so_find_addr("AmbientLightColourForFrame_PedsCarsAndObjects");
 	p_DirectionalLightColourForFrame = (RwRGBAReal*)so_find_addr("DirectionalLightColourForFrame");
+	p_DirectionalLightColourFromDay = (RwRGBAReal*)so_find_addr("DirectionalLightColourFromDay");
 	p_CTimeCycle__m_CurrentColours = (CColourSet*)so_find_addr("_ZN10CTimeCycle16m_CurrentColoursE");
 	p_CTimeCycle__m_vecDirnLightToSun = (CVector*)so_find_addr("_ZN10CTimeCycle19m_vecDirnLightToSunE");
 	p_gfLaRiotsLightMult = (float*)so_find_addr("gfLaRiotsLightMult");
@@ -375,6 +382,7 @@ patch_gfx(void)
 	p_CWeather__LightningFlash = (uint8_t*)so_find_addr("_ZN8CWeather14LightningFlashE");
 
 	RwFrameTransform = (RwFrame *(*)(RwFrame*,const RwMatrix*,RwOpCombineType))so_find_addr("_Z16RwFrameTransformP7RwFramePK11RwMatrixTag15RwOpCombineType");
+	RpLightSetColor = (RpLight *(*)(RpLight*, const RwRGBAReal*))so_find_addr("_Z15RpLightSetColorP7RpLightPK10RwRGBAReal");
 
 	hook_thumb(so_find_addr("_Z28SetLightsWithTimeOfDayColourP7RpWorld"), (uintptr_t)SetLightsWithTimeOfDayColour);
 
@@ -408,7 +416,7 @@ patch_gfx(void)
 
 void BuildVertexSource_SkyGfx(int flags) {
 	char tmp[512];
-	char *arg;
+	char *vertexColor, *tex;
 
 	VTX_EMIT("void main(");
 
@@ -543,6 +551,7 @@ void BuildVertexSource_SkyGfx(int flags) {
 
 	if (flags & FLAG_LIGHTING) {
 		if (((flags & (FLAG_CAMERA_BASED_NORMALS | FLAG_ALPHA_TEST)) == (FLAG_CAMERA_BASED_NORMALS | FLAG_ALPHA_TEST)) && (flags & (FLAG_LIGHT1 | FLAG_LIGHT2 | FLAG_LIGHT3))) {
+			// unused
 			VTX_EMIT("float3 WorldNormal = normalize(float3(WorldPos.xy - CameraPosition.xy, 0.0001)) * 0.85;");
 		} else {
 			if (flags & (FLAG_BONE3 | FLAG_BONE4))
@@ -560,16 +569,16 @@ void BuildVertexSource_SkyGfx(int flags) {
 
 	if (flags & FLAG_TEX0) {
 		if (flags & FLAG_PROJECT_TEXCOORD)
-			arg = "TexCoord0.xy / TexCoord0.w";
+			tex = "TexCoord0.xy / TexCoord0.w";
 		else if (flags & FLAG_COMPRESSED_TEXCOORD)
-			arg = "TexCoord0 / 512.0";
+			tex = "TexCoord0 / 512.0";
 		else
-			arg = "TexCoord0";
+			tex = "TexCoord0";
 
 		if (flags & FLAG_TEXMATRIX)
-			VTX_EMIT("Out_Tex0 = mul(float3(%s, 1.0), NormalMatrix).xy;", arg);
+			VTX_EMIT("Out_Tex0 = mul(float3(%s, 1.0), NormalMatrix).xy;", tex);
 		else
-			VTX_EMIT("Out_Tex0 = %s;", arg);
+			VTX_EMIT("Out_Tex0 = %s;", tex);
 	}
 
 	if (flags & (FLAG_ENVMAP | FLAG_SPHERE_ENVMAP)) {
@@ -583,51 +592,85 @@ void BuildVertexSource_SkyGfx(int flags) {
 
 	if (flags & FLAG_COLOR2) {
 		VTX_EMIT("half4 InterpColor = lerp(GlobalColor, Color2, ColorInterp);");
-		arg = "InterpColor";
+		vertexColor = "InterpColor";
 	} else {
-		arg = "GlobalColor";
+		vertexColor = "GlobalColor";
 	}
 
+	// Lighting
 	if (flags & FLAG_LIGHTING) {
-		VTX_EMIT("half3 Out_LightingColor;");
+		//VTX_EMIT("half3 Out_LightingColor;");
+
+		VTX_EMIT("half3 ambEmissLight;");
+		VTX_EMIT("half3 diffColor = half3(0.0, 0.0, 0.0);");
+
+		// Ambient and Emissive Light
 		if (flags & FLAG_COLOR_EMISSIVE) {
-			if (flags & FLAG_CAMERA_BASED_NORMALS)
-				VTX_EMIT("Out_LightingColor = AmbientLightColor * MaterialAmbient.xyz * 1.5;");
-			else
-				VTX_EMIT("Out_LightingColor = AmbientLightColor * MaterialAmbient.xyz + %s.xyz;", arg);
+			if (flags & FLAG_CAMERA_BASED_NORMALS){
+				// This happens to objects with alpha test.
+				// trees in particular tend have their vertex colors cranked to white
+				// so let's try to tone that down a bit
+				VTX_EMIT("half3 vertClamped = clamp(%s.xyz, 0.0, 0.5);", vertexColor);
+				// NB: AmbientLightColor is DirectionalLightColourFromDay here
+				VTX_EMIT("ambEmissLight = AmbientLightColor * MaterialAmbient.xyz + vertClamped;");
+				// dunno what they were going for with this. flat shading because they messed up the prelight?
+			//	VTX_EMIT("ambEmissLight = AmbientLightColor * MaterialAmbient.xyz * 1.5;");
+			}else
+				VTX_EMIT("ambEmissLight = AmbientLightColor * MaterialAmbient.xyz + %s.xyz;", vertexColor);
 		} else {
-			VTX_EMIT("Out_LightingColor = AmbientLightColor * MaterialAmbient.xyz + MaterialEmissive.xyz;");
+			VTX_EMIT("ambEmissLight = AmbientLightColor * MaterialAmbient.xyz + MaterialEmissive.xyz;");
 		}
 
+		// Diffuse Light
 		if (flags & (FLAG_LIGHT1 | FLAG_LIGHT2 | FLAG_LIGHT3)) {
 			if (flags & FLAG_LIGHT1) {
 				if (GetMobileEffectSetting() == 3 && (flags & (FLAG_BACKLIGHT | FLAG_BONE3 | FLAG_BONE4)))
-					VTX_EMIT("Out_LightingColor += (max(dot(DirLightDirection, WorldNormal), 0.0) + max(dot(DirBackLightDirection, WorldNormal), 0.0)) * DirLightDiffuseColor;");
+					VTX_EMIT("diffColor += (max(dot(DirLightDirection, WorldNormal), 0.0) + max(dot(DirBackLightDirection, WorldNormal), 0.0)) * DirLightDiffuseColor;");
 				else
-					VTX_EMIT("Out_LightingColor += max(dot(DirLightDirection, WorldNormal), 0.0) * DirLightDiffuseColor;");
+					VTX_EMIT("diffColor += max(dot(DirLightDirection, WorldNormal), 0.0) * DirLightDiffuseColor;");
 			}
 			if (flags & FLAG_LIGHT2)
-				VTX_EMIT("Out_LightingColor += max(dot(DirLight2Direction, WorldNormal), 0.0) * DirLight2DiffuseColor;");
+				VTX_EMIT("diffColor += max(dot(DirLight2Direction, WorldNormal), 0.0) * DirLight2DiffuseColor;");
 			if (flags & FLAG_LIGHT3)
-				VTX_EMIT("Out_LightingColor += max(dot(DirLight3Direction, WorldNormal), 0.0) * DirLight3DiffuseColor;");
+				VTX_EMIT("diffColor += max(dot(DirLight3Direction, WorldNormal), 0.0) * DirLight3DiffuseColor;");
+			VTX_EMIT("diffColor *= MaterialDiffuse.xyz;");
 		}
 
+		// Final Color
 		if (flags & (FLAG_COLOR | FLAG_LIGHTING)) {
-			if (flags & FLAG_COLOR)
-				VTX_EMIT("Out_Color = half4((Out_LightingColor.xyz + %s.xyz * 1.5) * MaterialDiffuse.xyz, (MaterialAmbient.w) * %s.w);", arg, arg);
-			else
-				VTX_EMIT("Out_Color = half4(Out_LightingColor * MaterialDiffuse.xyz, MaterialAmbient.w * %s.w);", arg);
+			// this makes no sense
+//			if (flags & FLAG_COLOR)
+//				VTX_EMIT("Out_Color = half4((Out_LightingColor.xyz + %s.xyz * 1.5) * MaterialDiffuse.xyz, (MaterialAmbient.w) * %s.w);", vertexColor, vertexColor);
+//			else
+				VTX_EMIT("Out_Color = half4(ambEmissLight + diffColor, MaterialAmbient.w * %s.w);", vertexColor);
 			VTX_EMIT("Out_Color = clamp(Out_Color, 0.0, 1.0);");
 		}
 	} else {
 		if (flags & (FLAG_COLOR | FLAG_LIGHTING))
-			VTX_EMIT("Out_Color = %s;", arg);
+			VTX_EMIT("Out_Color = %s;", vertexColor);
 	}
 
 	if (!RQCaps->unk_08 && (flags & FLAG_LIGHT1)) {
 		if (flags & (FLAG_ENVMAP | FLAG_SPHERE_ENVMAP)) {
-			VTX_EMIT("half specAmt = max(pow(dot(reflVector, DirLightDirection), %.1f), 0.0) * EnvMapCoefficient * 2.0;", RQCaps->isMaliChip ? 9.0f : 10.0f);
-			VTX_EMIT("Out_Spec = specAmt * DirLightDiffuseColor;");
+			// original, but fixed clamp for pow
+			//VTX_EMIT("half specAmt = pow(max(dot(reflVector, DirLightDirection), 0.0), %.1f) * EnvMapCoefficient * 2.0;", RQCaps->isMaliChip ? 9.0f : 10.0f);
+			//VTX_EMIT("Out_Spec = specAmt * DirLightDiffuseColor;");
+
+			// just testing doing it differently
+			//VTX_EMIT("float3 specVector = normalize(CameraPosition.xyz - WorldPos.xyz);");
+			//VTX_EMIT("half specAmt = pow(max(dot(WorldNormal, normalize(specVector + DirLightDirection)), 0.0), 16.0);");
+			//VTX_EMIT("specAmt *= 2.0 * EnvMapCoefficient;");
+			//VTX_EMIT("Out_Spec = specAmt * DirLightDiffuseColor;");
+
+			// ps2 specdot - reflect in view space
+			VTX_EMIT("half3 ViewNormal = (mul(float4(WorldNormal, 0.0), ViewMatrix)).xyz;");
+			VTX_EMIT("half3 ViewLight = (mul(float4(DirLightDirection, 0.0), ViewMatrix)).xyz;");
+			VTX_EMIT("half3 V = ViewLight - 2.0*ViewNormal*dot(ViewNormal, ViewLight);");
+			// find some nice specular value -- not the real thing unfortunately
+			VTX_EMIT("half specAmt = 1.0 * EnvMapCoefficient * DirLightDiffuseColor.x;");
+			// NB: this is not a color here!!
+			VTX_EMIT("Out_Spec = (V + half3(1.0, 1.0, 0.0))/2.0;");
+			VTX_EMIT("if(Out_Spec.z < 0.0) Out_Spec.z = specAmt; else Out_Spec.z = 0.0;");
 		} else if (flags & PED_SPEC) {
 			VTX_EMIT("half3 reflVector = normalize(WorldPos.xyz - CameraPosition.xyz);");
 			VTX_EMIT("reflVector = reflVector - 2.0 * dot(reflVector, WorldNormal) * WorldNormal;");
@@ -711,6 +754,9 @@ void BuildPixelSource_SkyGfx(int flags) {
 			PXL_EMIT("half4 diffuseColor = tex2D(Diffuse, Out_Tex0);");
 
 		PXL_EMIT("fcolor = diffuseColor;");
+// no texture. for testing lighting
+//if (flags & FLAG_LIGHTING)
+//	PXL_EMIT("fcolor = half4(1.0, 1.0, 1.0, 1.0);");
 
 		if (!(flags & (FLAG_COLOR | FLAG_LIGHTING))) {
 			if (flags & FLAG_WATER)
@@ -735,8 +781,9 @@ void BuildPixelSource_SkyGfx(int flags) {
 			PXL_EMIT("fcolor = 0.0;");
 	}
 
-	if (flags & FLAG_ENVMAP)
-		PXL_EMIT("fcolor.xyz = lerp(fcolor.xyz, tex2D(EnvMap, Out_Tex1).xyz, EnvMapCoefficient);");
+// only look at specular for the moment
+//	if (flags & FLAG_ENVMAP)
+//		PXL_EMIT("fcolor.xyz = lerp(fcolor.xyz, tex2D(EnvMap, Out_Tex1).xyz, EnvMapCoefficient);");
 
 	if (flags & FLAG_SPHERE_ENVMAP) {
 		PXL_EMIT("half2 ReflPos = normalize(Out_Refl.xy) * (Out_Refl.z * 0.5 + 0.5);");
@@ -747,8 +794,20 @@ void BuildPixelSource_SkyGfx(int flags) {
 	}
 
 	if (!RQCaps->unk_08) {
-		if ((flags & FLAG_LIGHT1) && (flags & (FLAG_ENVMAP | FLAG_SPHERE_ENVMAP | PED_SPEC)))
-			PXL_EMIT("fcolor.xyz += Out_Spec;");
+		if ((flags & FLAG_LIGHT1) && (flags & (FLAG_ENVMAP | FLAG_SPHERE_ENVMAP | PED_SPEC))){
+			// When treating this as light
+			//PXL_EMIT("fcolor.xyz += Out_Spec;");
+
+			// PS2 has UV coors for specdot instead, but we don't actually have the texture. so simulate it
+			PXL_EMIT("half2 unpack = (Out_Spec.xy-half2(0.5, 0.5))*2.0;");
+			PXL_EMIT("half3 specColor = half3(Out_Spec.z, Out_Spec.z, Out_Spec.z);");
+			PXL_EMIT("half dist = unpack.x*unpack.x + unpack.y*unpack.y;");
+			// outside the dot
+			PXL_EMIT("if(dist > 0.69*0.69) specColor *= 0.0;");
+			// smooth the edge
+			PXL_EMIT("else if(dist > 0.67*0.67) specColor *= (0.69*0.69 - dist)/(0.69*0.69 - 0.67*0.67);");
+			PXL_EMIT("fcolor.xyz += specColor;");
+		}
 		if (flags & FLAG_FOG)
 			PXL_EMIT("fcolor.xyz = lerp(fcolor.xyz, FogColor, Out_FogAmt);");
 	}
