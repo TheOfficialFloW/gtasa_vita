@@ -606,6 +606,13 @@ void BuildVertexSource_SkyGfx(int flags) {
 
 		// Ambient and Emissive Light
 		if (flags & FLAG_COLOR_EMISSIVE) {
+			if(flags & (FLAG_LIGHT1 | FLAG_LIGHT2 | FLAG_LIGHT3)){
+				// TOTAL HACK for 3d markers (looks like we can catch them here).
+				// material color is not white but prelight wasn't adjusted.
+				// we happen to know that diffuse light is white, so MaterialDiffuse should be
+				// the unmodified materialcolor and we can multiply with it.
+				VTX_EMIT("ambEmissLight = AmbientLightColor * MaterialAmbient.xyz + %s.xyz * MaterialDiffuse.xyz;", vertexColor);
+			}else
 			if (flags & FLAG_CAMERA_BASED_NORMALS){
 				// This happens to objects with alpha test.
 				// trees in particular tend have their vertex colors cranked to white
