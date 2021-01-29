@@ -610,7 +610,7 @@ void BuildVertexSource_SkyGfx(int flags) {
 				// TOTAL HACK for 3d markers (looks like we can catch them here).
 				// material color is not white but prelight wasn't adjusted.
 				// we happen to know that diffuse light is white, so MaterialDiffuse should be
-				// the unmodified materialcolor and we can multiply with it.
+				// the unmodified material color and we can multiply with it.
 				VTX_EMIT("ambEmissLight = AmbientLightColor * MaterialAmbient.xyz + %s.xyz * MaterialDiffuse.xyz;", vertexColor);
 			}else
 			if (flags & FLAG_CAMERA_BASED_NORMALS){
@@ -657,17 +657,10 @@ void BuildVertexSource_SkyGfx(int flags) {
 			VTX_EMIT("Out_Color = %s;", vertexColor);
 	}
 
+	// Specular light
 	if (!RQCaps->unk_08 && (flags & FLAG_LIGHT1)) {
-		if (flags & (FLAG_ENVMAP | FLAG_SPHERE_ENVMAP)) {
-			// original, but fixed clamp for pow
-			//VTX_EMIT("half specAmt = pow(max(dot(reflVector, DirLightDirection), 0.0), %.1f) * EnvMapCoefficient * 2.0;", RQCaps->isMaliChip ? 9.0f : 10.0f);
-			//VTX_EMIT("Out_Spec = specAmt * DirLightDiffuseColor;");
-
-			// just testing doing it differently
-			//VTX_EMIT("float3 specVector = normalize(CameraPosition.xyz - WorldPos.xyz);");
-			//VTX_EMIT("half specAmt = pow(max(dot(WorldNormal, normalize(specVector + DirLightDirection)), 0.0), 16.0);");
-			//VTX_EMIT("specAmt *= 2.0 * EnvMapCoefficient;");
-			//VTX_EMIT("Out_Spec = specAmt * DirLightDiffuseColor;");
+		if (flags & FLAG_ENVMAP) {
+			// Low quality setting -- PS2 style
 
 			// ps2 specdot - reflect in view space
 			VTX_EMIT("half3 ViewNormal = (mul(float4(WorldNormal, 0.0), ViewMatrix)).xyz;");
@@ -678,6 +671,18 @@ void BuildVertexSource_SkyGfx(int flags) {
 			// NB: this is not a color here!!
 			VTX_EMIT("Out_Spec = (V + half3(1.0, 1.0, 0.0))/2.0;");
 			VTX_EMIT("if(Out_Spec.z < 0.0) Out_Spec.z = specAmt; else Out_Spec.z = 0.0;");
+		} else if (flags & FLAG_SPHERE_ENVMAP) {
+			// Detailed & Max quality setting - original android (for now)
+
+			// original, but fixed clamp for pow
+			VTX_EMIT("half specAmt = pow(max(dot(reflVector, DirLightDirection), 0.0), %.1f) * EnvMapCoefficient * 2.0;", RQCaps->isMaliChip ? 9.0f : 10.0f);
+			VTX_EMIT("Out_Spec = specAmt * DirLightDiffuseColor;");
+
+			// just testing doing it differently
+			//VTX_EMIT("float3 specVector = normalize(CameraPosition.xyz - WorldPos.xyz);");
+			//VTX_EMIT("half specAmt = pow(max(dot(WorldNormal, normalize(specVector + DirLightDirection)), 0.0), 16.0);");
+			//VTX_EMIT("specAmt *= 2.0 * EnvMapCoefficient;");
+			//VTX_EMIT("Out_Spec = specAmt * DirLightDiffuseColor;");
 		} else if (flags & PED_SPEC) {
 			VTX_EMIT("half3 reflVector = normalize(WorldPos.xyz - CameraPosition.xyz);");
 			VTX_EMIT("reflVector = reflVector - 2.0 * dot(reflVector, WorldNormal) * WorldNormal;");
@@ -801,19 +806,22 @@ void BuildPixelSource_SkyGfx(int flags) {
 	}
 
 	if (!RQCaps->unk_08) {
-		if ((flags & FLAG_LIGHT1) && (flags & (FLAG_ENVMAP | FLAG_SPHERE_ENVMAP | PED_SPEC))){
-			// When treating this as light
-			//PXL_EMIT("fcolor.xyz += Out_Spec;");
-
-			// PS2 has UV coors for specdot instead, but we don't actually have the texture. so simulate it
-			PXL_EMIT("half2 unpack = (Out_Spec.xy-half2(0.5, 0.5))*2.0;");
-			PXL_EMIT("half3 specColor = half3(Out_Spec.z, Out_Spec.z, Out_Spec.z);");
-			PXL_EMIT("half dist = unpack.x*unpack.x + unpack.y*unpack.y;");
-			// outside the dot
-			PXL_EMIT("if(dist > 0.69*0.69) specColor *= 0.0;");
-			// smooth the edge
-			PXL_EMIT("else if(dist > 0.67*0.67) specColor *= (0.69*0.69 - dist)/(0.69*0.69 - 0.67*0.67);");
-			PXL_EMIT("fcolor.xyz += specColor;");
+		if ((flags & FLAG_LIGHT1)){
+			if(flags & FLAG_ENVMAP){
+				// PS2-style specdot
+				// We don't actually have the texture. so simulate it
+				PXL_EMIT("half2 unpack = (Out_Spec.xy-half2(0.5, 0.5))*2.0;");
+				PXL_EMIT("half3 specColor = half3(Out_Spec.z, Out_Spec.z, Out_Spec.z);");
+				PXL_EMIT("half dist = unpack.x*unpack.x + unpack.y*unpack.y;");
+				// outside the dot
+				PXL_EMIT("if(dist > 0.69*0.69) specColor *= 0.0;");
+				// smooth the edge
+				PXL_EMIT("else if(dist > 0.67*0.67) specColor *= (0.69*0.69 - dist)/(0.69*0.69 - 0.67*0.67);");
+				PXL_EMIT("fcolor.xyz += specColor;");
+			}else if(flags & (FLAG_SPHERE_ENVMAP | PED_SPEC)){
+				// Out_Spec is actually light
+				PXL_EMIT("fcolor.xyz += Out_Spec;");
+			}
 		}
 		if (flags & FLAG_FOG)
 			PXL_EMIT("fcolor.xyz = lerp(fcolor.xyz, FogColor, Out_FogAmt);");
