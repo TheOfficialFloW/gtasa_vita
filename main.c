@@ -243,29 +243,30 @@ int pthread_create_fake(int r0, int r1, int r2, void *arg) {
   return func();
 }
 
-int pthread_mutex_init_fake(int *uid) {
-  *uid = sceKernelCreateMutex("mutex", SCE_KERNEL_MUTEX_ATTR_RECURSIVE, 0, NULL);
-  if (*uid < 0)
+int pthread_mutex_init_fake(SceKernelLwMutexWork **work) {
+  *work = (SceKernelLwMutexWork *)malloc(sizeof(SceKernelLwMutexWork));
+  if (sceKernelCreateLwMutex(*work, "mutex", SCE_KERNEL_MUTEX_ATTR_RECURSIVE, 0, NULL) < 0)
     return -1;
   return 0;
 }
 
-int pthread_mutex_destroy_fake(int *uid) {
-  if (sceKernelDeleteMutex(*uid) < 0)
+int pthread_mutex_destroy_fake(SceKernelLwMutexWork **work) {
+  if (sceKernelDeleteLwMutex(*work) < 0)
+    return -1;
+  free(*work);
+  return 0;
+}
+
+int pthread_mutex_lock_fake(SceKernelLwMutexWork **work) {
+  if (!*work)
+    pthread_mutex_init_fake(work);
+  if (sceKernelLockLwMutex(*work, 1, NULL) < 0)
     return -1;
   return 0;
 }
 
-int pthread_mutex_lock_fake(int *uid) {
-  if (!*uid)
-    pthread_mutex_init_fake(uid);
-  if (sceKernelLockMutex(*uid, 1, NULL) < 0)
-    return -1;
-  return 0;
-}
-
-int pthread_mutex_unlock_fake(int *uid) {
-  if (sceKernelUnlockMutex(*uid, 1) < 0)
+int pthread_mutex_unlock_fake(SceKernelLwMutexWork **work) {
+  if (sceKernelUnlockLwMutex(*work, 1) < 0)
     return -1;
   return 0;
 }
@@ -309,8 +310,8 @@ int thread_stub(SceSize args, uintptr_t *argp) {
 // StreamThread with priority 2
 // BankLoader with priority 3
 void *OS_ThreadLaunch(int (* func)(), void *arg, int r2, char *name, int r4, int priority) {
-  int min_priority = 128;
-  int max_priority = 64;
+  int min_priority = 0xA0;
+  int max_priority = 0x60;
   int vita_priority;
 
   switch (priority) {
@@ -354,7 +355,7 @@ int swapBuffers(void) {
 
 int InitEGLAndGLES2(void) {
   vglWaitVblankStart(GL_TRUE);
-  return 1; // success
+  return 1;
 }
 
 char *OS_FileGetArchiveName(int mode) {
@@ -635,6 +636,12 @@ void glCompileShaderHook(GLuint shader) {
 #endif
 }
 
+void glCompressedTexImage2DHook(GLenum target, GLint level, GLenum format, GLsizei width, GLsizei height, GLint border, GLsizei imageSize, const void * data) {
+  // mips for PVRTC textures break when they're under 1 block in size
+  if (level == 0 || (width >= 4 && height >= 4) || (format != 0x8C01 && format != 0x8C02))
+    glCompressedTexImage2D(target, level, format, width, height, border, imageSize, data);
+}
+
 extern void *_ZdaPv;
 extern void *_ZdlPv;
 extern void *_Znaj;
@@ -859,7 +866,7 @@ static DynLibFunction dynlib_functions[] = {
   { "glClearDepthf", (uintptr_t)&glClearDepthf },
   { "glClearStencil", (uintptr_t)&glClearStencil },
   { "glCompileShader", (uintptr_t)&glCompileShaderHook },
-  { "glCompressedTexImage2D", (uintptr_t)&glCompressedTexImage2D },
+  { "glCompressedTexImage2D", (uintptr_t)&glCompressedTexImage2DHook },
   { "glCreateProgram", (uintptr_t)&glCreateProgram },
   { "glCreateShader", (uintptr_t)&glCreateShader },
   { "glCullFace", (uintptr_t)&glCullFace },
