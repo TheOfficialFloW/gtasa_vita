@@ -303,13 +303,13 @@ int thread_stub(SceSize args, uintptr_t *argp) {
   return func(arg);
 }
 
-// OS_ThreadLaunch CdStream with priority 6b
-// OS_ThreadLaunch Es2Thread with priority 40
-// OS_ThreadLaunch MainThread with priority 5a
-// OS_ThreadLaunch BankLoader with priority bf
-// OS_ThreadLaunch StreamThread with priority 6b
+// CdStream with priority 0
+// Es2Thread with priority 0
+// MainThread with priority 1
+// StreamThread with priority 2
+// BankLoader with priority 3
 void *OS_ThreadLaunch(int (* func)(), void *arg, int r2, char *name, int r4, int priority) {
-  int min_priority = 191;
+  int min_priority = 128;
   int max_priority = 64;
   int vita_priority;
 
@@ -331,9 +331,7 @@ void *OS_ThreadLaunch(int (* func)(), void *arg, int r2, char *name, int r4, int
       break;
   }
 
-  // debugPrintf("OS_ThreadLaunch %s with priority %x\n", name, vita_priority);
-
-  SceUID thid = sceKernelCreateThread(name, (SceKernelThreadEntry)thread_stub, vita_priority, 1 * 1024 * 1024, 0, 0, NULL);
+  SceUID thid = sceKernelCreateThread(name, (SceKernelThreadEntry)thread_stub, vita_priority, 128 * 1024, 0, 0, NULL);
   if (thid >= 0) {
     char *out = malloc(0x48);
 
