@@ -168,7 +168,8 @@ int thread_stub(SceSize args, uintptr_t *argp) {
   void *arg = (void *)argp[1];
   char *out = (char *)argp[2];
   out[0x41] = 1; // running
-  return func(arg);
+  func(arg);
+  return sceKernelExitDeleteThread(0);
 }
 
 // CdStream with priority 0
