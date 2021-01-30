@@ -22,9 +22,51 @@
 #include "main.h"
 #include "so_util.h"
 
+enum MethodIDs {
+  UNKNOWN = 0,
+  INIT_EGL_AND_GLES2,
+  SWAP_BUFFERS,
+  GET_APP_LOCAL_VALUE,
+  FILE_GET_ARCHIVE_NAME,
+  DELETE_FILE,
+  GET_DEVICE_INFO,
+  GET_DEVICE_TYPE,
+  GET_DEVICE_LOCALE,
+  GET_GAMEPAD_TYPE,
+  GET_GAMEPAD_BUTTONS,
+  GET_GAMEPAD_AXIS,
+} MethodIDs;
+
+typedef struct {
+  char *name;
+  enum MethodIDs id;
+} NameToMethodID;
+
+static NameToMethodID name_to_method_ids[] = {
+  { "InitEGLAndGLES2", INIT_EGL_AND_GLES2 },
+  { "swapBuffers", SWAP_BUFFERS },
+
+  { "getAppLocalValue", GET_APP_LOCAL_VALUE },
+
+  { "FileGetArchiveName", FILE_GET_ARCHIVE_NAME },
+  { "DeleteFile", DELETE_FILE },
+
+  { "GetDeviceInfo", GET_DEVICE_INFO },
+  { "GetDeviceType", GET_DEVICE_TYPE },
+  { "GetDeviceLocale", GET_DEVICE_LOCALE },
+
+  { "GetGamepadType", GET_GAMEPAD_TYPE },
+  { "GetGamepadButtons", GET_GAMEPAD_BUTTONS },
+  { "GetGamepadAxis", GET_GAMEPAD_AXIS },
+};
+
 static char fake_vm[0x1000];
 static char fake_env[0x1000];
 static void *natives;
+
+int GetDeviceInfo(void) {
+  return 0;
+}
 
 int GetDeviceType(void) {
   // 0x1: phone
@@ -37,13 +79,13 @@ int GetDeviceLocale(void) {
   return 0; // english
 }
 
-// 0, 5, 6: XBOX 360
-// 4: MogaPocket
-// 7: MogaPro
-// 8: PS3
-// 9: IOSExtended
-// 10: IOSSimple
 int GetGamepadType(void) {
+  // 0, 5, 6: XBOX 360
+  // 4: MogaPocket
+  // 7: MogaPro
+  // 8: PS3
+  // 9: IOSExtended
+  // 10: IOSSimple
   return 8;
 }
 
@@ -165,6 +207,12 @@ int InitEGLAndGLES2(void) {
   return 1;
 }
 
+char *getAppLocalValue(char *key) {
+  if (strcmp(key, "STORAGE_ROOT") == 0)
+    return DATA_PATH;
+  return NULL;
+}
+
 char *FileGetArchiveName(int type) {
   switch (type) {
     case 1:
@@ -172,7 +220,7 @@ char *FileGetArchiveName(int type) {
     case 2:
       return "/Android/patch.obb";
     default:
-      return "";
+      return NULL;
   }
 }
 
@@ -183,45 +231,6 @@ int DeleteFile(char *file) {
     return 0;
   return 1;
 }
-
-enum MethodIDs {
-  UNKNOWN = 0,
-  INIT_EGL_AND_GLES2,
-  FINISH,
-  SWAP_BUFFERS,
-  MAKE_CURRENT,
-  UNMAKE_CURRENT,
-  FILE_GET_ARCHIVE_NAME,
-  DELETE_FILE,
-  GET_DEVICE_INFO,
-  GET_DEVICE_TYPE,
-  GET_DEVICE_LOCALE,
-  GET_GAMEPAD_TYPE,
-  GET_GAMEPAD_BUTTONS,
-  GET_GAMEPAD_AXIS,
-  GET_GAMEPAD_TRACK,
-} MethodIDs;
-
-typedef struct {
-  char *name;
-  enum MethodIDs id;
-} NameToMethodID;
-
-NameToMethodID name_to_method_ids[] = {
-  { "InitEGLAndGLES2", INIT_EGL_AND_GLES2 },
-  { "swapBuffers", SWAP_BUFFERS },
-
-  { "FileGetArchiveName", FILE_GET_ARCHIVE_NAME },
-  { "DeleteFile", DELETE_FILE },
-
-  { "GetDeviceInfo", GET_DEVICE_INFO },
-  { "GetDeviceType", GET_DEVICE_TYPE },
-  { "GetDeviceLocale", GET_DEVICE_LOCALE },
-
-  { "GetGamepadType", GET_GAMEPAD_TYPE },
-  { "GetGamepadButtons", GET_GAMEPAD_BUTTONS },
-  { "GetGamepadAxis", GET_GAMEPAD_AXIS },
-};
 
 int CallBooleanMethodV(void *env, void *obj, int methodID, uintptr_t *args) {
   switch (methodID) {
@@ -255,6 +264,8 @@ int CallIntMethodV(void *env, void *obj, int methodID, uintptr_t *args) {
       return GetGamepadType();
     case GET_GAMEPAD_BUTTONS:
       return GetGamepadButtons();
+    case GET_DEVICE_INFO:
+      return GetDeviceInfo();
     case GET_DEVICE_TYPE:
       return GetDeviceType();
     case GET_DEVICE_LOCALE:
@@ -268,6 +279,8 @@ int CallIntMethodV(void *env, void *obj, int methodID, uintptr_t *args) {
 
 void *CallObjectMethodV(void *env, void *obj, int methodID, uintptr_t *args) {
   switch (methodID) {
+    case GET_APP_LOCAL_VALUE:
+      return getAppLocalValue((char *)args[0]);
     case FILE_GET_ARCHIVE_NAME:
       return FileGetArchiveName(args[0]);
   }
@@ -327,6 +340,7 @@ int GetEnvFake(void *vm, void **env, int r2) {
   *(uintptr_t *)(fake_env + 0xF8) = (uintptr_t)CallVoidMethodV;
   *(uintptr_t *)(fake_env + 0x178) = (uintptr_t)ret0; // NvEventQueueActivity stuff
   *(uintptr_t *)(fake_env + 0x1C4) = (uintptr_t)ret0;
+  *(uintptr_t *)(fake_env + 0x1CC) = (uintptr_t)ret0;
   *(uintptr_t *)(fake_env + 0x240) = (uintptr_t)ret0; // keyboard stuff
   *(uintptr_t *)(fake_env + 0x29C) = (uintptr_t)NewStringUTF;
   *(uintptr_t *)(fake_env + 0x2A4) = (uintptr_t)GetStringUTFChars;
@@ -337,7 +351,6 @@ int GetEnvFake(void *vm, void **env, int r2) {
 }
 
 void jni_load(void) {
-  strcpy((char *)so_find_addr("StorageRootBuffer"), DATA_PATH);
   *(int *)so_find_addr("IsAndroidPaused") = 0; // it's 1 by default
 
   memset(fake_vm, 'A', sizeof(fake_vm));

@@ -227,15 +227,12 @@ void *OS_ThreadSetValue(void *RenderQueue) {
   return NULL;
 }
 
-void *TouchSense(void *this) {
-  return this;
-}
-
 extern void *__cxa_guard_acquire;
 extern void *__cxa_guard_release;
 
 void patch_game(void) {
-  *(int *)so_find_addr("UseCloudSaves") = 0; // no cloud
+  *(int *)so_find_addr("UseCloudSaves") = 0;
+  *(int *)so_find_addr("UseTouchSense") = 0;
 #ifdef DISABLE_DETAIL_TEXTURES
   *(int *)so_find_addr("gNoDetailTextures") = 1;
 #endif
@@ -245,17 +242,15 @@ void patch_game(void) {
 
   hook_thumb(so_find_addr("_Z24NVThreadGetCurrentJNIEnvv"), (uintptr_t)NVThreadGetCurrentJNIEnv);
 
-  // dummy so we don't crash with NVThreadGetCurrentJNIEnv
-  hook_thumb(so_find_addr("_Z10NvUtilInitv"), (uintptr_t)ret0);
-
   // used for openal
   hook_thumb(so_find_addr("InitializeCriticalSection"), (uintptr_t)ret0);
 
-  // used in NVEventAppMain
-  hook_thumb(so_find_addr("_Z21OS_ApplicationPreinitv"), (uintptr_t)ret0);
-
+  // do not use pthread
   hook_thumb(so_find_addr("_Z15OS_ThreadLaunchPFjPvES_jPKci16OSThreadPriority"), (uintptr_t)OS_ThreadLaunch);
   hook_thumb(so_find_addr("_Z13OS_ThreadWaitPv"), (uintptr_t)OS_ThreadWait);
+
+  // do not use mutex for RenderQueue
+  hook_thumb(so_find_addr("_Z17OS_ThreadSetValuePv"), (uintptr_t)OS_ThreadSetValue);
 
   hook_thumb(so_find_addr("_Z17OS_ScreenGetWidthv"), (uintptr_t)OS_ScreenGetWidth);
   hook_thumb(so_find_addr("_Z18OS_ScreenGetHeightv"), (uintptr_t)OS_ScreenGetHeight);
@@ -265,18 +260,6 @@ void patch_game(void) {
 
   // TODO: implement touch here
   hook_thumb(so_find_addr("_Z13ProcessEventsb"), (uintptr_t)ProcessEvents);
-
-  // no cloud
-  hook_thumb(so_find_addr("_Z22SCCloudSaveStateUpdatev"), (uintptr_t)ret0);
-
-  // no touchsense
-  hook_thumb(so_find_addr("_ZN10TouchSenseC2Ev"), (uintptr_t)TouchSense);
-
-  // no telemetry
-  hook_thumb(so_find_addr("_Z11updateUsageb"), (uintptr_t)ret0);
-
-  // do not use mutex for RenderQueue
-  hook_thumb(so_find_addr("_Z17OS_ThreadSetValuePv"), (uintptr_t)OS_ThreadSetValue);
 
   // no adjustable
   hook_thumb(so_find_addr("_ZN14CAdjustableHUD10SaveToDiskEv"), (uintptr_t)ret0);
@@ -460,11 +443,14 @@ static DynLibFunction dynlib_functions[] = {
   { "AAsset_read", (uintptr_t)&ret0 },
   { "AAsset_seek", (uintptr_t)&ret0 },
 
+  { "_Z13SetJNEEnvFuncPFPvvE", (uintptr_t)&ret0 },
+
   { "EnterGameFromSCFunc", (uintptr_t)&EnterGameFromSCFunc },
   { "SigningOutfromApp", (uintptr_t)&SigningOutfromApp },
   { "hasTouchScreen", (uintptr_t)&hasTouchScreen },
-  { "_Z15EnterSocialCLubv", (uintptr_t)ret0 },
-  { "_Z12IsSCSignedInv", (uintptr_t)ret0 },
+  { "IsProfileStatsBusy", (uintptr_t)&ret1 },
+  { "_Z15EnterSocialCLubv", (uintptr_t)&ret0 },
+  { "_Z12IsSCSignedInv", (uintptr_t)&ret0 },
 
   { "pthread_attr_destroy", (uintptr_t)&ret0 },
   { "pthread_cond_init", (uintptr_t)&ret0 },
