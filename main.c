@@ -10,7 +10,6 @@
 #include <psp2/io/fcntl.h>
 #include <psp2/kernel/sysmem.h>
 #include <psp2/kernel/threadmgr.h>
-#include <psp2/ctrl.h>
 #include <psp2/power.h>
 #include <psp2/touch.h>
 #include <kubridge.h>
@@ -35,6 +34,7 @@
 
 #include "main.h"
 #include "so_util.h"
+#include "jni_patch.h"
 #include "openal_patch.h"
 #include "opengl_patch.h"
 #include "gfx_patch.h"
@@ -42,7 +42,7 @@
 
 int _newlib_heap_size_user = MEMORY_MB * 1024 * 1024;
 
-static SceTouchPanelInfo panelInfoFront, panelInfoBack;
+SceTouchPanelInfo panelInfoFront, panelInfoBack;
 
 int debugPrintf(char *text, ...) {
   va_list list;
@@ -98,135 +98,6 @@ int OS_ScreenGetHeight(void) {
 
 int OS_ScreenGetWidth(void) {
   return SCREEN_W;
-}
-
-int GetDeviceType(void) {
-  // 0x1: phone
-  // 0x2: tegra
-  // low memory is < 256
-  return (MEMORY_MB << 6) | (3 << 2) | 0x1;
-}
-
-int GetDeviceLocale(void) {
-  return 0; // english
-}
-
-// 0, 5, 6: XBOX 360
-// 4: MogaPocket
-// 7: MogaPro
-// 8: PS3
-// 9: IOSExtended
-// 10: IOSSimple
-int GetGamepadType(void) {
-  return 8;
-}
-
-int GetGamepadButtons(void) {
-  int mask = 0;
-
-  SceCtrlData pad;
-  sceCtrlPeekBufferPositiveExt2(0, &pad, 1);
-
-  SceTouchData touch;
-  sceTouchPeek(SCE_TOUCH_PORT_FRONT, &touch, 1);
-
-  if (pad.buttons & SCE_CTRL_CROSS)
-    mask |= 0x1;
-  if (pad.buttons & SCE_CTRL_CIRCLE)
-    mask |= 0x2;
-  if (pad.buttons & SCE_CTRL_SQUARE)
-    mask |= 0x4;
-  if (pad.buttons & SCE_CTRL_TRIANGLE)
-    mask |= 0x8;
-  if (pad.buttons & SCE_CTRL_START)
-    mask |= 0x10;
-  if (pad.buttons & SCE_CTRL_SELECT)
-    mask |= 0x20;
-  if (pad.buttons & SCE_CTRL_L1)
-    mask |= 0x40;
-  if (pad.buttons & SCE_CTRL_R1)
-    mask |= 0x80;
-  if (pad.buttons & SCE_CTRL_UP)
-    mask |= 0x100;
-  if (pad.buttons & SCE_CTRL_DOWN)
-    mask |= 0x200;
-  if (pad.buttons & SCE_CTRL_LEFT)
-    mask |= 0x400;
-  if (pad.buttons & SCE_CTRL_RIGHT)
-    mask |= 0x800;
-  if (pad.buttons & SCE_CTRL_L3)
-    mask |= 0x1000;
-  if (pad.buttons & SCE_CTRL_R3)
-    mask |= 0x2000;
-
-  for (int i = 0; i < touch.reportNum; i++) {
-    for (int i = 0; i < touch.reportNum; i++) {
-      if (touch.report[i].y >= (panelInfoFront.minAaY + panelInfoFront.maxAaY) / 2) {
-        if (touch.report[i].x < (panelInfoFront.minAaX + panelInfoFront.maxAaX) / 2) {
-          if (touch.report[i].x >= TOUCH_X_MARGIN)
-            mask |= 0x1000; // L3
-        } else {
-          if (touch.report[i].x < (panelInfoFront.maxAaX - TOUCH_X_MARGIN))
-            mask |= 0x2000; // R3
-        }
-      }
-    }
-  }
-
-  return mask;
-}
-
-float GetGamepadAxis(int a0, int axis) {
-  SceCtrlData pad;
-  sceCtrlPeekBufferPositiveExt2(0, &pad, 1);
-
-  SceTouchData touch;
-  sceTouchPeek(SCE_TOUCH_PORT_BACK, &touch, 1);
-
-  float val = 0.0f;
-
-  switch (axis) {
-    case 0:
-      val = ((float)pad.lx - 128.0f) / 128.0f;
-      break;
-    case 1:
-      val = ((float)pad.ly - 128.0f) / 128.0f;
-      break;
-    case 2:
-      val = ((float)pad.rx - 128.0f) / 128.0f;
-      break;
-    case 3:
-      val = ((float)pad.ry - 128.0f) / 128.0f;
-      break;
-    case 4: // L2
-    case 5: // R2
-    {
-      if (axis == 4 && pad.buttons & SCE_CTRL_L2) {
-        val = 1.0f;
-        break;
-      } else if (axis == 5 && pad.buttons & SCE_CTRL_R2) {
-        val = 1.0f;
-        break;
-      }
-
-      for (int i = 0; i < touch.reportNum; i++) {
-        if (touch.report[i].y < (panelInfoBack.minAaY + panelInfoBack.maxAaY) / 2) {
-          if (touch.report[i].x < (panelInfoBack.minAaX + panelInfoBack.maxAaX) / 2) {
-            if (touch.report[i].x >= TOUCH_X_MARGIN)
-              if (axis == 4) val = 1.0f;
-          } else {
-            if (touch.report[i].x < (panelInfoBack.maxAaX - TOUCH_X_MARGIN))
-              if (axis == 5) val = 1.0f;
-          }
-        }
-      }
-    }
-  }
-
-  if (fabsf(val) > 0.25f)
-    return val;
-
-  return 0.0f;
 }
 
 int ProcessEvents(void) {
@@ -350,219 +221,28 @@ void OS_ThreadWait(void *thread) {
     sceKernelWaitThreadEnd(*(int *)(thread + 0x24), NULL, NULL);
 }
 
-int swapBuffers(void) {
-  vglSwapBuffers(GL_FALSE);
-  return 1;
-}
-
-int InitEGLAndGLES2(void) {
-  vglWaitVblankStart(GL_TRUE);
-  return 1;
-}
-
-char *FileGetArchiveName(void) {
-  return "";
-}
-
-int DeleteFile(char *file) {
-  char path[128];
-  snprintf(path, sizeof(path), "%s/%s", DATA_PATH, file);
-  if (sceIoRemove(path) < 0)
-    return 0;
-  return 1;
+void *OS_ThreadSetValue(void *RenderQueue) {
+  *(uint8_t *)(RenderQueue + 601) = 0;
+  return NULL;
 }
 
 void *TouchSense(void *this) {
   return this;
 }
 
-enum MethodIDs {
-  UNKNOWN = 0,
-  INIT_EGL_AND_GLES2,
-  FINISH,
-  SWAP_BUFFERS,
-  MAKE_CURRENT,
-  UNMAKE_CURRENT,
-  FILE_GET_ARCHIVE_NAME,
-  DELETE_FILE,
-  GET_DEVICE_INFO,
-  GET_DEVICE_TYPE,
-  GET_DEVICE_LOCALE,
-  GET_GAMEPAD_TYPE,
-  GET_GAMEPAD_BUTTONS,
-  GET_GAMEPAD_AXIS,
-  GET_GAMEPAD_TRACK,
-} MethodIDs;
+extern void *__cxa_guard_acquire;
+extern void *__cxa_guard_release;
 
-typedef struct {
-  char *name;
-  enum MethodIDs id;
-} NameToMethodID;
-
-NameToMethodID name_to_method_ids[] = {
-  { "InitEGLAndGLES2", INIT_EGL_AND_GLES2 },
-  { "swapBuffers", SWAP_BUFFERS },
-
-  { "FileGetArchiveName", FILE_GET_ARCHIVE_NAME },
-  { "DeleteFile", DELETE_FILE },
-
-  { "GetDeviceInfo", GET_DEVICE_INFO },
-  { "GetDeviceType", GET_DEVICE_TYPE },
-  { "GetDeviceLocale", GET_DEVICE_LOCALE },
-
-  { "GetGamepadType", GET_GAMEPAD_TYPE },
-  { "GetGamepadButtons", GET_GAMEPAD_BUTTONS },
-  { "GetGamepadAxis", GET_GAMEPAD_AXIS },
-};
-
-int CallBooleanMethod(void *env, void *obj, int methodID, void *a0, void *a1, void *a2) {
-  // debugPrintf("%s\n", __FUNCTION__);
-  switch (methodID) {
-    case INIT_EGL_AND_GLES2:
-      return InitEGLAndGLES2();
-    case SWAP_BUFFERS:
-      return swapBuffers();
-    case DELETE_FILE:
-      return DeleteFile(a0);
-    default:
-      break;
-  }
-
-  return 0;
-}
-
-float CallFloatMethod(void *env, void *obj, int methodID, void *a0, void *a1, void *a2) {
-  // debugPrintf("%s\n", __FUNCTION__);
-  switch (methodID) {
-    case GET_GAMEPAD_AXIS:
-      return GetGamepadAxis((int)a0, (int)a1);
-    default:
-      break;
-  }
-
-  return 0.0f;
-}
-
-int CallIntMethod(void *env, void *obj, int methodID, void *a0, void *a1, void *a2) {
-  // debugPrintf("%s\n", __FUNCTION__);
-  switch (methodID) {
-    case GET_GAMEPAD_TYPE:
-      return GetGamepadType();
-    case GET_GAMEPAD_BUTTONS:
-      return GetGamepadButtons();
-    case GET_DEVICE_TYPE:
-      return GetDeviceType();
-    case GET_DEVICE_LOCALE:
-      return GetDeviceLocale();
-    default:
-      break;
-  }
-
-  return 0;
-}
-
-void *CallObjectMethod(void *env, void *obj, int methodID, void *a0, void *a1, void *a2) {
-  switch (methodID) {
-    case FILE_GET_ARCHIVE_NAME:
-      return FileGetArchiveName();
-  }
-
-  return NULL;
-}
-
-int GetMethodID(void *env, void *clazz, const char *name, const char *sig) {
-  debugPrintf("%s\n", name);
-
-  for (int i = 0; i < sizeof(name_to_method_ids) / sizeof(NameToMethodID); i++) {
-    if (strcmp(name, name_to_method_ids[i].name) == 0) {
-      debugPrintf("Return ID: %d\n", name_to_method_ids[i].id);
-      return name_to_method_ids[i].id;
-    }
-  }
-
-  return UNKNOWN;
-}
-
-static char fake_vm[0x1000];
-static char fake_env[0x1000];
-static void *natives;
-
-void RegisterNatives(void *env, int r1, void *r2) {
-  natives = r2;
-}
-
-void *NewGlobalRef(void) {
-  return (void *)0x42424242;
-}
-
-char *NewStringUTF(void *env, char *bytes) {
-  return bytes;
-}
-
-char *GetStringUTFChars(void) {
-  return "";
-}
-
-int GetEnvFake(void *vm, void **env, int r2) {
-  memset(fake_env, 'A', sizeof(fake_env));
-  *(uintptr_t *)(fake_env + 0x00) = (uintptr_t)fake_env; // just point to itself...
-  *(uintptr_t *)(fake_env + 0x18) = (uintptr_t)ret0; // FindClass
-  *(uintptr_t *)(fake_env + 0x44) = (uintptr_t)ret0; // ExceptionClear
-  *(uintptr_t *)(fake_env + 0x54) = (uintptr_t)NewGlobalRef;
-  *(uintptr_t *)(fake_env + 0x5C) = (uintptr_t)ret0; // DeleteLocalRef
-  *(uintptr_t *)(fake_env + 0x84) = (uintptr_t)GetMethodID;
-  *(uintptr_t *)(fake_env + 0x178) = (uintptr_t)ret0; // NvEventQueueActivity stuff
-  *(uintptr_t *)(fake_env + 0x1C4) = (uintptr_t)ret0;
-  *(uintptr_t *)(fake_env + 0x240) = (uintptr_t)ret0; // keyboard stuff
-  *(uintptr_t *)(fake_env + 0x29C) = (uintptr_t)NewStringUTF;
-  *(uintptr_t *)(fake_env + 0x2A4) = (uintptr_t)GetStringUTFChars;
-  *(uintptr_t *)(fake_env + 0x2A8) = (uintptr_t)ret0; // ReleaseStringUTFChars
-  *(uintptr_t *)(fake_env + 0x35C) = (uintptr_t)RegisterNatives;
-  *env = fake_env;
-  return 0;
-}
-
-void launch_game(void) {
-  strcpy((char *)so_find_addr("StorageRootBuffer"), "ux0:data/gtasa");
-  *(int *)so_find_addr("IsAndroidPaused") = 0; // it's 1 by default
+void patch_game(void) {
   *(int *)so_find_addr("UseCloudSaves") = 0; // no cloud
 #ifdef DISABLE_DETAIL_TEXTURES
   *(int *)so_find_addr("gNoDetailTextures") = 1;
 #endif
 
-  memset(fake_vm, 'A', sizeof(fake_vm));
-  *(uintptr_t *)(fake_vm + 0x00) = (uintptr_t)fake_vm; // just point to itself...
-  *(uintptr_t *)(fake_vm + 0x18) = (uintptr_t)GetEnvFake;
-
-  int (* JNI_OnLoad)(void *vm, void *reserved) = (void *)so_find_addr("JNI_OnLoad");
-  JNI_OnLoad(fake_vm, NULL);
-
-  int (* init)(void *env, int r1, int init_graphics) = *(void **)(natives + 8);
-  init(fake_env, 0, 1);
-}
-
-void *NVThreadGetCurrentJNIEnv(void) {
-  return fake_env;
-}
-
-void *OS_ThreadSetValue(void *RenderQueue) {
-  *(uint8_t *)(RenderQueue + 601) = 0;
-  return NULL;
-}
-
-extern void *__cxa_guard_acquire;
-extern void *__cxa_guard_release;
-
-void patch_game(void) {
   hook_thumb(so_find_addr("__cxa_guard_acquire"), (uintptr_t)&__cxa_guard_acquire);
   hook_thumb(so_find_addr("__cxa_guard_release"), (uintptr_t)&__cxa_guard_release);
 
   hook_thumb(so_find_addr("_Z24NVThreadGetCurrentJNIEnvv"), (uintptr_t)NVThreadGetCurrentJNIEnv);
-
-  hook_thumb(so_find_addr("_ZN7_JNIEnv17CallBooleanMethodEP8_jobjectP10_jmethodIDz"), (uintptr_t)CallBooleanMethod);
-  hook_thumb(so_find_addr("_ZN7_JNIEnv15CallFloatMethodEP8_jobjectP10_jmethodIDz"), (uintptr_t)CallFloatMethod);
-  hook_thumb(so_find_addr("_ZN7_JNIEnv13CallIntMethodEP8_jobjectP10_jmethodIDz"), (uintptr_t)CallIntMethod);
-  hook_thumb(so_find_addr("_ZN7_JNIEnv16CallObjectMethodEP8_jobjectP10_jmethodIDz"), (uintptr_t)CallObjectMethod);
 
   // dummy so we don't crash with NVThreadGetCurrentJNIEnv
   hook_thumb(so_find_addr("_Z10NvUtilInitv"), (uintptr_t)ret0);
@@ -1046,7 +726,7 @@ int main(int argc, char *argv[]) {
   vglInitExtended(SCREEN_W, SCREEN_H, 0x1000000, SCE_GXM_MULTISAMPLE_4X);
   vglUseVram(GL_TRUE);
 
-  launch_game();
+  jni_load();
 
   return 0;
 }

@@ -10,7 +10,7 @@ endif()
 
 project(GTASA ASM C CXX)
 include("${VITASDK}/share/vita.cmake" REQUIRED)
-set(VITA_APP_NAME "Grand Theft Auto: San Andreas")
+set(VITA_APP_NAME "GTA: SA")
 set(VITA_TITLEID  "GTASA0000")
 set(VITA_MKSFOEX_FLAGS "-d ATTRIBUTE2=12")
 
@@ -20,6 +20,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=c++11")
 add_executable(GTASA
   main.c
   so_util.c
+  jni_patch.c
   openal_patch.c
   opengl_patch.c
   gfx_patch.c
@@ -42,7 +43,6 @@ target_link_libraries(GTASA
   SceCommonDialog_stub
   SceDisplay_stub
   SceGxm_stub
-  SceHid_stub
   SceShaccCg_stub
   SceSysmodule_stub
   ScePower_stub
