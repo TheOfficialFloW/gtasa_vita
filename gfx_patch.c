@@ -504,7 +504,8 @@ void BuildVertexSource_SkyGfx(int flags) {
 		VTX_EMIT("half4 out Out_Color : COLOR0,");
 
 	if ((flags & FLAG_LIGHT1) && (flags & (FLAG_ENVMAP | FLAG_SPHERE_ENVMAP | PED_SPEC)))
-		VTX_EMIT("half3 out Out_Spec : COLOR1,");
+		// w is env multiplier
+		VTX_EMIT("half4 out Out_Spec : COLOR1,");
 
 	if (flags & FLAG_FOG)
 		VTX_EMIT("half out Out_FogAmt : FOG,");
@@ -669,25 +670,31 @@ void BuildVertexSource_SkyGfx(int flags) {
 			// find some nice specular value -- not the real thing unfortunately
 			VTX_EMIT("half specAmt = 1.0 * EnvMapCoefficient * DirLightDiffuseColor.x;");
 			// NB: this is not a color here!!
-			VTX_EMIT("Out_Spec = (V + half3(1.0, 1.0, 0.0))/2.0;");
+			VTX_EMIT("Out_Spec.xyz = (V + half3(1.0, 1.0, 0.0))/2.0;");
 			VTX_EMIT("if(Out_Spec.z < 0.0) Out_Spec.z = specAmt; else Out_Spec.z = 0.0;");
+
+			// need the light multiplier from here
+			VTX_EMIT("Out_Spec.w = EnvMapCoefficient * DirLightDiffuseColor.x;");
 		} else if (flags & FLAG_SPHERE_ENVMAP) {
 			// Detailed & Max quality setting - original android (for now)
 
 			// original, but fixed clamp for pow
 			VTX_EMIT("half specAmt = pow(max(dot(reflVector, DirLightDirection), 0.0), %.1f) * EnvMapCoefficient * 2.0;", RQCaps->isMaliChip ? 9.0f : 10.0f);
-			VTX_EMIT("Out_Spec = specAmt * DirLightDiffuseColor;");
+			VTX_EMIT("Out_Spec.xyz = specAmt * DirLightDiffuseColor;");
 
 			// just testing doing it differently
 			//VTX_EMIT("float3 specVector = normalize(CameraPosition.xyz - WorldPos.xyz);");
 			//VTX_EMIT("half specAmt = pow(max(dot(WorldNormal, normalize(specVector + DirLightDirection)), 0.0), 16.0);");
 			//VTX_EMIT("specAmt *= 2.0 * EnvMapCoefficient;");
-			//VTX_EMIT("Out_Spec = specAmt * DirLightDiffuseColor;");
+			//VTX_EMIT("Out_Spec.xyz = specAmt * DirLightDiffuseColor;");
+
+			VTX_EMIT("Out_Spec.w = EnvMapCoefficient * DirLightDiffuseColor.x;");
 		} else if (flags & PED_SPEC) {
 			VTX_EMIT("half3 reflVector = normalize(WorldPos.xyz - CameraPosition.xyz);");
 			VTX_EMIT("reflVector = reflVector - 2.0 * dot(reflVector, WorldNormal) * WorldNormal;");
 			VTX_EMIT("half specAmt = max(pow(dot(reflVector, DirLightDirection), %.1f), 0.0) * 0.125;", RQCaps->isMaliChip ? 5.0f : 4.0f);
-			VTX_EMIT("Out_Spec = specAmt * DirLightDiffuseColor;");
+			VTX_EMIT("Out_Spec.xyz = specAmt * DirLightDiffuseColor;");
+			VTX_EMIT("Out_Spec.w = 0.0;");	// unused
 		}
 	}
 
@@ -727,7 +734,7 @@ void BuildPixelSource_SkyGfx(int flags) {
 		PXL_EMIT("half4 Out_Color : COLOR0,");
 
 	if ((flags & FLAG_LIGHT1) && (flags & (FLAG_ENVMAP | FLAG_SPHERE_ENVMAP | PED_SPEC)))
-		PXL_EMIT("half3 Out_Spec : COLOR1,");
+		PXL_EMIT("half4 Out_Spec : COLOR1,");
 
 	if (flags & FLAG_FOG)
 		PXL_EMIT("half Out_FogAmt : FOG,");
@@ -793,20 +800,21 @@ void BuildPixelSource_SkyGfx(int flags) {
 			PXL_EMIT("fcolor = 0.0;");
 	}
 
-// only look at specular for the moment
-//	if (flags & FLAG_ENVMAP)
-//		PXL_EMIT("fcolor.xyz = lerp(fcolor.xyz, tex2D(EnvMap, Out_Tex1).xyz, EnvMapCoefficient);");
-
-	if (flags & FLAG_SPHERE_ENVMAP) {
-		PXL_EMIT("half2 ReflPos = normalize(Out_Refl.xy) * (Out_Refl.z * 0.5 + 0.5);");
-		PXL_EMIT("ReflPos = (ReflPos * half2(0.5, 0.5)) + half2(0.5, 0.5);");
-		PXL_EMIT("half4 ReflTexture = tex2D(EnvMap, ReflPos);");
-		PXL_EMIT("fcolor.xyz = lerp(fcolor.xyz, ReflTexture.xyz, EnvMapCoefficient);");
-		PXL_EMIT("fcolor.w += ReflTexture.b * 0.125;");
-	}
-
 	if (!RQCaps->unk_08) {
 		if ((flags & FLAG_LIGHT1)){
+			// Env map
+			if (flags & FLAG_ENVMAP) {
+			//	PXL_EMIT("fcolor.xyz = lerp(fcolor.xyz, tex2D(EnvMap, Out_Tex1).xyz, EnvMapCoefficient);");
+				PXL_EMIT("fcolor.xyz += tex2D(EnvMap, Out_Tex1).xyz * Out_Spec.w;");
+			} else if (flags & FLAG_SPHERE_ENVMAP) {
+				PXL_EMIT("half2 ReflPos = normalize(Out_Refl.xy) * (Out_Refl.z * 0.5 + 0.5);");
+				PXL_EMIT("ReflPos = (ReflPos * half2(0.5, 0.5)) + half2(0.5, 0.5);");
+				PXL_EMIT("half4 ReflTexture = tex2D(EnvMap, ReflPos);");
+				PXL_EMIT("fcolor.xyz = lerp(fcolor.xyz, ReflTexture.xyz, EnvMapCoefficient);");
+				PXL_EMIT("fcolor.w += ReflTexture.b * 0.125;");
+			}
+
+			// Spec light
 			if(flags & FLAG_ENVMAP){
 				// PS2-style specdot
 				// We don't actually have the texture. so simulate it
@@ -820,7 +828,7 @@ void BuildPixelSource_SkyGfx(int flags) {
 				PXL_EMIT("fcolor.xyz += specColor;");
 			}else if(flags & (FLAG_SPHERE_ENVMAP | PED_SPEC)){
 				// Out_Spec is actually light
-				PXL_EMIT("fcolor.xyz += Out_Spec;");
+				PXL_EMIT("fcolor.xyz += Out_Spec.xyz;");
 			}
 		}
 		if (flags & FLAG_FOG)
