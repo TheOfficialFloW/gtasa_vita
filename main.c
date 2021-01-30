@@ -88,10 +88,6 @@ int mkdir(const char *pathname, mode_t mode) {
   return 0;
 }
 
-char *GetRockstarID(void) {
-  return "flow";
-}
-
 int OS_SystemChip(void) {
   return 19; // default
 }
@@ -180,7 +176,7 @@ int GetGamepadButtons(void) {
   return mask;
 }
 
-float GetGamepadAxis(int r0, int axis) {
+float GetGamepadAxis(int a0, int axis) {
   SceCtrlData pad;
   sceCtrlPeekBufferPositiveExt2(0, &pad, 1);
 
@@ -335,6 +331,7 @@ void *OS_ThreadLaunch(int (* func)(), void *arg, int r2, char *name, int r4, int
   SceUID thid = sceKernelCreateThread(name, (SceKernelThreadEntry)thread_stub, vita_priority, 128 * 1024, 0, 0, NULL);
   if (thid >= 0) {
     char *out = malloc(0x48);
+    *(int *)(out + 0x24) = thid;
 
     uintptr_t args[3];
     args[0] = (uintptr_t)func;
@@ -348,6 +345,11 @@ void *OS_ThreadLaunch(int (* func)(), void *arg, int r2, char *name, int r4, int
   return NULL;
 }
 
+void OS_ThreadWait(void *thread) {
+  if (thread)
+    sceKernelWaitThreadEnd(*(int *)(thread + 0x24), NULL, NULL);
+}
+
 int swapBuffers(void) {
   vglSwapBuffers(GL_FALSE);
   return 1;
@@ -358,10 +360,16 @@ int InitEGLAndGLES2(void) {
   return 1;
 }
 
-char *OS_FileGetArchiveName(int mode) {
-  char *out = malloc(1);
-  out[0] = '\0';
-  return out;
+char *FileGetArchiveName(void) {
+  return "";
+}
+
+int DeleteFile(char *file) {
+  char path[128];
+  snprintf(path, sizeof(path), "%s/%s", DATA_PATH, file);
+  if (sceIoRemove(path) < 0)
+    return 0;
+  return 1;
 }
 
 void *TouchSense(void *this) {
@@ -375,6 +383,8 @@ enum MethodIDs {
   SWAP_BUFFERS,
   MAKE_CURRENT,
   UNMAKE_CURRENT,
+  FILE_GET_ARCHIVE_NAME,
+  DELETE_FILE,
   GET_DEVICE_INFO,
   GET_DEVICE_TYPE,
   GET_DEVICE_LOCALE,
@@ -393,6 +403,9 @@ NameToMethodID name_to_method_ids[] = {
   { "InitEGLAndGLES2", INIT_EGL_AND_GLES2 },
   { "swapBuffers", SWAP_BUFFERS },
 
+  { "FileGetArchiveName", FILE_GET_ARCHIVE_NAME },
+  { "DeleteFile", DELETE_FILE },
+
   { "GetDeviceInfo", GET_DEVICE_INFO },
   { "GetDeviceType", GET_DEVICE_TYPE },
   { "GetDeviceLocale", GET_DEVICE_LOCALE },
@@ -402,17 +415,15 @@ NameToMethodID name_to_method_ids[] = {
   { "GetGamepadAxis", GET_GAMEPAD_AXIS },
 };
 
-void *NVThreadGetCurrentJNIEnv(void) {
-  return (void *)0x1337;
-}
-
-int CallBooleanMethod(void *env, void *obj, int methodID, int a0, int a1, int a2) {
+int CallBooleanMethod(void *env, void *obj, int methodID, void *a0, void *a1, void *a2) {
   // debugPrintf("%s\n", __FUNCTION__);
   switch (methodID) {
     case INIT_EGL_AND_GLES2:
       return InitEGLAndGLES2();
     case SWAP_BUFFERS:
       return swapBuffers();
+    case DELETE_FILE:
+      return DeleteFile(a0);
     default:
       break;
   }
@@ -420,7 +431,19 @@ int CallBooleanMethod(void *env, void *obj, int methodID, int a0, int a1, int a2
   return 0;
 }
 
-int CallIntMethod(void *env, void *obj, int methodID, int a0, int a1, int a2) {
+float CallFloatMethod(void *env, void *obj, int methodID, void *a0, void *a1, void *a2) {
+  // debugPrintf("%s\n", __FUNCTION__);
+  switch (methodID) {
+    case GET_GAMEPAD_AXIS:
+      return GetGamepadAxis((int)a0, (int)a1);
+    default:
+      break;
+  }
+
+  return 0.0f;
+}
+
+int CallIntMethod(void *env, void *obj, int methodID, void *a0, void *a1, void *a2) {
   // debugPrintf("%s\n", __FUNCTION__);
   switch (methodID) {
     case GET_GAMEPAD_TYPE:
@@ -438,19 +461,16 @@ int CallIntMethod(void *env, void *obj, int methodID, int a0, int a1, int a2) {
   return 0;
 }
 
-float CallFloatMethod(void *env, void *obj, int methodID, int a0, int a1, int a2) {
-  // debugPrintf("%s\n", __FUNCTION__);
+void *CallObjectMethod(void *env, void *obj, int methodID, void *a0, void *a1, void *a2) {
   switch (methodID) {
-    case GET_GAMEPAD_AXIS:
-      return GetGamepadAxis(a0, a1);
-    default:
-      break;
+    case FILE_GET_ARCHIVE_NAME:
+      return FileGetArchiveName();
   }
 
-  return 0.0f;
+  return NULL;
 }
 
-int GetStaticMethodID(void *env, void *clazz, const char *name, const char *sig) {
+int GetMethodID(void *env, void *clazz, const char *name, const char *sig) {
   debugPrintf("%s\n", name);
 
   for (int i = 0; i < sizeof(name_to_method_ids) / sizeof(NameToMethodID); i++) {
@@ -471,19 +491,32 @@ void RegisterNatives(void *env, int r1, void *r2) {
   natives = r2;
 }
 
-int some_jni_function() {
-  return 0x42424242;
+void *NewGlobalRef(void) {
+  return (void *)0x42424242;
+}
+
+char *NewStringUTF(void *env, char *bytes) {
+  return bytes;
+}
+
+char *GetStringUTFChars(void) {
+  return "";
 }
 
 int GetEnvFake(void *vm, void **env, int r2) {
   memset(fake_env, 'A', sizeof(fake_env));
   *(uintptr_t *)(fake_env + 0x00) = (uintptr_t)fake_env; // just point to itself...
-  *(uintptr_t *)(fake_env + 0x18) = (uintptr_t)ret0;
-  *(uintptr_t *)(fake_env + 0x44) = (uintptr_t)ret0; // keyboard stuff
-  *(uintptr_t *)(fake_env + 0x54) = (uintptr_t)some_jni_function;
-  *(uintptr_t *)(fake_env + 0x84) = (uintptr_t)GetStaticMethodID;
+  *(uintptr_t *)(fake_env + 0x18) = (uintptr_t)ret0; // FindClass
+  *(uintptr_t *)(fake_env + 0x44) = (uintptr_t)ret0; // ExceptionClear
+  *(uintptr_t *)(fake_env + 0x54) = (uintptr_t)NewGlobalRef;
+  *(uintptr_t *)(fake_env + 0x5C) = (uintptr_t)ret0; // DeleteLocalRef
+  *(uintptr_t *)(fake_env + 0x84) = (uintptr_t)GetMethodID;
   *(uintptr_t *)(fake_env + 0x178) = (uintptr_t)ret0; // NvEventQueueActivity stuff
+  *(uintptr_t *)(fake_env + 0x1C4) = (uintptr_t)ret0;
   *(uintptr_t *)(fake_env + 0x240) = (uintptr_t)ret0; // keyboard stuff
+  *(uintptr_t *)(fake_env + 0x29C) = (uintptr_t)NewStringUTF;
+  *(uintptr_t *)(fake_env + 0x2A4) = (uintptr_t)GetStringUTFChars;
+  *(uintptr_t *)(fake_env + 0x2A8) = (uintptr_t)ret0; // ReleaseStringUTFChars
   *(uintptr_t *)(fake_env + 0x35C) = (uintptr_t)RegisterNatives;
   *env = fake_env;
   return 0;
@@ -492,6 +525,10 @@ int GetEnvFake(void *vm, void **env, int r2) {
 void launch_game(void) {
   strcpy((char *)so_find_addr("StorageRootBuffer"), "ux0:data/gtasa");
   *(int *)so_find_addr("IsAndroidPaused") = 0; // it's 1 by default
+  *(int *)so_find_addr("UseCloudSaves") = 0; // no cloud
+#ifdef DISABLE_DETAIL_TEXTURES
+  *(int *)so_find_addr("gNoDetailTextures") = 1;
+#endif
 
   memset(fake_vm, 'A', sizeof(fake_vm));
   *(uintptr_t *)(fake_vm + 0x00) = (uintptr_t)fake_vm; // just point to itself...
@@ -504,6 +541,10 @@ void launch_game(void) {
   init(fake_env, 0, 1);
 }
 
+void *NVThreadGetCurrentJNIEnv(void) {
+  return fake_env;
+}
+
 void *OS_ThreadSetValue(void *RenderQueue) {
   *(uint8_t *)(RenderQueue + 601) = 0;
   return NULL;
@@ -512,20 +553,16 @@ void *OS_ThreadSetValue(void *RenderQueue) {
 extern void *__cxa_guard_acquire;
 extern void *__cxa_guard_release;
 
-// TODO: be careful of inlining
 void patch_game(void) {
-#ifdef DISABLE_DETAIL_TEXTURES
-  *(int *)so_find_addr("gNoDetailTextures") = 1;
-#endif
-
   hook_thumb(so_find_addr("__cxa_guard_acquire"), (uintptr_t)&__cxa_guard_acquire);
   hook_thumb(so_find_addr("__cxa_guard_release"), (uintptr_t)&__cxa_guard_release);
 
   hook_thumb(so_find_addr("_Z24NVThreadGetCurrentJNIEnvv"), (uintptr_t)NVThreadGetCurrentJNIEnv);
 
   hook_thumb(so_find_addr("_ZN7_JNIEnv17CallBooleanMethodEP8_jobjectP10_jmethodIDz"), (uintptr_t)CallBooleanMethod);
-  hook_thumb(so_find_addr("_ZN7_JNIEnv13CallIntMethodEP8_jobjectP10_jmethodIDz"), (uintptr_t)CallIntMethod);
   hook_thumb(so_find_addr("_ZN7_JNIEnv15CallFloatMethodEP8_jobjectP10_jmethodIDz"), (uintptr_t)CallFloatMethod);
+  hook_thumb(so_find_addr("_ZN7_JNIEnv13CallIntMethodEP8_jobjectP10_jmethodIDz"), (uintptr_t)CallIntMethod);
+  hook_thumb(so_find_addr("_ZN7_JNIEnv16CallObjectMethodEP8_jobjectP10_jmethodIDz"), (uintptr_t)CallObjectMethod);
 
   // dummy so we don't crash with NVThreadGetCurrentJNIEnv
   hook_thumb(so_find_addr("_Z10NvUtilInitv"), (uintptr_t)ret0);
@@ -536,10 +573,8 @@ void patch_game(void) {
   // used in NVEventAppMain
   hook_thumb(so_find_addr("_Z21OS_ApplicationPreinitv"), (uintptr_t)ret0);
 
-  // used to check some flags
-  hook_thumb(so_find_addr("_Z20OS_ServiceAppCommandPKcS0_"), (uintptr_t)ret0);
-
   hook_thumb(so_find_addr("_Z15OS_ThreadLaunchPFjPvES_jPKci16OSThreadPriority"), (uintptr_t)OS_ThreadLaunch);
+  hook_thumb(so_find_addr("_Z13OS_ThreadWaitPv"), (uintptr_t)OS_ThreadWait);
 
   hook_thumb(so_find_addr("_Z17OS_ScreenGetWidthv"), (uintptr_t)OS_ScreenGetWidth);
   hook_thumb(so_find_addr("_Z18OS_ScreenGetHeightv"), (uintptr_t)OS_ScreenGetHeight);
@@ -549,9 +584,6 @@ void patch_game(void) {
 
   // TODO: implement touch here
   hook_thumb(so_find_addr("_Z13ProcessEventsb"), (uintptr_t)ProcessEvents);
-
-  // no obb
-  hook_thumb(so_find_addr("_Z22AND_FileGetArchiveName13OSFileArchive"), (uintptr_t)OS_FileGetArchiveName);
 
   // no cloud
   hook_thumb(so_find_addr("_Z22SCCloudSaveStateUpdatev"), (uintptr_t)ret0);
@@ -573,6 +605,12 @@ void patch_game(void) {
 void glTexImage2DHook(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const void * data) {
   if (level == 0)
     glTexImage2D(target, level, internalformat, width, height, border, format, type, data);
+}
+
+void glCompressedTexImage2DHook(GLenum target, GLint level, GLenum format, GLsizei width, GLsizei height, GLint border, GLsizei imageSize, const void * data) {
+  // mips for PVRTC textures break when they're under 1 block in size
+  if (level == 0 || (width >= 4 && height >= 4) || (format != 0x8C01 && format != 0x8C02))
+    glCompressedTexImage2D(target, level, format, width, height, border, imageSize, data);
 }
 
 void glShaderSourceHook(GLuint shader, GLsizei count, const GLchar **string, const GLint *length) {
@@ -634,12 +672,6 @@ void glCompileShaderHook(GLuint shader) {
 #ifndef ENABLE_SHADER_CACHE
   glCompileShader(shader);
 #endif
-}
-
-void glCompressedTexImage2DHook(GLenum target, GLint level, GLenum format, GLsizei width, GLsizei height, GLint border, GLsizei imageSize, const void * data) {
-  // mips for PVRTC textures break when they're under 1 block in size
-  if (level == 0 || (width >= 4 && height >= 4) || (format != 0x8C01 && format != 0x8C02))
-    glCompressedTexImage2D(target, level, format, width, height, border, imageSize, data);
 }
 
 extern void *_ZdaPv;
@@ -748,18 +780,19 @@ static DynLibFunction dynlib_functions[] = {
   { "AAsset_seek", (uintptr_t)&ret0 },
 
   { "EnterGameFromSCFunc", (uintptr_t)&EnterGameFromSCFunc },
-  { "GetRockstarID", (uintptr_t)&GetRockstarID },
   { "SigningOutfromApp", (uintptr_t)&SigningOutfromApp },
   { "hasTouchScreen", (uintptr_t)&hasTouchScreen },
   { "_Z15EnterSocialCLubv", (uintptr_t)ret0 },
   { "_Z12IsSCSignedInv", (uintptr_t)ret0 },
 
+  { "pthread_attr_destroy", (uintptr_t)&ret0 },
   { "pthread_cond_init", (uintptr_t)&ret0 },
   { "pthread_create", (uintptr_t)&pthread_create_fake },
   { "pthread_getspecific", (uintptr_t)&ret0 },
   { "pthread_key_create", (uintptr_t)&ret0 },
   { "pthread_mutexattr_init", (uintptr_t)&ret0 },
   { "pthread_mutexattr_settype", (uintptr_t)&ret0 },
+  { "pthread_mutexattr_destroy", (uintptr_t)&ret0 },
   { "pthread_mutex_destroy", (uintptr_t)&pthread_mutex_destroy_fake },
   { "pthread_mutex_init", (uintptr_t)&pthread_mutex_init_fake },
   { "pthread_mutex_lock", (uintptr_t)&pthread_mutex_lock_fake },

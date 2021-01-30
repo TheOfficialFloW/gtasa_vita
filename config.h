@@ -3,7 +3,7 @@
 
 #define LOAD_ADDRESS 0x98000000
 
-#define MEMORY_MB 280
+#define MEMORY_MB 256
 
 #define DATA_PATH "ux0:data/gtasa"
 #define SO_PATH DATA_PATH "/" "libGTASA.so"
@@ -22,6 +22,6 @@
 #define DISABLE_DETAIL_TEXTURES
 #define DISABLE_PED_SPEC
 // #define DISABLE_ALPHA_TESTING
-// #define SLOW_GPU
+#define SLOW_GPU
 
 #endif
