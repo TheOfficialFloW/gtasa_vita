@@ -349,18 +349,6 @@ extern void *__aeabi_idivmod;
 extern void *__aeabi_l2d;
 extern void *__aeabi_l2f;
 extern void *__aeabi_ldivmod;
-extern void *__aeabi_memclr4;
-extern void *__aeabi_memclr8;
-extern void *__aeabi_memclr;
-extern void *__aeabi_memcpy4;
-extern void *__aeabi_memcpy8;
-extern void *__aeabi_memcpy;
-extern void *__aeabi_memmove4;
-extern void *__aeabi_memmove8;
-extern void *__aeabi_memmove;
-extern void *__aeabi_memset4;
-extern void *__aeabi_memset8;
-extern void *__aeabi_memset;
 extern void *__aeabi_uidiv;
 extern void *__aeabi_uidivmod;
 extern void *__aeabi_ul2d;
@@ -385,6 +373,14 @@ int __isfinite(double d) {
   return isfinite(d);
 }
 
+void *sceClibMemclr(void *dst, SceSize len) {
+  return sceClibMemset(dst, 0, len);
+}
+
+void *sceClibMemset2(void *dst, SceSize len, int ch) {
+  return sceClibMemset(dst, ch, len);
+}
+
 static int EnterGameFromSCFunc = 0;
 static int SigningOutfromApp = 0;
 static int hasTouchScreen = 0;
@@ -406,23 +402,24 @@ static DynLibFunction dynlib_functions[] = {
   { "__aeabi_l2d", (uintptr_t)&__aeabi_l2d },
   { "__aeabi_l2f", (uintptr_t)&__aeabi_l2f },
   { "__aeabi_ldivmod", (uintptr_t)&__aeabi_ldivmod },
-  { "__aeabi_memclr4", (uintptr_t)&__aeabi_memclr4 },
-  { "__aeabi_memclr8", (uintptr_t)&__aeabi_memclr8 },
-  { "__aeabi_memclr", (uintptr_t)&__aeabi_memclr },
-  { "__aeabi_memcpy4", (uintptr_t)&__aeabi_memcpy4 },
-  { "__aeabi_memcpy8", (uintptr_t)&__aeabi_memcpy8 },
-  { "__aeabi_memcpy", (uintptr_t)&__aeabi_memcpy },
-  { "__aeabi_memmove4", (uintptr_t)&__aeabi_memmove4 },
-  { "__aeabi_memmove8", (uintptr_t)&__aeabi_memmove8 },
-  { "__aeabi_memmove", (uintptr_t)&__aeabi_memmove },
-  { "__aeabi_memset4", (uintptr_t)&__aeabi_memset4 },
-  { "__aeabi_memset8", (uintptr_t)&__aeabi_memset8 },
-  { "__aeabi_memset", (uintptr_t)&__aeabi_memset },
   { "__aeabi_uidivmod", (uintptr_t)&__aeabi_uidivmod },
   { "__aeabi_uidiv", (uintptr_t)&__aeabi_uidiv },
   { "__aeabi_ul2d", (uintptr_t)&__aeabi_ul2d },
   { "__aeabi_ul2f", (uintptr_t)&__aeabi_ul2f },
   { "__aeabi_uldivmod", (uintptr_t)&__aeabi_uldivmod },
+
+  { "__aeabi_memclr", (uintptr_t)&sceClibMemclr },
+  { "__aeabi_memclr4", (uintptr_t)&sceClibMemclr },
+  { "__aeabi_memclr8", (uintptr_t)&sceClibMemclr },
+  { "__aeabi_memcpy", (uintptr_t)&sceClibMemcpy },
+  { "__aeabi_memcpy4", (uintptr_t)&sceClibMemcpy },
+  { "__aeabi_memcpy8", (uintptr_t)&sceClibMemcpy },
+  { "__aeabi_memmove", (uintptr_t)&sceClibMemmove },
+  { "__aeabi_memmove4", (uintptr_t)&sceClibMemmove },
+  { "__aeabi_memmove8", (uintptr_t)&sceClibMemmove },
+  { "__aeabi_memset", (uintptr_t)&sceClibMemset2 },
+  { "__aeabi_memset4", (uintptr_t)&sceClibMemset2 },
+  { "__aeabi_memset8", (uintptr_t)&sceClibMemset2 },
 
   { "__android_log_print", (uintptr_t)&__android_log_print },
   // { "__assert2", (uintptr_t)&__assert2 },
