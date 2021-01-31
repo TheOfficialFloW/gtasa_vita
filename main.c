@@ -237,6 +237,13 @@ void patch_game(void) {
   *(int *)so_find_addr("gNoDetailTextures") = 1;
 #endif
 
+#if FIX_SKIN_WEIGHTS
+  // Force using GL_UNSIGNED_SHORT
+  uint16_t movs_r1_1 = 0x2101;
+  kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x001C8064), &movs_r1_1, sizeof(movs_r1_1));
+  kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x001C8082), &movs_r1_1, sizeof(movs_r1_1));
+#endif
+
   hook_thumb(so_find_addr("__cxa_guard_acquire"), (uintptr_t)&__cxa_guard_acquire);
   hook_thumb(so_find_addr("__cxa_guard_release"), (uintptr_t)&__cxa_guard_release);
 
