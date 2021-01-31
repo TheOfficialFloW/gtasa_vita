@@ -245,7 +245,7 @@ void patch_game(void) {
 #endif
 
 #ifdef FIX_MAP_BOTTLENECK
-  // Remove map hightlight (explored regions) since it's rendered very inefficiently
+  // Remove map highlight (explored regions) since it's rendered very inefficiently
   uint32_t nop = 0xbf00bf00;
   kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x002AAF96), &nop, sizeof(nop));
 #endif
