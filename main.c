@@ -246,8 +246,7 @@ void patch_game(void) {
 
 #ifdef FIX_MAP_BOTTLENECK
   // Remove map highlight (explored regions) since it's rendered very inefficiently
-  uint32_t nop = 0xbf00bf00;
-  kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x002AAF96), &nop, sizeof(nop));
+  hook_thumb(text_base + 0x002AADE0, text_base + 0x002AAF9A + 0x1);
 #endif
 
   hook_thumb(so_find_addr("__cxa_guard_acquire"), (uintptr_t)&__cxa_guard_acquire);
