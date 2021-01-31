@@ -237,7 +237,7 @@ void patch_game(void) {
   *(int *)so_find_addr("gNoDetailTextures") = 1;
 #endif
 
-#if FIX_SKIN_WEIGHTS
+#ifdef FIX_SKIN_WEIGHTS
   // Force using GL_UNSIGNED_SHORT
   uint16_t movs_r1_1 = 0x2101;
   kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x001C8064), &movs_r1_1, sizeof(movs_r1_1));
