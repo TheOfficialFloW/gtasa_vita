@@ -244,6 +244,12 @@ void patch_game(void) {
   kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x001C8082), &movs_r1_1, sizeof(movs_r1_1));
 #endif
 
+#ifdef FIX_MAP_BOTTLENECK
+  // Remove map hightlight (explored regions) since it's rendered very inefficiently
+  uint32_t nop = 0xbf00bf00;
+  kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x002AAF96), &nop, sizeof(nop));
+#endif
+
   hook_thumb(so_find_addr("__cxa_guard_acquire"), (uintptr_t)&__cxa_guard_acquire);
   hook_thumb(so_find_addr("__cxa_guard_release"), (uintptr_t)&__cxa_guard_release);
 
