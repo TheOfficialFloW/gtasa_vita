@@ -377,7 +377,7 @@ void BuildPixelSource(int flags) {
 
   PXL_EMIT("half4 gl_FragColor = fcolor;");
 
-  if (config.disable_alpha_testing) {
+  if (!config.disable_alpha_testing) {
     if (flags & FLAG_ALPHA_TEST) {
       PXL_EMIT("/*ATBEGIN*/");
       if ((OS_SystemChip() == 13) && (flags & FLAG_TEX0)) {
