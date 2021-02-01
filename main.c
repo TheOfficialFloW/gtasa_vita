@@ -24,6 +24,7 @@
 #include <math.h>
 #include <math_neon.h>
 
+#include <errno.h>
 #include <ctype.h>
 #include <setjmp.h>
 #include <sys/time.h>
@@ -360,9 +361,6 @@ extern void *__aeabi_uldivmod;
 // extern void *__assert2;
 extern void *__cxa_atexit;
 extern void *__cxa_finalize;
-// extern void *__isfinite;
-// extern void *__sF;
-// extern void *__signbit;
 extern void *__stack_chk_fail;
 extern void *__stack_chk_guard;
 
@@ -386,7 +384,6 @@ static int EnterGameFromSCFunc = 0;
 static int SigningOutfromApp = 0;
 static int hasTouchScreen = 0;
 
-static int __errno = 0;
 static int __stack_chk_guard_fake = 0x42424242;
 
 static FILE *stderr_fake;
