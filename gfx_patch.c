@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include <math.h>
 #include <kubridge.h>
+#include <vitaGL.h>
 
 #include "main.h"
 #include "so_util.h"
@@ -150,6 +151,144 @@ struct RpLight
 #define RpLightGetParent(light) ((RwFrame*)rwObjectGetParent(light))
 RpLight *(*RpLightSetColor)(RpLight *light, const RwRGBAReal *color);
 
+
+typedef struct RwTexture RwTexture;
+typedef struct RxPipeline RxPipeline;
+
+typedef struct RwSurfaceProperties RwSurfaceProperties;
+struct RwSurfaceProperties
+{
+	RwReal ambient;   /**< ambient reflection coefficient */
+	RwReal specular;  /**< specular reflection coefficient */
+	RwReal diffuse;   /**< reflection coefficient */
+};
+
+typedef struct RpMaterial RpMaterial;
+struct RpMaterial
+{
+	RwTexture           *texture; /**< texture */
+	RwRGBA              color; /**< color */              
+	RxPipeline          *pipeline; /**< pipeline */     
+	RwSurfaceProperties surfaceProps; /**< surfaceProps */
+	RwInt16             refCount;          /* C.f. rwsdk/world/bageomet.h:RpGeometry */
+	RwInt16             pad;
+};
+
+/*
+ * RW OpenGL
+ */
+
+#define NEW_LIGHTING
+
+#define GL_AMBIENT 0x1200
+#define GL_DIFFUSE 0x1201
+#define GL_SPECULAR 0x1202
+#define GL_EMISSION 0x1600
+#define GL_LIGHT_MODEL_AMBIENT 0x0B53
+#define GL_COLOR_MATERIAL 0x0B57
+
+float *openglAmbientLight;
+float _rwOpenGLOpaqueBlack[4];
+RwInt32 *p_rwOpenGLColorMaterialEnabled;
+// multiplies amb with 1.5 for some reason
+void (*emu_glLightModelfv)(GLenum pname, const GLfloat *params);
+void (*emu_glMaterialfv)(GLenum face, GLenum pname, const GLfloat *params);
+void (*emu_glColorMaterial)(GLenum face, GLenum mode);
+void (*emu_glEnable)(GLenum cap);
+void (*emu_glDisable)(GLenum cap);
+
+void
+_rwOpenGLEnableColorMaterial(RwInt32 enable)
+{
+	if(enable){
+		if(!*p_rwOpenGLColorMaterialEnabled){
+			emu_glEnable(GL_COLOR_MATERIAL);
+			*p_rwOpenGLColorMaterialEnabled = 1;
+		}
+	}else{
+		if(*p_rwOpenGLColorMaterialEnabled){
+			emu_glDisable(GL_COLOR_MATERIAL);
+			*p_rwOpenGLColorMaterialEnabled = 0;
+		}
+	}
+}
+
+void
+_rwOpenGLLightsSetMaterialProperties(const RpMaterial *mat, RwUInt32 flags)
+{
+#ifdef NEW_LIGHTING
+	float surfProps[4];
+	float colorScale[4];
+	surfProps[0] = mat->surfaceProps.ambient;
+	surfProps[1] = mat->surfaceProps.diffuse;
+	// could use for env and spec data perhaps
+	surfProps[2] = 0.0;
+	surfProps[3] = 0.0;
+	colorScale[0] = mat->color.red/255.0f;
+	colorScale[1] = mat->color.green/255.0f;
+	colorScale[2] = mat->color.blue/255.0f;
+	colorScale[3] = mat->color.alpha/255.0f;
+	// repurposing material colors here
+	emu_glMaterialfv(GL_FRONT, GL_AMBIENT, surfProps);
+	emu_glMaterialfv(GL_FRONT, GL_DIFFUSE, colorScale);
+
+	// multiplied by 1.5 internally, let's undo that
+	float ambHack[4];
+	ambHack[0] = openglAmbientLight[0]/1.5f;
+	ambHack[1] = openglAmbientLight[1]/1.5f;
+	ambHack[2] = openglAmbientLight[2]/1.5f;
+	ambHack[3] = openglAmbientLight[3]/1.5f;
+	emu_glLightModelfv(GL_LIGHT_MODEL_AMBIENT, ambHack);
+
+	if(flags & 8){	// prelight
+		_rwOpenGLEnableColorMaterial(1);
+		emu_glColorMaterial(GL_FRONT, GL_EMISSION);
+	}else{
+		_rwOpenGLEnableColorMaterial(0);
+		// have no use for this yet
+		emu_glMaterialfv(GL_FRONT, GL_EMISSION, _rwOpenGLOpaqueBlack);
+	}
+#else
+	// original code for reference
+	float diffuse[4], ambient[4];
+
+	if(flags & 0x40 && *(RwUInt32*)&mat->color != 0xFFFFFFFF){
+		// modulate
+		float diffScale = mat->surfaceProps.diffuse / 255.0f;
+		float ambScale = mat->surfaceProps.ambient / 255.0f;
+		diffuse[0] = mat->color.red * diffScale;
+		diffuse[1] = mat->color.green * diffScale;
+		diffuse[2] = mat->color.blue * diffScale;
+		diffuse[3] = mat->color.alpha / 255.0f;
+		ambient[0] = mat->color.red * ambScale * openglAmbientLight[0];
+		ambient[1] = mat->color.green * ambScale * openglAmbientLight[1];
+		ambient[2] = mat->color.blue * ambScale * openglAmbientLight[2];
+		ambient[3] = mat->color.alpha / 255.0f;
+	}else{
+		float diffScale = mat->surfaceProps.diffuse;
+		float ambScale = mat->surfaceProps.ambient;
+		diffuse[0] = diffScale;
+		diffuse[1] = diffScale;
+		diffuse[2] = diffScale;
+		diffuse[3] = 1.0f;
+		ambient[0] = ambScale * openglAmbientLight[0];
+		ambient[1] = ambScale * openglAmbientLight[1];
+		ambient[2] = ambScale * openglAmbientLight[2];
+		ambient[3] = 1.0f;
+	}
+
+	emu_glMaterialfv(GL_FRONT, GL_DIFFUSE, diffuse);
+	emu_glMaterialfv(GL_FRONT, GL_AMBIENT, ambient);
+
+	if(flags & 8){	// prelight
+		_rwOpenGLEnableColorMaterial(1);
+		emu_glColorMaterial(GL_FRONT, GL_EMISSION);
+	}else{
+		_rwOpenGLEnableColorMaterial(0);
+		emu_glMaterialfv(GL_FRONT, GL_EMISSION, _rwOpenGLOpaqueBlack);
+	}
+#endif
+}
 
 
 /*
@@ -384,6 +523,21 @@ patch_gfx(void)
 	RwFrameTransform = (RwFrame *(*)(RwFrame*,const RwMatrix*,RwOpCombineType))so_find_addr("_Z16RwFrameTransformP7RwFramePK11RwMatrixTag15RwOpCombineType");
 	RpLightSetColor = (RpLight *(*)(RpLight*, const RwRGBAReal*))so_find_addr("_Z15RpLightSetColorP7RpLightPK10RwRGBAReal");
 
+	openglAmbientLight = (float*)so_find_addr("openglAmbientLight");
+	p_rwOpenGLColorMaterialEnabled = (RwInt32*)so_find_addr("_rwOpenGLColorMaterialEnabled");
+
+	emu_glLightModelfv = (void (*)(GLenum, const GLfloat *))so_find_addr("_Z18emu_glLightModelfvjPKf");
+	emu_glMaterialfv = (void (*)(GLenum, GLenum, const GLfloat *))so_find_addr("_Z16emu_glMaterialfvjjPKf");
+	emu_glColorMaterial = (void (*)(GLenum, GLenum))so_find_addr("_Z19emu_glColorMaterialjj");	// no-op
+	emu_glEnable = (void (*)(GLenum))so_find_addr("_Z12emu_glEnablej");
+	emu_glDisable = (void (*)(GLenum))so_find_addr("_Z13emu_glDisablej");
+
+	const uint16_t nop = 0xbf00;
+	// upload all material data regardless of shader flags
+	kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x1C1382), &nop, sizeof(nop));
+	kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x1C13BA), &nop, sizeof(nop));
+	hook_thumb(so_find_addr("_Z36_rwOpenGLLightsSetMaterialPropertiesPK10RpMaterialj"), (uintptr_t)_rwOpenGLLightsSetMaterialProperties);
+
 	hook_thumb(so_find_addr("_Z28SetLightsWithTimeOfDayColourP7RpWorld"), (uintptr_t)SetLightsWithTimeOfDayColour);
 
 #ifdef ENABLE_COLOR_FILTER_PS2
@@ -403,8 +557,8 @@ patch_gfx(void)
 	kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x005B6446), (void *)(text_base + 0x005B63EA), sizeof(uint16_t));
 #endif
 #ifdef ENABLE_SUN_CORONA_PS2
-	const uint32_t nop = 0xbf00bf00;
-	kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x005A26B0), &nop, sizeof(uint32_t));
+	const uint32_t nop2 = 0xbf00bf00;
+	kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x005A26B0), &nop2, sizeof(nop2));
 #endif
 }
 
@@ -417,6 +571,13 @@ patch_gfx(void)
 void BuildVertexSource_SkyGfx(int flags) {
 	char tmp[512];
 	char *vertexColor, *tex;
+
+#ifdef NEW_LIGHTING
+	// new names
+	VTX_EMIT("#define SurfAmb (MaterialAmbient.x)\n");
+	VTX_EMIT("#define SurfDiff (MaterialAmbient.y)\n");
+	VTX_EMIT("#define ColorScale (MaterialDiffuse)\n");
+#endif
 
 	VTX_EMIT("void main(");
 
@@ -447,6 +608,7 @@ void BuildVertexSource_SkyGfx(int flags) {
 		VTX_EMIT("uniform half4 MaterialEmissive,");
 		VTX_EMIT("uniform half4 MaterialAmbient,");
 		VTX_EMIT("uniform half4 MaterialDiffuse,");
+
 		if (flags & FLAG_LIGHT1) {
 			VTX_EMIT("uniform half3 DirLightDiffuseColor,");
 			VTX_EMIT("uniform float3 DirLightDirection,");
@@ -602,10 +764,22 @@ void BuildVertexSource_SkyGfx(int flags) {
 	if (flags & FLAG_LIGHTING) {
 		//VTX_EMIT("half3 Out_LightingColor;");
 
-		VTX_EMIT("half3 ambEmissLight;");
+		VTX_EMIT("half3 ambEmissLight = half3(0.0, 0.0, 0.0f);");
 		VTX_EMIT("half3 diffColor = half3(0.0, 0.0, 0.0);");
 
 		// Ambient and Emissive Light
+#ifdef NEW_LIGHTING
+		if (flags & FLAG_COLOR_EMISSIVE){
+			if (flags & FLAG_CAMERA_BASED_NORMALS)
+				// This happens to objects with alpha test.
+				// trees in particular tend have their vertex colors cranked to white
+				// so let's try to tone that down a bit
+				VTX_EMIT("ambEmissLight += clamp(%s.xyz, 0.0, 0.5);", vertexColor);
+			else
+				VTX_EMIT("ambEmissLight += %s.xyz;", vertexColor);
+		}
+		VTX_EMIT("ambEmissLight += AmbientLightColor * SurfAmb;");
+#else
 		if (flags & FLAG_COLOR_EMISSIVE) {
 			if(flags & (FLAG_LIGHT1 | FLAG_LIGHT2 | FLAG_LIGHT3)){
 				// TOTAL HACK for 3d markers (looks like we can catch them here).
@@ -628,6 +802,7 @@ void BuildVertexSource_SkyGfx(int flags) {
 		} else {
 			VTX_EMIT("ambEmissLight = AmbientLightColor * MaterialAmbient.xyz + MaterialEmissive.xyz;");
 		}
+#endif
 
 		// Diffuse Light
 		if (flags & (FLAG_LIGHT1 | FLAG_LIGHT2 | FLAG_LIGHT3)) {
@@ -641,16 +816,30 @@ void BuildVertexSource_SkyGfx(int flags) {
 				VTX_EMIT("diffColor += max(dot(DirLight2Direction, WorldNormal), 0.0) * DirLight2DiffuseColor;");
 			if (flags & FLAG_LIGHT3)
 				VTX_EMIT("diffColor += max(dot(DirLight3Direction, WorldNormal), 0.0) * DirLight3DiffuseColor;");
+#ifdef NEW_LIGHTING
+			VTX_EMIT("diffColor *= SurfDiff;");
+#else
 			VTX_EMIT("diffColor *= MaterialDiffuse.xyz;");
+#endif
 		}
 
 		// Final Color
 		if (flags & (FLAG_COLOR | FLAG_LIGHTING)) {
+#ifdef NEW_LIGHTING
+			VTX_EMIT("Out_Color.xyz = ambEmissLight + diffColor;");
+			// not sure if alphas are even uploaded correctly
+			if(flags & FLAG_COLOR2)
+				VTX_EMIT("Out_Color.w = Color2.w;");
+			else
+				VTX_EMIT("Out_Color.w = GlobalColor.w;");
+			VTX_EMIT("Out_Color *= ColorScale;");
+#else
 			// this makes no sense
 //			if (flags & FLAG_COLOR)
 //				VTX_EMIT("Out_Color = half4((Out_LightingColor.xyz + %s.xyz * 1.5) * MaterialDiffuse.xyz, (MaterialAmbient.w) * %s.w);", vertexColor, vertexColor);
 //			else
 				VTX_EMIT("Out_Color = half4(ambEmissLight + diffColor, MaterialAmbient.w * %s.w);", vertexColor);
+#endif
 			VTX_EMIT("Out_Color = clamp(Out_Color, 0.0, 1.0);");
 		}
 	} else {
