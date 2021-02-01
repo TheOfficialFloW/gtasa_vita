@@ -20,6 +20,7 @@
 #include <math.h>
 
 #include "main.h"
+#include "config.h"
 #include "so_util.h"
 
 enum MethodIDs {
@@ -131,10 +132,10 @@ int GetGamepadButtons(void) {
     for (int i = 0; i < touch.reportNum; i++) {
       if (touch.report[i].y >= (panelInfoFront.minAaY + panelInfoFront.maxAaY) / 2) {
         if (touch.report[i].x < (panelInfoFront.minAaX + panelInfoFront.maxAaX) / 2) {
-          if (touch.report[i].x >= TOUCH_X_MARGIN)
+          if (touch.report[i].x >= config.touch_x_margin)
             mask |= 0x1000; // L3
         } else {
-          if (touch.report[i].x < (panelInfoFront.maxAaX - TOUCH_X_MARGIN))
+          if (touch.report[i].x < (panelInfoFront.maxAaX - config.touch_x_margin))
             mask |= 0x2000; // R3
         }
       }
@@ -180,10 +181,10 @@ float GetGamepadAxis(int a0, int axis) {
       for (int i = 0; i < touch.reportNum; i++) {
         if (touch.report[i].y < (panelInfoBack.minAaY + panelInfoBack.maxAaY) / 2) {
           if (touch.report[i].x < (panelInfoBack.minAaX + panelInfoBack.maxAaX) / 2) {
-            if (touch.report[i].x >= TOUCH_X_MARGIN)
+            if (touch.report[i].x >= config.touch_x_margin)
               if (axis == 4) val = 1.0f;
           } else {
-            if (touch.report[i].x < (panelInfoBack.maxAaX - TOUCH_X_MARGIN))
+            if (touch.report[i].x < (panelInfoBack.maxAaX - config.touch_x_margin))
               if (axis == 5) val = 1.0f;
           }
         }

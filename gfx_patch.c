@@ -532,19 +532,17 @@ patch_gfx(void)
 	emu_glEnable = (void (*)(GLenum))so_find_addr("_Z12emu_glEnablej");
 	emu_glDisable = (void (*)(GLenum))so_find_addr("_Z13emu_glDisablej");
 
-	const uint16_t nop = 0xbf00;
 	// upload all material data regardless of shader flags
+	const uint16_t nop = 0xbf00;
 	kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x1C1382), &nop, sizeof(nop));
 	kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x1C13BA), &nop, sizeof(nop));
 	hook_thumb(so_find_addr("_Z36_rwOpenGLLightsSetMaterialPropertiesPK10RpMaterialj"), (uintptr_t)_rwOpenGLLightsSetMaterialProperties);
 
 	hook_thumb(so_find_addr("_Z28SetLightsWithTimeOfDayColourP7RpWorld"), (uintptr_t)SetLightsWithTimeOfDayColour);
 
-#ifdef ENABLE_COLOR_FILTER_PS2
+	// Enable PS2-like color filter
 	// .text:005B63DC                 LDRB            R0, [R3] ; CPostEffects::m_bDarknessFilter
-	// .text:005B63DE                 STRB.W          R5, [SP,#0x68+rgba2+2]
-	// .text:005B63E2                 VADD.F32        S6, S6, S12
-	// .text:005B63E6                 VLDR            S12, [SP,#0x68+var_48+4]
+	// ...
 	// .text:005B63EA                 CMP             R0, #0
 	// ...
 	// .text:005B643C                 VSTR            S2, [SP,#0x30]
@@ -552,14 +550,12 @@ patch_gfx(void)
 	// .text:005B6444                 VSTR            S6, [SP,#0x18]
 	// .text:005B6448                 BEQ             loc_5B64EC
 	hook_thumb((uintptr_t)text_base + 0x005B643C, (uintptr_t)ColorFilter_stub);
-
 	kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x005B6444), (void *)(text_base + 0x005B63DC), sizeof(uint16_t));
 	kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x005B6446), (void *)(text_base + 0x005B63EA), sizeof(uint16_t));
-#endif
-#ifdef ENABLE_SUN_CORONA_PS2
+
+	// Enable PS2-like sun corona
 	const uint32_t nop2 = 0xbf00bf00;
 	kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x005A26B0), &nop2, sizeof(nop2));
-#endif
 }
 
 
@@ -571,6 +567,8 @@ patch_gfx(void)
 void BuildVertexSource_SkyGfx(int flags) {
 	char tmp[512];
 	char *vertexColor, *tex;
+
+	int ped_spec = config.disable_ped_spec ? 0 : (FLAG_BONE3 | FLAG_BONE4);
 
 #ifdef NEW_LIGHTING
 	// new names
@@ -636,7 +634,7 @@ void BuildVertexSource_SkyGfx(int flags) {
 	if (flags & (FLAG_ENVMAP | FLAG_SPHERE_ENVMAP))
 		VTX_EMIT("uniform half EnvMapCoefficient,");
 
-	if (flags & (FLAG_ENVMAP | FLAG_SPHERE_ENVMAP | PED_SPEC | FLAG_CAMERA_BASED_NORMALS | FLAG_FOG | FLAG_WATER | FLAG_SPHERE_XFORM))
+	if (flags & (FLAG_ENVMAP | FLAG_SPHERE_ENVMAP | FLAG_CAMERA_BASED_NORMALS | FLAG_FOG | FLAG_WATER | FLAG_SPHERE_XFORM | ped_spec))
 		VTX_EMIT("uniform float3 CameraPosition,");
 
 	if (flags & FLAG_FOG)
@@ -665,7 +663,7 @@ void BuildVertexSource_SkyGfx(int flags) {
 	if (flags & (FLAG_COLOR | FLAG_LIGHTING))
 		VTX_EMIT("half4 out Out_Color : COLOR0,");
 
-	if ((flags & FLAG_LIGHT1) && (flags & (FLAG_ENVMAP | FLAG_SPHERE_ENVMAP | PED_SPEC)))
+	if ((flags & FLAG_LIGHT1) && (flags & (FLAG_ENVMAP | FLAG_SPHERE_ENVMAP | ped_spec)))
 		// w is env multiplier
 		VTX_EMIT("half4 out Out_Spec : COLOR1,");
 
@@ -878,7 +876,7 @@ void BuildVertexSource_SkyGfx(int flags) {
 			//VTX_EMIT("Out_Spec.xyz = specAmt * DirLightDiffuseColor;");
 
 			VTX_EMIT("Out_Spec.w = EnvMapCoefficient * DirLightDiffuseColor.x;");
-		} else if (flags & PED_SPEC) {
+		} else if (flags & ped_spec) {
 			VTX_EMIT("half3 reflVector = normalize(WorldPos.xyz - CameraPosition.xyz);");
 			VTX_EMIT("reflVector = reflVector - 2.0 * dot(reflVector, WorldNormal) * WorldNormal;");
 			VTX_EMIT("half specAmt = max(pow(dot(reflVector, DirLightDirection), %.1f), 0.0) * 0.125;", RQCaps->isMaliChip ? 5.0f : 4.0f);
@@ -901,6 +899,8 @@ void BuildVertexSource_SkyGfx(int flags) {
 void BuildPixelSource_SkyGfx(int flags) {
 	char tmp[512];
 
+	int ped_spec = config.disable_ped_spec ? 0 : (FLAG_BONE3 | FLAG_BONE4);
+
 	PXL_EMIT("half4 main(");
 
 	if (flags & FLAG_TEX0)
@@ -922,7 +922,7 @@ void BuildPixelSource_SkyGfx(int flags) {
 	if (flags & (FLAG_COLOR | FLAG_LIGHTING))
 		PXL_EMIT("half4 Out_Color : COLOR0,");
 
-	if ((flags & FLAG_LIGHT1) && (flags & (FLAG_ENVMAP | FLAG_SPHERE_ENVMAP | PED_SPEC)))
+	if ((flags & FLAG_LIGHT1) && (flags & (FLAG_ENVMAP | FLAG_SPHERE_ENVMAP | ped_spec)))
 		PXL_EMIT("half4 Out_Spec : COLOR1,");
 
 	if (flags & FLAG_FOG)
@@ -954,10 +954,8 @@ void BuildPixelSource_SkyGfx(int flags) {
 	if (flags & FLAG_TEX0) {
 		if (flags & FLAG_TEXBIAS)
 			PXL_EMIT("half4 diffuseColor = tex2Dbias(Diffuse, half4(Out_Tex0, 0.0, -1.5));");
-#ifndef SLOW_GPU
-		else if (!RQCaps->isSlowGPU)
+		else if (!config.disable_tex_bias && !RQCaps->isSlowGPU)
 			PXL_EMIT("half4 diffuseColor = tex2Dbias(Diffuse, half4(Out_Tex0, 0.0, -0.5));");
-#endif
 		else
 			PXL_EMIT("half4 diffuseColor = tex2D(Diffuse, Out_Tex0);");
 
@@ -1015,7 +1013,7 @@ void BuildPixelSource_SkyGfx(int flags) {
 				// smooth the edge
 				PXL_EMIT("else if(dist > 0.67*0.67) specColor *= (0.69*0.69 - dist)/(0.69*0.69 - 0.67*0.67);");
 				PXL_EMIT("fcolor.xyz += specColor;");
-			}else if(flags & (FLAG_SPHERE_ENVMAP | PED_SPEC)){
+			}else if(flags & (FLAG_SPHERE_ENVMAP | ped_spec)){
 				// Out_Spec is actually light
 				PXL_EMIT("fcolor.xyz += Out_Spec.xyz;");
 			}
@@ -1029,35 +1027,35 @@ void BuildPixelSource_SkyGfx(int flags) {
 
 	PXL_EMIT("half4 gl_FragColor = fcolor;");
 
-#ifndef DISABLE_ALPHA_TESTING
-	if (flags & FLAG_ALPHA_TEST) {
-		PXL_EMIT("/*ATBEGIN*/");
-		if ((OS_SystemChip() == 13) && (flags & FLAG_TEX0)) {
-			if (flags & FLAG_TEXBIAS) {
-				PXL_EMIT("if (diffuseColor.a < 0.8) { discard; }");
-			} else {
-				if (flags & FLAG_CAMERA_BASED_NORMALS) {
-					PXL_EMIT("gl_FragColor.a = Out_Color.a;");
-					PXL_EMIT("if (diffuseColor.a < 0.5) { discard; }");
+	if (config.disable_alpha_testing) {
+		if (flags & FLAG_ALPHA_TEST) {
+			PXL_EMIT("/*ATBEGIN*/");
+			if ((OS_SystemChip() == 13) && (flags & FLAG_TEX0)) {
+				if (flags & FLAG_TEXBIAS) {
+					PXL_EMIT("if (diffuseColor.a < 0.8) { discard; }");
 				} else {
-					PXL_EMIT("if (diffuseColor.a < 0.2) { discard; }");
+					if (flags & FLAG_CAMERA_BASED_NORMALS) {
+						PXL_EMIT("gl_FragColor.a = Out_Color.a;");
+						PXL_EMIT("if (diffuseColor.a < 0.5) { discard; }");
+					} else {
+						PXL_EMIT("if (diffuseColor.a < 0.2) { discard; }");
+					}
+				}
+			} else {
+				if (flags & FLAG_TEXBIAS) {
+					PXL_EMIT("if (gl_FragColor.a < 0.8) { discard; }");
+				} else {
+					if (flags & FLAG_CAMERA_BASED_NORMALS) {
+						PXL_EMIT("if (gl_FragColor.a < 0.5) { discard; }");
+						PXL_EMIT("gl_FragColor.a = Out_Color.a;");
+					} else {
+						PXL_EMIT("if (gl_FragColor.a < 0.2) { discard; }");
+					}
 				}
 			}
-		} else {
-			if (flags & FLAG_TEXBIAS) {
-				PXL_EMIT("if (gl_FragColor.a < 0.8) { discard; }");
-			} else {
-				if (flags & FLAG_CAMERA_BASED_NORMALS) {
-					PXL_EMIT("if (gl_FragColor.a < 0.5) { discard; }");
-					PXL_EMIT("gl_FragColor.a = Out_Color.a;");
-				} else {
-					PXL_EMIT("if (gl_FragColor.a < 0.2) { discard; }");
-				}
-			}
+			PXL_EMIT("/*ATEND*/");
 		}
-		PXL_EMIT("/*ATEND*/");
 	}
-#endif
 
 	if (flags & FLAG_ALPHA_MODULATE)
 		PXL_EMIT("gl_FragColor.a *= AlphaModulate;");

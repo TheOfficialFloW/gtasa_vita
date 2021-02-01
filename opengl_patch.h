@@ -27,12 +27,6 @@
 #define FLAG_TEXMATRIX            0x2000000
 #define FLAG_GAMMA                0x4000000
 
-#ifdef DISABLE_PED_SPEC
-#define PED_SPEC 0
-#else
-#define PED_SPEC (FLAG_BONE3 | FLAG_BONE4)
-#endif
-
 #define PXL_EMIT(...)                        \
   do {                                       \
     snprintf(tmp, sizeof(tmp), __VA_ARGS__); \
@@ -45,7 +39,6 @@
     snprintf(tmp, sizeof(tmp), __VA_ARGS__); \
     strcat(vtxbuf, tmp);                     \
   } while (0)
-
 
 typedef struct {
   // Checks for GL_OES_depth24
@@ -86,7 +79,6 @@ extern char pxlbuf[8192];
 extern char vtxbuf[8192];
 
 extern int (* GetMobileEffectSetting)();
-
 
 void patch_opengl(void);
 

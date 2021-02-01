@@ -33,6 +33,7 @@
 #include <math_neon.h>
 
 #include "main.h"
+#include "config.h"
 #include "so_util.h"
 #include "jni_patch.h"
 #include "openal_patch.h"
@@ -178,22 +179,20 @@ int thread_stub(SceSize args, uintptr_t *argp) {
 // StreamThread with priority 2
 // BankLoader with priority 3
 void *OS_ThreadLaunch(int (* func)(), void *arg, int r2, char *name, int r4, int priority) {
-  int min_priority = 0xA0;
-  int max_priority = 0x60;
   int vita_priority;
 
   switch (priority) {
     case 0:
-      vita_priority = min_priority;
+      vita_priority = 0x40;
       break;
     case 1:
-      vita_priority = min_priority - 2 * (min_priority - max_priority) / 3;
+      vita_priority = 0x10000100 - 31;
       break;
     case 2:
-      vita_priority = min_priority - 4 * (min_priority - max_priority) / 5;
+      vita_priority = 0x10000100 - 15;
       break;
     case 3:
-      vita_priority = max_priority;
+      vita_priority = 0x10000100;
       break;
     default:
       vita_priority = 0x10000100;
@@ -233,21 +232,21 @@ extern void *__cxa_guard_release;
 void patch_game(void) {
   *(int *)so_find_addr("UseCloudSaves") = 0;
   *(int *)so_find_addr("UseTouchSense") = 0;
-#ifdef DISABLE_DETAIL_TEXTURES
-  *(int *)so_find_addr("gNoDetailTextures") = 1;
-#endif
 
-#ifdef FIX_SKIN_WEIGHTS
-  // Force using GL_UNSIGNED_SHORT
-  uint16_t movs_r1_1 = 0x2101;
-  kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x001C8064), &movs_r1_1, sizeof(movs_r1_1));
-  kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x001C8082), &movs_r1_1, sizeof(movs_r1_1));
-#endif
+  if (config.disable_detail_textures)
+    *(int *)so_find_addr("gNoDetailTextures") = 1;
 
-#ifdef FIX_MAP_BOTTLENECK
-  // Remove map highlight (explored regions) since it's rendered very inefficiently
-  hook_thumb((uintptr_t)(text_base + 0x002AADE0), (uintptr_t)(text_base + 0x002AAF9A + 0x1));
-#endif
+  if (config.fix_skin_weights) {
+    // Force using GL_UNSIGNED_SHORT
+    uint16_t movs_r1_1 = 0x2101;
+    kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x001C8064), &movs_r1_1, sizeof(movs_r1_1));
+    kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x001C8082), &movs_r1_1, sizeof(movs_r1_1));
+  }
+
+  if (config.fix_map_bottleneck) {
+    // Remove map highlight (explored regions) since it's rendered very inefficiently
+    hook_thumb((uintptr_t)(text_base + 0x002AADE0), (uintptr_t)(text_base + 0x002AAF9A + 0x1));
+  }
 
   hook_thumb(so_find_addr("__cxa_guard_acquire"), (uintptr_t)&__cxa_guard_acquire);
   hook_thumb(so_find_addr("__cxa_guard_release"), (uintptr_t)&__cxa_guard_release);
@@ -290,64 +289,58 @@ void glCompressedTexImage2DHook(GLenum target, GLint level, GLenum format, GLsiz
 }
 
 void glShaderSourceHook(GLuint shader, GLsizei count, const GLchar **string, const GLint *length) {
-#ifdef ENABLE_SHADER_CACHE
-  if (string) {
-    uint32_t sha1[5];
-    SHA1_CTX ctx;
-
-    sha1_init(&ctx);
-    sha1_update(&ctx, (uint8_t *)*string, *length);
-    sha1_final(&ctx, (uint8_t *)sha1);
-
-    char path[1024];
-    snprintf(path, sizeof(path), "%s/%08x%08x%08x%08x%08x.gxp", SHADER_CACHE_PATH, sha1[0], sha1[1], sha1[2], sha1[3], sha1[4]);
-
-    size_t shaderSize;
-    void *shaderBuf;
-
-    SceUID fd = sceIoOpen(path, SCE_O_RDONLY, 0);
-    if (fd >= 0) {
-      shaderSize = sceIoLseek(fd, 0, SCE_SEEK_END);
-      sceIoLseek(fd, 0, SCE_SEEK_SET);
-
-      shaderBuf = malloc(shaderSize);
-      sceIoRead(fd, shaderBuf, shaderSize);
-      sceIoClose(fd);
-
-      glShaderBinary(1, &shader, 0, shaderBuf, shaderSize);
-
-      free(shaderBuf);
-    } else {
-      GLint type;
-      glGetShaderiv(shader, GL_SHADER_TYPE, &type);
-      shark_type sharkType = type == GL_FRAGMENT_SHADER ? SHARK_FRAGMENT_SHADER : SHARK_VERTEX_SHADER;
-
-      shaderSize = *length;
-      shaderBuf = shark_compile_shader_extended(*string, &shaderSize, sharkType, SHARK_OPT_UNSAFE, SHARK_ENABLE, SHARK_ENABLE, SHARK_ENABLE);
-      if (shaderBuf == NULL)
-        debugPrintf("Could not compile shader: %s\n", *string);
-
-      glShaderBinary(1, &shader, 0, shaderBuf, shaderSize);
-
-      fd = sceIoOpen(path, SCE_O_WRONLY | SCE_O_CREAT | SCE_O_TRUNC, 0777);
-      if (fd >= 0) {
-        sceIoWrite(fd, shaderBuf, shaderSize);
-        sceIoClose(fd);
-      }
-
-      shark_clear_output();
-    }
+  if (!config.enable_shader_cache) {
+    glShaderSource(shader, count, string, length);
     return;
   }
-#endif
 
-  glShaderSource(shader, count, string, length);
+  uint32_t sha1[5];
+  SHA1_CTX ctx;
+
+  sha1_init(&ctx);
+  sha1_update(&ctx, (uint8_t *)*string, *length);
+  sha1_final(&ctx, (uint8_t *)sha1);
+
+  char path[1024];
+  snprintf(path, sizeof(path), "%s/%08x%08x%08x%08x%08x.gxp", SHADER_CACHE_PATH, sha1[0], sha1[1], sha1[2], sha1[3], sha1[4]);
+
+  size_t shaderSize;
+  void *shaderBuf;
+
+  SceUID fd = sceIoOpen(path, SCE_O_RDONLY, 0);
+  if (fd >= 0) {
+    shaderSize = sceIoLseek(fd, 0, SCE_SEEK_END);
+    sceIoLseek(fd, 0, SCE_SEEK_SET);
+
+    shaderBuf = malloc(shaderSize);
+    sceIoRead(fd, shaderBuf, shaderSize);
+    sceIoClose(fd);
+
+    glShaderBinary(1, &shader, 0, shaderBuf, shaderSize);
+
+    free(shaderBuf);
+  } else {
+    GLint type;
+    glGetShaderiv(shader, GL_SHADER_TYPE, &type);
+    shark_type sharkType = type == GL_FRAGMENT_SHADER ? SHARK_FRAGMENT_SHADER : SHARK_VERTEX_SHADER;
+
+    shaderSize = *length;
+    shaderBuf = shark_compile_shader_extended(*string, &shaderSize, sharkType, SHARK_OPT_UNSAFE, SHARK_ENABLE, SHARK_ENABLE, SHARK_ENABLE);
+    glShaderBinary(1, &shader, 0, shaderBuf, shaderSize);
+
+    fd = sceIoOpen(path, SCE_O_WRONLY | SCE_O_CREAT | SCE_O_TRUNC, 0777);
+    if (fd >= 0) {
+      sceIoWrite(fd, shaderBuf, shaderSize);
+      sceIoClose(fd);
+    }
+
+    shark_clear_output();
+  }
 }
 
 void glCompileShaderHook(GLuint shader) {
-#ifndef ENABLE_SHADER_CACHE
-  glCompileShader(shader);
-#endif
+  if (!config.enable_shader_cache)
+    glCompileShader(shader);
 }
 
 extern void *_ZdaPv;
@@ -698,9 +691,8 @@ int main(int argc, char *argv[]) {
   scePowerSetGpuClockFrequency(222);
   scePowerSetGpuXbarClockFrequency(166);
 
-#ifdef ENABLE_SHADER_CACHE
   sceIoMkdir(SHADER_CACHE_PATH, 0777);
-#endif
+  read_config(CONFIG_PATH);
 
   stderr_fake = stderr;
 
@@ -710,22 +702,15 @@ int main(int argc, char *argv[]) {
   patch_openal();
   patch_opengl();
   patch_game();
-
-  uint16_t movs_r1_1 = 0x2101;
-  kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x001C8064), &movs_r1_1, sizeof(movs_r1_1));
-  kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x001C8082), &movs_r1_1, sizeof(movs_r1_1));
-  kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x001C808E), &movs_r1_1, sizeof(movs_r1_1));
-
-#ifdef ENABLE_SKYGFX
-  patch_gfx();
-#endif
+  if (config.enable_skygfx)
+    patch_gfx();
   so_flush_caches();
 
   so_execute_init_array();
   so_free_temp();
 
   vglSetupRuntimeShaderCompiler(SHARK_OPT_UNSAFE, SHARK_ENABLE, SHARK_ENABLE, SHARK_ENABLE);
-  vglInitExtended(SCREEN_W, SCREEN_H, 0x1000000, SCE_GXM_MULTISAMPLE_4X);
+  vglInitExtended(SCREEN_W, SCREEN_H, 16 * 1024 * 1024, SCE_GXM_MULTISAMPLE_4X);
   vglUseVram(GL_TRUE);
 
   jni_load();

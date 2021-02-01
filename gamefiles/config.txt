@@ -1,0 +1,9 @@
+touch_x_margin 100
+fix_skin_weights 1
+fix_map_bottleneck 1
+enable_shader_cache 1
+enable_skygfx 1
+disable_detail_textures 1
+disable_ped_spec 1
+disable_tex_bias 1
+disable_alpha_testing 0
