@@ -1,8 +1,6 @@
 #include <stdio.h>
 #include <stdarg.h>
-#include <stdlib.h>
 #include <string.h>
-#include <stdint.h>
 #include <math.h>
 #include <kubridge.h>
 #include <vitaGL.h>

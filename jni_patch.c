@@ -6,15 +6,11 @@
  * of the MIT license.  See the LICENSE file for details.
  */
 
-#include <psp2/io/dirent.h>
-#include <psp2/io/fcntl.h>
 #include <psp2/ctrl.h>
 #include <psp2/touch.h>
 #include <vitaGL.h>
 
 #include <stdio.h>
-#include <stdarg.h>
-#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <math.h>

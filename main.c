@@ -8,7 +8,6 @@
 
 #include <psp2/io/dirent.h>
 #include <psp2/io/fcntl.h>
-#include <psp2/kernel/sysmem.h>
 #include <psp2/kernel/threadmgr.h>
 #include <psp2/power.h>
 #include <psp2/touch.h>
@@ -22,15 +21,13 @@
 #include <string.h>
 #include <unistd.h>
 
-#include <ctype.h>
 #include <math.h>
-#include <pthread.h>
-#include <semaphore.h>
+#include <math_neon.h>
+
+#include <ctype.h>
 #include <setjmp.h>
 #include <sys/time.h>
 #include <sys/stat.h>
-
-#include <math_neon.h>
 
 #include "main.h"
 #include "config.h"
@@ -363,7 +360,6 @@ extern void *__aeabi_uldivmod;
 // extern void *__assert2;
 extern void *__cxa_atexit;
 extern void *__cxa_finalize;
-// extern void *__errno;
 // extern void *__isfinite;
 // extern void *__sF;
 // extern void *__signbit;
@@ -390,6 +386,7 @@ static int EnterGameFromSCFunc = 0;
 static int SigningOutfromApp = 0;
 static int hasTouchScreen = 0;
 
+static int __errno = 0;
 static int __stack_chk_guard_fake = 0x42424242;
 
 static FILE *stderr_fake;

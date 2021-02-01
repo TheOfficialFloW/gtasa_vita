@@ -8,7 +8,7 @@ if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
   endif()
 endif()
 
-project(GTASA ASM C CXX)
+project(GTASA C CXX)
 include("${VITASDK}/share/vita.cmake" REQUIRED)
 set(VITA_APP_NAME "GTA: SA")
 set(VITA_TITLEID  "GTASA0000")
