@@ -20,5 +20,6 @@ int so_load(const char *filename);
 int so_resolve(DynLibFunction *functions, int num_functions);
 void so_execute_init_array(void);
 uintptr_t so_find_addr(const char *symbol);
+uintptr_t so_find_rel_addr(const char *symbol);
 
 #endif

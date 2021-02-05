@@ -15,6 +15,7 @@
 #include <vitashark.h>
 #include <vitaGL.h>
 
+#include <malloc.h>
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>
@@ -110,7 +111,7 @@ int pthread_create_fake(int r0, int r1, int r2, void *arg) {
 }
 
 int pthread_mutex_init_fake(SceKernelLwMutexWork **work) {
-  *work = (SceKernelLwMutexWork *)malloc(sizeof(SceKernelLwMutexWork));
+  *work = (SceKernelLwMutexWork *)memalign(8, sizeof(SceKernelLwMutexWork));
   if (sceKernelCreateLwMutex(*work, "mutex", SCE_KERNEL_MUTEX_ATTR_RECURSIVE, 0, NULL) < 0)
     return -1;
   return 0;
@@ -224,6 +225,22 @@ void *OS_ThreadSetValue(void *RenderQueue) {
   return NULL;
 }
 
+static int In_Process_FollowCar_SA = 0;
+
+void *(* FindPlayerVehicle_Ref)(int r0, int r1);
+void *FindPlayerVehicle_Patched(int r0, int r1) {
+  if (In_Process_FollowCar_SA)
+    return NULL;
+  return FindPlayerVehicle_Ref(r0, r1);
+}
+
+void (* CCam__Process_FollowCar_SA_Ref)(void *this, int r1, int r2, int r3, int r4);
+void CCam__Process_FollowCar_SA_Patched(void *this, int r1, int r2, int r3, int r4) {
+  In_Process_FollowCar_SA = 1;
+  CCam__Process_FollowCar_SA_Ref(this, r1, r2, r3, r4);
+  In_Process_FollowCar_SA = 0;
+}
+
 extern void *__cxa_guard_acquire;
 extern void *__cxa_guard_release;
 
@@ -233,6 +250,14 @@ void patch_game(void) {
 
   if (config.disable_detail_textures)
     *(int *)so_find_addr("gNoDetailTextures") = 1;
+
+  if (config.fix_heli_plane_camera) {
+    FindPlayerVehicle_Ref = (void *)so_find_addr("_Z17FindPlayerVehicleib");
+    *(uintptr_t *)so_find_rel_addr("_Z17FindPlayerVehicleib") = (uintptr_t)FindPlayerVehicle_Patched;
+
+    CCam__Process_FollowCar_SA_Ref = (void *)so_find_addr("_ZN4CCam20Process_FollowCar_SAERK7CVectorfffb");
+    *(uintptr_t *)so_find_rel_addr("_ZN4CCam20Process_FollowCar_SAERK7CVectorfffb") = (uintptr_t)CCam__Process_FollowCar_SA_Patched;
+  }
 
   if (config.fix_skin_weights) {
     // Force using GL_UNSIGNED_SHORT
@@ -250,9 +275,6 @@ void patch_game(void) {
   hook_thumb(so_find_addr("__cxa_guard_release"), (uintptr_t)&__cxa_guard_release);
 
   hook_thumb(so_find_addr("_Z24NVThreadGetCurrentJNIEnvv"), (uintptr_t)NVThreadGetCurrentJNIEnv);
-
-  // used for openal
-  hook_thumb(so_find_addr("InitializeCriticalSection"), (uintptr_t)ret0);
 
   // do not use pthread
   hook_thumb(so_find_addr("_Z15OS_ThreadLaunchPFjPvES_jPKci16OSThreadPriority"), (uintptr_t)OS_ThreadLaunch);
@@ -525,12 +547,12 @@ static DynLibFunction dynlib_functions[] = {
   { "exit", (uintptr_t)&exit },
 
   { "fclose", (uintptr_t)&fclose },
-  { "fdopen", (uintptr_t)&fdopen },
+  // { "fdopen", (uintptr_t)&fdopen },
   // { "fegetround", (uintptr_t)&fegetround },
   { "feof", (uintptr_t)&feof },
   { "ferror", (uintptr_t)&ferror },
   // { "fesetround", (uintptr_t)&fesetround },
-  { "fflush", (uintptr_t)&fflush },
+  // { "fflush", (uintptr_t)&fflush },
   { "fgetc", (uintptr_t)&fgetc },
   { "fgets", (uintptr_t)&fgets },
   { "fopen", (uintptr_t)&fopen },

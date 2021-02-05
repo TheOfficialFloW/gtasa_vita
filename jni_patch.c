@@ -200,7 +200,7 @@ int swapBuffers(void) {
 }
 
 int InitEGLAndGLES2(void) {
-  vglWaitVblankStart(GL_TRUE);
+  vglWaitVblankStart(GL_FALSE);
   return 1;
 }
 

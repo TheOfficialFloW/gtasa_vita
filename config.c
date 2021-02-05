@@ -29,6 +29,7 @@ int read_config(const char *file) {
   while ((fscanf(f, "%s %d", name, &value)) != EOF) {
     #define CONFIG_VAR(var) if (strcmp(name, #var) == 0) config.var = value;
     CONFIG_VAR(touch_x_margin);
+    CONFIG_VAR(fix_heli_plane_camera);
     CONFIG_VAR(fix_skin_weights);
     CONFIG_VAR(fix_map_bottleneck);
     CONFIG_VAR(enable_shader_cache);

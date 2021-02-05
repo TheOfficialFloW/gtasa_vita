@@ -3,18 +3,19 @@
 
 #define LOAD_ADDRESS 0x98000000
 
-#define MEMORY_MB 248
+#define MEMORY_MB 252
 
 #define DATA_PATH "ux0:data/gtasa"
 #define SO_PATH DATA_PATH "/" "libGTASA.so"
-#define SHADER_CACHE_PATH  DATA_PATH "/" "cache"
-#define CONFIG_PATH  DATA_PATH "/" "config.txt"
+#define SHADER_CACHE_PATH DATA_PATH "/" "cache"
+#define CONFIG_PATH DATA_PATH "/" "config.txt"
 
 #define SCREEN_W 960
 #define SCREEN_H 544
 
 typedef struct {
   int touch_x_margin;
+  int fix_heli_plane_camera;
   int fix_skin_weights;
   int fix_map_bottleneck;
   int enable_shader_cache;

@@ -194,7 +194,8 @@ int so_resolve(DynLibFunction *functions, int num_functions) {
         uintptr_t *ptr = (uintptr_t *)(text_base + rels[j].r_offset);
         Elf32_Sym *sym = &syms[ELF32_R_SYM(rels[j].r_info)];
 
-        switch (ELF32_R_TYPE(rels[j].r_info)) {
+        int type = ELF32_R_TYPE(rels[j].r_info);
+        switch (type) {
           case R_ARM_ABS32:
             *ptr += (uintptr_t)text_base + sym->st_value;
             break;
@@ -227,7 +228,7 @@ int so_resolve(DynLibFunction *functions, int num_functions) {
           }
 
           default:
-            debugPrintf("Error unknown relocation type: %x\n", ELF32_R_TYPE(rels[j].r_info));
+            debugPrintf("Error unknown relocation type: %x\n", type);
             break;
         }
       }
@@ -255,6 +256,28 @@ uintptr_t so_find_addr(const char *symbol) {
     char *name = dynstrtab + syms[i].st_name;
     if (strcmp(name, symbol) == 0)
       return (uintptr_t)text_base + syms[i].st_value;
+  }
+
+  debugPrintf("Error could not find symbol %s\n", symbol);
+  return 0;
+}
+
+uintptr_t so_find_rel_addr(const char *symbol) {
+  for (int i = 0; i < elf_hdr->e_shnum; i++) {
+    char *sh_name = shstrtab + sec_hdr[i].sh_name;
+    if (strcmp(sh_name, ".rel.dyn") == 0 || strcmp(sh_name, ".rel.plt") == 0) {
+      Elf32_Rel *rels = (Elf32_Rel *)((uintptr_t)text_base + sec_hdr[i].sh_addr);
+      for (int j = 0; j < sec_hdr[i].sh_size / sizeof(Elf32_Rel); j++) {
+        Elf32_Sym *sym = &syms[ELF32_R_SYM(rels[j].r_info)];
+
+        int type = ELF32_R_TYPE(rels[j].r_info);
+        if (type == R_ARM_GLOB_DAT || type == R_ARM_JUMP_SLOT) {
+          char *name = dynstrtab + sym->st_name;
+          if (strcmp(name, symbol) == 0)
+            return (uintptr_t)text_base + rels[j].r_offset;
+        }
+      }
+    }
   }
 
   debugPrintf("Error could not find symbol %s\n", symbol);

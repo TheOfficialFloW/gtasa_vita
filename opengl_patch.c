@@ -483,7 +483,7 @@ LABEL_10:
   }
 }
 
-int BuildSource(int flags, char **pxlsrc, char **vtxsrc) {
+int RQShader__BuildSource(int flags, char **pxlsrc, char **vtxsrc) {
   pxlbuf[0] = '\0';
   vtxbuf[0] = '\0';
 
@@ -682,5 +682,5 @@ void patch_opengl(void) {
 
   RQCaps = (RQCapabilities *)so_find_addr("RQCaps");
   RQMaxBones = (int *)so_find_addr("RQMaxBones");
-  hook_thumb(so_find_addr("_ZN8RQShader11BuildSourceEjPPKcS2_"), (uintptr_t)BuildSource);
+  hook_thumb(so_find_addr("_ZN8RQShader11BuildSourceEjPPKcS2_"), (uintptr_t)RQShader__BuildSource);
 }
