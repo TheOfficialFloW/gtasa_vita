@@ -131,7 +131,7 @@ typedef struct SceFiosStat {
 int sceFiosInitialize(const SceFiosParams *params);
 void sceFiosTerminate();
 
-int sceFiosFileDelete(const SceFiosOpAttr *attr, const char *path);
+int sceFiosDeleteSync(const SceFiosOpAttr *attr, const char *path);
 
 int sceFiosFHOpenSync(const SceFiosOpAttr *attr, SceFiosFH *fh, const char *path, const void *params);
 SceFiosSize sceFiosFHReadSync(const SceFiosOpAttr *attr, SceFiosFH fh, void *data, SceFiosSize size);

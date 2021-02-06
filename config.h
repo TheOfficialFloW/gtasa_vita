@@ -3,7 +3,7 @@
 
 #define LOAD_ADDRESS 0x98000000
 
-#define MEMORY_MB 252
+#define MEMORY_MB 256
 
 #define DATA_PATH "ux0:data/gtasa"
 #define SO_PATH DATA_PATH "/" "libGTASA.so"

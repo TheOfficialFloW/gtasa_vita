@@ -19,7 +19,7 @@
 
 int64_t g_OpStorage[SCE_FIOS_OP_STORAGE_SIZE(64, MAX_PATH_LENGTH) / sizeof(int64_t) + 1];
 int64_t g_ChunkStorage[SCE_FIOS_CHUNK_STORAGE_SIZE(1024) / sizeof(int64_t) + 1];
-int64_t g_FHStorage[SCE_FIOS_FH_STORAGE_SIZE(32, MAX_PATH_LENGTH) / sizeof(int64_t) + 1];
+int64_t g_FHStorage[SCE_FIOS_FH_STORAGE_SIZE(512, MAX_PATH_LENGTH) / sizeof(int64_t) + 1];
 int64_t g_DHStorage[SCE_FIOS_DH_STORAGE_SIZE(32, MAX_PATH_LENGTH) / sizeof(int64_t) + 1];
 
 SceFiosRamCacheContext g_RamCacheContext = SCE_FIOS_RAM_CACHE_CONTEXT_INITIALIZER;
@@ -44,6 +44,8 @@ int fios_init(void) {
     return res;
 
   g_RamCacheWorkBuffer = memalign(8, config.io_cache_block_num * config.io_cache_block_size);
+  if (!g_RamCacheWorkBuffer)
+    return -1;
 
   g_RamCacheContext.pWorkBuffer = g_RamCacheWorkBuffer;
   g_RamCacheContext.workBufferSize = config.io_cache_block_num * config.io_cache_block_size;
@@ -63,10 +65,9 @@ void fios_terminate(void) {
 int fios_open(const char *file, int flags) {
   int res;
   SceFiosFH handle = 0;
+
   SceFiosOpenParams params = SCE_FIOS_OPENPARAMS_INITIALIZER;
-
   params.openFlags = flags;
-
   res = sceFiosFHOpenSync(NULL, &handle, file, &params);
   if (res != SCE_FIOS_OK) {
     debugPrintf("fios_open %s failed: 0x%08X\n", file, res);
@@ -122,7 +123,7 @@ int OS_FileDelete(int area, char const *file) {
   char path[1024];
   snprintf(path, sizeof(path), "%s/%s", DATA_PATH, file);
   trim(path);
-  sceFiosFileDelete(NULL, path);
+  sceFiosDeleteSync(NULL, path);
   return 0;
 }
 
