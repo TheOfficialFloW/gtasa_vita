@@ -24,20 +24,20 @@ char *SkyGfxColorFilterName[SKYGFX_COLOR_FILTER_NUM] = {
 };
 
 int touch_x_margin = 100;
-int use_fios2 = GL_TRUE;
+bool use_fios2 = true;
 int io_cache_block_num = 64;
 int io_cache_block_size = 65536;
-int fix_heli_plane_camera = GL_TRUE;
-int fix_skin_weights = GL_TRUE;
-int fix_map_bottleneck = GL_TRUE;
-int use_shader_cache = GL_TRUE;
-int skygfx_ps2_shading = GL_TRUE;
+bool fix_heli_plane_camera = true;
+bool fix_skin_weights = true;
+bool fix_map_bottleneck = true;
+bool use_shader_cache = true;
+bool skygfx_ps2_shading = true;
 int skygfx_colorfilter = SKYGFX_COLOR_FILTER_PS2;
-int skygfx_ps2_sun = GL_TRUE;
-int disable_detail_textures = GL_TRUE;
-int disable_ped_spec = GL_TRUE;
-int disable_tex_bias = GL_TRUE;
-int disable_alpha_testing = GL_FALSE;
+bool skygfx_ps2_sun = true;
+bool disable_detail_textures = true;
+bool disable_ped_spec = true;
+bool disable_tex_bias = true;
+bool disable_alpha_testing = false;
 
 void loadConfig() {
 	char buffer[30];
@@ -51,25 +51,25 @@ void loadConfig() {
 	{
 		while (EOF != fscanf(config, "%[^ ] %d\n", buffer, &value))
 		{
-			if (strcmp("use_fios2", buffer) == 0) use_fios2 = value;
+			if (strcmp("use_fios2", buffer) == 0) use_fios2 = (bool)value;
 			else if (strcmp("io_cache_block_num", buffer) == 0) io_cache_block_num = value;
 			else if (strcmp("io_cache_block_size", buffer) == 0) io_cache_block_size = value;
 			
 			else if (strcmp("touch_x_margin", buffer) == 0) touch_x_margin = value;
-			else if (strcmp("fix_heli_plane_camera", buffer) == 0) fix_heli_plane_camera = value;
+			else if (strcmp("fix_heli_plane_camera", buffer) == 0) fix_heli_plane_camera = (bool)value;
 			
-			else if (strcmp("fix_skin_weights", buffer) == 0) fix_skin_weights = value;
-			else if (strcmp("fix_map_bottleneck", buffer) == 0) fix_map_bottleneck = value;
-			else if (strcmp("use_shader_cache", buffer) == 0) use_shader_cache = value;
+			else if (strcmp("fix_skin_weights", buffer) == 0) fix_skin_weights = (bool)value;
+			else if (strcmp("fix_map_bottleneck", buffer) == 0) fix_map_bottleneck = (bool)value;
+			else if (strcmp("use_shader_cache", buffer) == 0) use_shader_cache = (bool)value;
 			
-			else if (strcmp("skygfx_ps2_shading", buffer) == 0) skygfx_ps2_shading = value;
+			else if (strcmp("skygfx_ps2_shading", buffer) == 0) skygfx_ps2_shading = (bool)value;
 			else if (strcmp("skygfx_colorfilter", buffer) == 0) skygfx_colorfilter = value;
-			else if (strcmp("skygfx_ps2_sun", buffer) == 0) skygfx_ps2_sun = value;
+			else if (strcmp("skygfx_ps2_sun", buffer) == 0) skygfx_ps2_sun = (bool)value;
 
-			else if (strcmp("disable_detail_textures", buffer) == 0) disable_detail_textures = value;
-			else if (strcmp("disable_ped_spec", buffer) == 0) disable_ped_spec = value;
-			else if (strcmp("disable_tex_bias", buffer) == 0) disable_tex_bias = value;
-			else if (strcmp("disable_alpha_testing", buffer) == 0) disable_alpha_testing = value;
+			else if (strcmp("disable_detail_textures", buffer) == 0) disable_detail_textures = (bool)value;
+			else if (strcmp("disable_ped_spec", buffer) == 0) disable_ped_spec = (bool)value;
+			else if (strcmp("disable_tex_bias", buffer) == 0) disable_tex_bias = (bool)value;
+			else if (strcmp("disable_alpha_testing", buffer) == 0) disable_alpha_testing = (bool)value;
 		}
 		fclose(config);
 	}
@@ -80,26 +80,26 @@ void saveConfig()
 	FILE *config = fopen(CONFIG_FILE_PATH, "w+");
 	
 	if (config) {
-		fprintf(config, "%s %d\n", "use_fios2", use_fios2);
+		fprintf(config, "%s %d\n", "use_fios2", (int)use_fios2);
 		fprintf(config, "%s %d\n", "io_cache_block_num", io_cache_block_num);
 		fprintf(config, "%s %d\n", "io_cache_block_size", io_cache_block_size);
 		
 		fprintf(config, "%s %d\n", "touch_x_margin", touch_x_margin);
-		fprintf(config, "%s %d\n", "fix_heli_plane_camera", fix_heli_plane_camera);
+		fprintf(config, "%s %d\n", "fix_heli_plane_camera", (int)fix_heli_plane_camera);
 		
-		fprintf(config, "%s %d\n", "fix_skin_weights", fix_skin_weights);
-		fprintf(config, "%s %d\n", "fix_map_bottleneck", fix_map_bottleneck);
-		fprintf(config, "%s %d\n", "use_shader_cache", use_shader_cache);
+		fprintf(config, "%s %d\n", "fix_skin_weights", (int)fix_skin_weights);
+		fprintf(config, "%s %d\n", "fix_map_bottleneck", (int)fix_map_bottleneck);
+		fprintf(config, "%s %d\n", "use_shader_cache", (int)use_shader_cache);
 		
-		fprintf(config, "%s %d\n", "skygfx_ps2_shading", skygfx_ps2_shading);
+		fprintf(config, "%s %d\n", "skygfx_ps2_shading", (int)skygfx_ps2_shading);
 		fprintf(config, "%s %d\n", "skygfx_colorfilter", skygfx_colorfilter);
-		fprintf(config, "%s %d\n", "skygfx_ps2_sun", skygfx_ps2_sun);
+		fprintf(config, "%s %d\n", "skygfx_ps2_sun", (int)skygfx_ps2_sun);
 		
-		fprintf(config, "%s %d\n", "disable_detail_textures", disable_detail_textures);
-		fprintf(config, "%s %d\n", "disable_ped_spec", disable_ped_spec);
+		fprintf(config, "%s %d\n", "disable_detail_textures", (int)disable_detail_textures);
+		fprintf(config, "%s %d\n", "disable_ped_spec", (int)disable_ped_spec);
 		
-		fprintf(config, "%s %d\n", "disable_tex_bias", disable_tex_bias);
-		fprintf(config, "%s %d\n", "disable_alpha_testing", disable_alpha_testing);
+		fprintf(config, "%s %d\n", "disable_tex_bias", (int)disable_tex_bias);
+		fprintf(config, "%s %d\n", "disable_alpha_testing", (int)disable_alpha_testing);
 		fclose(config);
 	}
 }
@@ -139,6 +139,8 @@ int main(){
 	ImGui_ImplVitaGL_TouchUsage(false);
 	ImGui_ImplVitaGL_GamepadUsage(true);
 	ImGui::StyleColorsDark();
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+	
 	ImGui::GetIO().MouseDrawCursor = false;
 	
 	while (exit_code == 0xDEAD) {
@@ -149,10 +151,10 @@ int main(){
 		ImGui::SetNextWindowSize(ImVec2(960, 544), ImGuiSetCond_Always);
 		ImGui::Begin("Grand Theft Auto: San Andreas - Config Manager", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus);
 		
+		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.0f, 0.0f));
 		ImGui::TextColored(ImVec4(255, 255, 0, 255), "I/O Caching");
 		ImGui::Text("Use sceFios2: "); ImGui::SameLine();
-		if (ImGui::SmallButton(use_fios2 ? "Enabled##0" : "Disabled##0"))
-			use_fios2 = !use_fios2;
+		ImGui::Checkbox("##check0", &use_fios2);
 		SetDescription(0);
 		if (use_fios2) {
 			ImGui::Text("Cache Blocks Amount:"); ImGui::SameLine();
@@ -161,9 +163,6 @@ int main(){
 			ImGui::Text("Cache Blocks Size:"); ImGui::SameLine();
 			ImGui::DragInt("##io_cache_block_size", &io_cache_block_size, 1024.0f, 1024, 1024 * 256);
 			SetDescription(2);
-		} else {
-			ImGui::Spacing();
-			ImGui::Spacing();
 		}
 		ImGui::Separator();
 		
@@ -172,58 +171,59 @@ int main(){
 		ImGui::SliderInt("##touch_x_margin", &touch_x_margin, 0, 256);
 		SetDescription(3);
 		ImGui::Text("Flying Vehicles Camera Fix:"); ImGui::SameLine();
-		if (ImGui::SmallButton(fix_heli_plane_camera ? "Enabled##1" : "Disabled##1"))
-			fix_heli_plane_camera = !fix_heli_plane_camera;
+		ImGui::Checkbox("##check1", &fix_heli_plane_camera);
 		SetDescription(4);
 		ImGui::Separator();
+		ImGui::PopStyleVar();
 		
-		ImGui::TextColored(ImVec4(255, 255, 0, 255), "Skygfx by aap");
+		ImGui::TextColored(ImVec4(255, 255, 0, 255), "Skygfx");
 		ImGui::Text("PostFX Colour Filter:"); ImGui::SameLine();
-		if (ImGui::SmallButton(SkyGfxColorFilterName[skygfx_colorfilter]))
-			skygfx_colorfilter = (skygfx_colorfilter + 1) % SKYGFX_COLOR_FILTER_NUM;
+		if (ImGui::BeginCombo("##combo", SkyGfxColorFilterName[skygfx_colorfilter])) {
+			for (int n = 0; n < SKYGFX_COLOR_FILTER_NUM; n++) {
+				bool is_selected = skygfx_colorfilter == n;
+				if (ImGui::Selectable(SkyGfxColorFilterName[n], is_selected))
+					skygfx_colorfilter = n;
+				SetDescription(5);
+				if (is_selected)
+					ImGui::SetItemDefaultFocus();
+			}
+			ImGui::EndCombo();
+		}
 		SetDescription(5);
+		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.0f, 0.0f));
 		ImGui::Text("PS2 Shading:"); ImGui::SameLine();
-		if (ImGui::SmallButton(skygfx_ps2_shading ? "Enabled##2" : "Disabled##2"))
-			skygfx_ps2_shading = !skygfx_ps2_shading;
+		ImGui::Checkbox("##check2", &skygfx_ps2_shading);
 		SetDescription(6);
 		ImGui::Text("PS2 Corona Sun:"); ImGui::SameLine();
-		if (ImGui::SmallButton(skygfx_ps2_sun ? "Enabled##10" : "Disabled##10"))
-			skygfx_ps2_sun = !skygfx_ps2_sun;
+		ImGui::Checkbox("##check3", &skygfx_ps2_sun);
 		SetDescription(7);
 		ImGui::Separator();
 		
 		ImGui::TextColored(ImVec4(255, 255, 0, 255), "Graphics");
 		ImGui::Text("Detail Textures:"); ImGui::SameLine();
-		if (ImGui::SmallButton(disable_detail_textures ? "Disabled##3" : "Enabled##3"))
-			disable_detail_textures = !disable_detail_textures;
+		ImGui::Checkbox("##check4", &disable_detail_textures);
 		SetDescription(8);
 		ImGui::Text("Texture Bias:"); ImGui::SameLine();
-		if (ImGui::SmallButton(disable_tex_bias ? "Disabled##4" : "Enabled##4"))
-			disable_tex_bias = !disable_tex_bias;
+		ImGui::Checkbox("##check5", &disable_tex_bias);
 		SetDescription(9);
 		ImGui::Text("Alpha Testing:"); ImGui::SameLine();
-		if (ImGui::SmallButton(disable_alpha_testing ? "Disabled##5" : "Enabled##5"))
-			disable_alpha_testing = !disable_alpha_testing;
+		ImGui::Checkbox("##check6", &disable_alpha_testing);
 		SetDescription(10);
 		ImGui::Text("Skinning Fix:"); ImGui::SameLine();
-		if (ImGui::SmallButton(fix_skin_weights ? "Enabled##6" : "Disabled##6"))
-			fix_skin_weights = !fix_skin_weights;
+		ImGui::Checkbox("##check7", &fix_skin_weights);
 		SetDescription(11);
 		ImGui::Text("Peds Reflections:"); ImGui::SameLine();
-		if (ImGui::SmallButton(disable_ped_spec ? "Disabled##7" : "Enabled##7"))
-			disable_ped_spec = !disable_ped_spec;
-		SetDescription(12);
+		ImGui::Checkbox("##check8", &disable_ped_spec);
 		ImGui::Separator();
 		
 		ImGui::TextColored(ImVec4(255, 255, 0, 255), "Optimizations");
 		ImGui::Text("Shader Cache:"); ImGui::SameLine();
-		if (ImGui::SmallButton(use_shader_cache ? "Enabled##8" : "Disabled##8"))
-			use_shader_cache = !use_shader_cache;
+		ImGui::Checkbox("##check9", &use_shader_cache);
 		SetDescription(13);
 		ImGui::Text("Map Bottleneck Fix:"); ImGui::SameLine();
-		if (ImGui::SmallButton(fix_map_bottleneck ? "Enabled##9" : "Disabled##9"))
-			fix_map_bottleneck = !fix_map_bottleneck;
+		ImGui::Checkbox("##check10", &fix_map_bottleneck);
 		SetDescription(14);
+		ImGui::PopStyleVar();
 		ImGui::Separator();
 		
 		if (ImGui::Button("Save and Exit"))
