@@ -28,6 +28,7 @@
 #define SCE_FIOS_PARAMS_INITIALIZER { 0, sizeof(SceFiosParams), 0, 0, 2, 1, 0, 0, 256 * 1024, 2, 0, 0, 0, 0, 0, SCE_FIOS_BUFFER_INITIALIZER, SCE_FIOS_BUFFER_INITIALIZER, SCE_FIOS_BUFFER_INITIALIZER, SCE_FIOS_BUFFER_INITIALIZER, NULL, NULL, NULL, { 66, 189, 66 }, { 0x40000, 0, 0x40000}, { 8 * 1024, 16 * 1024, 8 * 1024}}
 #define SCE_FIOS_OPENPARAMS_INITIALIZER { 0, 0, 0, SCE_FIOS_BUFFER_INITIALIZER }
 #define SCE_FIOS_OPATTR_INITIALIZER { 0, 0, 0, 0, 0, 0, 0, 0 }
+#define SCE_FIOS_RAM_CACHE_CONTEXT_INITIALIZER { sizeof(SceFiosRamCacheContext), 0, (64 * 1024), NULL, NULL, 0, {0, 0, 0} }
 
 typedef enum SceFiosWhence {
   SCE_FIOS_SEEK_SET = 0,
@@ -67,6 +68,16 @@ typedef struct SceFiosOpAttr {
   void *userPtr;
   void *pReserved;
 } SceFiosOpAttr;
+
+typedef struct SceFiosRamCacheContext {
+  size_t sizeOfContext;
+  size_t workBufferSize;
+  size_t blockSize;
+  void *pWorkBuffer;
+  const char *pPath;
+  intptr_t flags;
+  intptr_t reserved[3];
+} SceFiosRamCacheContext;
 
 typedef struct SceFiosOpenParams {
   uint32_t openFlags : 16;
@@ -130,6 +141,9 @@ int sceFiosFHCloseSync(const SceFiosOpAttr *attr, SceFiosFH fh);
 SceFiosOffset sceFiosFHSeek(SceFiosFH fh, SceFiosOffset offset, SceFiosWhence whence);
 SceFiosOffset sceFiosFHTell(SceFiosFH fh);
 SceFiosSize sceFiosFHGetSize(SceFiosFH fh);
+
+int sceFiosIOFilterAdd(int index, void *pFilterCallback, void *pFilterContext);
+void sceFiosIOFilterCache();
 
 int fios_init(void);
 void patch_io(void);

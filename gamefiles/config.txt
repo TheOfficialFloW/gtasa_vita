@@ -1,5 +1,7 @@
 touch_x_margin 100
 use_fios2 1
+io_cache_block_num 64
+io_cache_block_size 65536
 fix_heli_plane_camera 1
 fix_skin_weights 1
 fix_map_bottleneck 1

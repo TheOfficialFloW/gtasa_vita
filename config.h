@@ -16,6 +16,8 @@
 typedef struct {
   int touch_x_margin;
   int use_fios2;
+  int io_cache_block_num;
+  int io_cache_block_size;
   int fix_heli_plane_camera;
   int fix_skin_weights;
   int fix_map_bottleneck;
