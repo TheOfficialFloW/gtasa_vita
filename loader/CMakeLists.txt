@@ -61,7 +61,7 @@ vita_create_vpk(GTASA.vpk ${VITA_TITLEID} eboot.bin
        ${CMAKE_SOURCE_DIR}/sce_sys/livearea/contents/bg.png sce_sys/livearea/contents/bg.png
        ${CMAKE_SOURCE_DIR}/sce_sys/livearea/contents/startup.png sce_sys/livearea/contents/startup.png
        ${CMAKE_SOURCE_DIR}/sce_sys/livearea/contents/template.xml sce_sys/livearea/contents/template.xml
-       ${CMAKE_SOURCE_DIR}/companion/eboot.bin companion.bin
+       ${CMAKE_SOURCE_DIR}/../companion/eboot.bin companion.bin
 )
 
 add_custom_target(copy
