@@ -721,8 +721,7 @@ int main(int argc, char *argv[]) {
   patch_game();
   if (config.use_fios2)
     patch_io();
-  if (config.enable_skygfx)
-    patch_gfx();
+  patch_gfx();
   so_flush_caches();
 
   so_execute_init_array();
@@ -731,7 +730,7 @@ int main(int argc, char *argv[]) {
   fios_init();
 
   vglSetupRuntimeShaderCompiler(SHARK_OPT_UNSAFE, SHARK_ENABLE, SHARK_ENABLE, SHARK_ENABLE);
-  vglInitExtended(SCREEN_W, SCREEN_H, 16 * 1024 * 1024, SCE_GXM_MULTISAMPLE_4X);
+  vglInitExtended(0, SCREEN_W, SCREEN_H, 16 * 1024 * 1024, SCE_GXM_MULTISAMPLE_4X);
   vglUseVram(GL_TRUE);
 
   jni_load();

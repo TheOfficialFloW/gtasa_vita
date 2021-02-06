@@ -459,26 +459,46 @@ void ColorFilter(void *sp) {
 
 	// NB: this assumes PS2 timecycle alphas
 
-	// PS2
-	float a = postfx2->alpha/128.0f;
-	red->red = postfx1->red/128.0f + a*postfx2->red/128.0f;
-	green->green = postfx1->green/128.0f + a*postfx2->green/128.0f;
-	blue->blue = postfx1->blue/128.0f + a*postfx2->blue/128.0f;
-	red->green = red->blue = red->alpha = 0.0f;
-	green->red = green->blue = green->alpha = 0.0f;
-	blue->red = blue->green = blue->alpha = 0.0f;
-
-	// PC
-/*
-	float a1 = postfx1->alpha/128.0f;
-	float a2 = postfx2->alpha/128.0f;
-	red->red = 1.0f + a1*postfx1->red/255.0f + a2*postfx2->red/255.0f;
-	green->green = 1.0f + a1*postfx1->green/255.0f + a2*postfx2->green/255.0f;
-	blue->blue = 1.0f + a1*postfx1->blue/255.0f + a2*postfx2->blue/255.0f;
-	red->green = red->blue = red->alpha = 0.0f;
-	green->red = green->blue = green->alpha = 0.0f;
-	blue->red = blue->green = blue->alpha = 0.0f;
-*/
+	if(config.skygfx_colourfilter == 0){
+		// None
+		red->red = 1.0f;
+		green->green = 1.0f;
+		blue->blue = 1.0f;
+		red->green = red->blue = red->alpha = 0.0f;
+		green->red = green->blue = green->alpha = 0.0f;
+		blue->red = blue->green = blue->alpha = 0.0f;
+	}else if(config.skygfx_colourfilter == 1){
+		// PS2
+		float a = postfx2->alpha/128.0f;
+		red->red = postfx1->red/128.0f + a*postfx2->red/128.0f;
+		green->green = postfx1->green/128.0f + a*postfx2->green/128.0f;
+		blue->blue = postfx1->blue/128.0f + a*postfx2->blue/128.0f;
+		red->green = red->blue = red->alpha = 0.0f;
+		green->red = green->blue = green->alpha = 0.0f;
+		blue->red = blue->green = blue->alpha = 0.0f;
+	}else if(config.skygfx_colourfilter == 2){
+		// PC
+		float a1 = postfx1->alpha/128.0f;
+		float a2 = postfx2->alpha/128.0f;
+		red->red = 1.0f + a1*postfx1->red/255.0f + a2*postfx2->red/255.0f;
+		green->green = 1.0f + a1*postfx1->green/255.0f + a2*postfx2->green/255.0f;
+		blue->blue = 1.0f + a1*postfx1->blue/255.0f + a2*postfx2->blue/255.0f;
+		red->green = red->blue = red->alpha = 0.0f;
+		green->red = green->blue = green->alpha = 0.0f;
+		blue->red = blue->green = blue->alpha = 0.0f;
+	}else{
+		// Mobile
+		float r = postfx1->alpha*postfx1->red   + postfx2->alpha*postfx2->red;
+		float g = postfx1->alpha*postfx1->green + postfx2->alpha*postfx2->green;
+		float b = postfx1->alpha*postfx1->blue  + postfx2->alpha*postfx2->blue;
+		float invsqrt = 1.0f/sqrtf(r*r + g*g + b*b);
+		r *= invsqrt;
+		g *= invsqrt;
+		b *= invsqrt;
+		red->red *= (1.5f + r*1.732f)*0.4f;
+		green->green *= (1.5f + g*1.732f)*0.4f;
+		blue->blue *= (1.5f + b*1.732f)*0.4f;
+	}
 }
 
 __attribute__((naked)) void _ColorFilter_stub(void) {
@@ -529,13 +549,15 @@ patch_gfx(void)
 	emu_glEnable = (void (*)(GLenum))so_find_addr("_Z12emu_glEnablej");
 	emu_glDisable = (void (*)(GLenum))so_find_addr("_Z13emu_glDisablej");
 
-	// upload all material data regardless of shader flags
-	const uint16_t nop = 0xbf00;
-	kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x1C1382), &nop, sizeof(nop));
-	kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x1C13BA), &nop, sizeof(nop));
-	hook_thumb(so_find_addr("_Z36_rwOpenGLLightsSetMaterialPropertiesPK10RpMaterialj"), (uintptr_t)_rwOpenGLLightsSetMaterialProperties);
+	if(config.skygfx_ps2_shading){
+		// upload all material data regardless of shader flags
+		const uint16_t nop = 0xbf00;
+		kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x1C1382), &nop, sizeof(nop));
+		kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x1C13BA), &nop, sizeof(nop));
+		hook_thumb(so_find_addr("_Z36_rwOpenGLLightsSetMaterialPropertiesPK10RpMaterialj"), (uintptr_t)_rwOpenGLLightsSetMaterialProperties);
 
-	hook_thumb(so_find_addr("_Z28SetLightsWithTimeOfDayColourP7RpWorld"), (uintptr_t)SetLightsWithTimeOfDayColour);
+		hook_thumb(so_find_addr("_Z28SetLightsWithTimeOfDayColourP7RpWorld"), (uintptr_t)SetLightsWithTimeOfDayColour);
+	}
 
 	// Enable PS2-like color filter
 	// .text:005B63DC                 LDRB            R0, [R3] ; CPostEffects::m_bDarknessFilter
@@ -551,8 +573,10 @@ patch_gfx(void)
 	kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x005B6446), (void *)(text_base + 0x005B63EA), sizeof(uint16_t));
 
 	// Enable PS2-like sun corona
-	const uint32_t nop2 = 0xbf00bf00;
-	kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x005A26B0), &nop2, sizeof(nop2));
+	if(config.skygfx_ps2_sun){
+		const uint32_t nop2 = 0xbf00bf00;
+		kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x005A26B0), &nop2, sizeof(nop2));
+	}
 }
 
 

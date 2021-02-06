@@ -488,7 +488,7 @@ int RQShader__BuildSource(int flags, char **pxlsrc, char **vtxsrc) {
   // *pxlbuf_orig = '\0';
   // *vtxbuf_orig = '\0';
 
-  if (config.enable_skygfx) {
+  if (config.skygfx_ps2_shading) {
     BuildPixelSource_SkyGfx(flags);
     BuildVertexSource_SkyGfx(flags);
   } else {

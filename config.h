@@ -22,7 +22,9 @@ typedef struct {
   int fix_skin_weights;
   int fix_map_bottleneck;
   int enable_shader_cache;
-  int enable_skygfx;
+  int skygfx_ps2_shading;	// lighting and vehicle reflections
+  int skygfx_colourfilter;	// None, PS2, PC/Xbox, Mobile
+  int skygfx_ps2_sun;
   int disable_detail_textures;
   int disable_ped_spec;
   int disable_tex_bias;
