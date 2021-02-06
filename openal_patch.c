@@ -6,8 +6,8 @@
  * of the MIT license.  See the LICENSE file for details.
  */
 
+#include <stdio.h>
 #include <string.h>
-#include <unistd.h>
 
 #define AL_ALEXT_PROTOTYPES
 #include <AL/alext.h>

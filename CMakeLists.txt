@@ -24,6 +24,7 @@ add_executable(GTASA
   jni_patch.c
   openal_patch.c
   opengl_patch.c
+  io_patch.c
   gfx_patch.c
   sha1.c
 )
@@ -43,6 +44,7 @@ target_link_libraries(GTASA
   SceCtrl_stub
   SceCommonDialog_stub
   SceDisplay_stub
+  SceFios2_stub
   SceGxm_stub
   SceShaccCg_stub
   SceSysmodule_stub

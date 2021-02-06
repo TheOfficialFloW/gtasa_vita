@@ -37,6 +37,7 @@
 #include "jni_patch.h"
 #include "openal_patch.h"
 #include "opengl_patch.h"
+#include "io_patch.h"
 #include "gfx_patch.h"
 #include "sha1.h"
 
@@ -718,6 +719,8 @@ int main(int argc, char *argv[]) {
   patch_openal();
   patch_opengl();
   patch_game();
+  if (config.use_fios2)
+    patch_io();
   if (config.enable_skygfx)
     patch_gfx();
   so_flush_caches();
@@ -725,8 +728,10 @@ int main(int argc, char *argv[]) {
   so_execute_init_array();
   so_free_temp();
 
+  fios_init();
+
   vglSetupRuntimeShaderCompiler(SHARK_OPT_UNSAFE, SHARK_ENABLE, SHARK_ENABLE, SHARK_ENABLE);
-  vglInitExtended(SCREEN_W, SCREEN_H, 16 * 1024 * 1024, SCE_GXM_MULTISAMPLE_4X);
+  vglInitExtended(SCREEN_W, SCREEN_H, 32 * 1024 * 1024, SCE_GXM_MULTISAMPLE_4X);
   vglUseVram(GL_TRUE);
 
   jni_load();
