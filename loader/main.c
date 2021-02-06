@@ -687,6 +687,19 @@ static DynLibFunction dynlib_functions[] = {
 };
 
 int main(int argc, char *argv[]) {
+	
+  // Checking if we want to start the companion app
+  sceAppUtilInit(&(SceAppUtilInitParam){}, &(SceAppUtilBootParam){});
+  SceAppUtilAppEventParam eventParam;
+  sceClibMemset(&eventParam, 0, sizeof(SceAppUtilAppEventParam));
+  sceAppUtilReceiveAppEvent(&eventParam);
+  if (eventParam.type == 0x05) {
+	char buffer[2048];
+    sceAppUtilAppEventParseLiveArea(&eventParam, buffer);
+    if (strstr(buffer, "-config"))
+      sceAppMgrLoadExec("app0:/companion.bin", NULL, NULL);
+  }
+  
   sceCtrlSetSamplingModeExt(SCE_CTRL_MODE_ANALOG_WIDE);
   sceTouchSetSamplingState(SCE_TOUCH_PORT_FRONT, SCE_TOUCH_SAMPLING_STATE_START);
   sceTouchSetSamplingState(SCE_TOUCH_PORT_BACK, SCE_TOUCH_SAMPLING_STATE_START);
