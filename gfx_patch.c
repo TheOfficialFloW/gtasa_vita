@@ -553,7 +553,7 @@ patch_gfx(void)
 	}
 
 	// Enable PS2-like color filter
-	if(config.skygfx_colorfilter != SKYGFX_COLOR_FILTER_ORIGINAL){
+	if(config.skygfx_colorfilter != SKYGFX_COLOR_FILTER_MOBILE){
 		// .text:005B63DC                 LDRB            R0, [R3] ; CPostEffects::m_bDarknessFilter
 		// ...
 		// .text:005B63EA                 CMP             R0, #0
