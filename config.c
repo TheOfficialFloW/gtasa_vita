@@ -27,9 +27,9 @@ int read_config(const char *file) {
   config.fix_heli_plane_camera = 1;
   config.fix_skin_weights = 1;
   config.fix_map_bottleneck = 1;
-  config.enable_shader_cache = 1;
+  config.use_shader_cache = 1;
   config.skygfx_ps2_shading = 1;
-  config.skygfx_colourfilter = 1;	// PS2
+  config.skygfx_colorfilter = SKYGFX_COLOR_FILTER_PS2;
   config.skygfx_ps2_sun = 1;
   config.disable_detail_textures = 1;
   config.disable_ped_spec = 1;
@@ -49,9 +49,9 @@ int read_config(const char *file) {
     CONFIG_VAR(fix_heli_plane_camera);
     CONFIG_VAR(fix_skin_weights);
     CONFIG_VAR(fix_map_bottleneck);
-    CONFIG_VAR(enable_shader_cache);
+    CONFIG_VAR(use_shader_cache);
     CONFIG_VAR(skygfx_ps2_shading);
-    CONFIG_VAR(skygfx_colourfilter);
+    CONFIG_VAR(skygfx_colorfilter);
     CONFIG_VAR(skygfx_ps2_sun);
     CONFIG_VAR(disable_detail_textures);
     CONFIG_VAR(disable_ped_spec);

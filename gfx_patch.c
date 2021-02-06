@@ -459,16 +459,14 @@ void ColorFilter(void *sp) {
 
 	// NB: this assumes PS2 timecycle alphas
 
-	if(config.skygfx_colourfilter == 0){
-		// None
+	if(config.skygfx_colorfilter == SKYGFX_COLOR_FILTER_NONE){
 		red->red = 1.0f;
 		green->green = 1.0f;
 		blue->blue = 1.0f;
 		red->green = red->blue = red->alpha = 0.0f;
 		green->red = green->blue = green->alpha = 0.0f;
 		blue->red = blue->green = blue->alpha = 0.0f;
-	}else if(config.skygfx_colourfilter == 1){
-		// PS2
+	}else if(config.skygfx_colorfilter == SKYGFX_COLOR_FILTER_PS2){
 		float a = postfx2->alpha/128.0f;
 		red->red = postfx1->red/128.0f + a*postfx2->red/128.0f;
 		green->green = postfx1->green/128.0f + a*postfx2->green/128.0f;
@@ -476,8 +474,7 @@ void ColorFilter(void *sp) {
 		red->green = red->blue = red->alpha = 0.0f;
 		green->red = green->blue = green->alpha = 0.0f;
 		blue->red = blue->green = blue->alpha = 0.0f;
-	}else if(config.skygfx_colourfilter == 2){
-		// PC
+	}else if(config.skygfx_colorfilter == SKYGFX_COLOR_FILTER_PC){
 		float a1 = postfx1->alpha/128.0f;
 		float a2 = postfx2->alpha/128.0f;
 		red->red = 1.0f + a1*postfx1->red/255.0f + a2*postfx2->red/255.0f;
@@ -487,7 +484,6 @@ void ColorFilter(void *sp) {
 		green->red = green->blue = green->alpha = 0.0f;
 		blue->red = blue->green = blue->alpha = 0.0f;
 	}else{
-		// Mobile
 		float r = postfx1->alpha*postfx1->red   + postfx2->alpha*postfx2->red;
 		float g = postfx1->alpha*postfx1->green + postfx2->alpha*postfx2->green;
 		float b = postfx1->alpha*postfx1->blue  + postfx2->alpha*postfx2->blue;
@@ -501,24 +497,21 @@ void ColorFilter(void *sp) {
 	}
 }
 
-__attribute__((naked)) void _ColorFilter_stub(void) {
+__attribute__((naked)) void ColorFilter_stub(void) {
 	asm volatile(
+		"push {r0-r3}\n"
 		"add r0, sp, 0x10\n"
 		"bl ColorFilter\n"
 		"vldr s2, [sp, #(0x30+0x10)]\n" // red.r
 		"vldr s4, [sp, #(0x24+0x10)]\n" // green.g
 		"vldr s6, [sp, #(0x18+0x10)]\n" // blue.b
+	);
+
+	asm volatile(
 		"pop {r0-r3}\n"
 		"mov lr, %0\n"
 		"bx lr\n"
 	:: "r" (text_base + 0x005B6444 + 0x1) : "r0", "r1", "r2", "r3");
-}
-
-__attribute__((naked)) void ColorFilter_stub(void) {
-	asm volatile(
-		"push {r0-r3}\n"
-		"b _ColorFilter_stub\n"
-	);
 }
 
 
@@ -560,17 +553,19 @@ patch_gfx(void)
 	}
 
 	// Enable PS2-like color filter
-	// .text:005B63DC                 LDRB            R0, [R3] ; CPostEffects::m_bDarknessFilter
-	// ...
-	// .text:005B63EA                 CMP             R0, #0
-	// ...
-	// .text:005B643C                 VSTR            S2, [SP,#0x30]
-	// .text:005B6440                 VSTR            S4, [SP,#0x24]
-	// .text:005B6444                 VSTR            S6, [SP,#0x18]
-	// .text:005B6448                 BEQ             loc_5B64EC
-	hook_thumb((uintptr_t)text_base + 0x005B643C, (uintptr_t)ColorFilter_stub);
-	kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x005B6444), (void *)(text_base + 0x005B63DC), sizeof(uint16_t));
-	kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x005B6446), (void *)(text_base + 0x005B63EA), sizeof(uint16_t));
+	if(config.skygfx_colorfilter != SKYGFX_COLOR_FILTER_ORIGINAL){
+		// .text:005B63DC                 LDRB            R0, [R3] ; CPostEffects::m_bDarknessFilter
+		// ...
+		// .text:005B63EA                 CMP             R0, #0
+		// ...
+		// .text:005B643C                 VSTR            S2, [SP,#0x30]
+		// .text:005B6440                 VSTR            S4, [SP,#0x24]
+		// .text:005B6444                 VSTR            S6, [SP,#0x18]
+		// .text:005B6448                 BEQ             loc_5B64EC
+		hook_thumb((uintptr_t)text_base + 0x005B643C, (uintptr_t)ColorFilter_stub);
+		kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x005B6444), (void *)(text_base + 0x005B63DC), sizeof(uint16_t));
+		kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x005B6446), (void *)(text_base + 0x005B63EA), sizeof(uint16_t));
+	}
 
 	// Enable PS2-like sun corona
 	if(config.skygfx_ps2_sun){

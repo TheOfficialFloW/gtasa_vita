@@ -260,17 +260,16 @@ void patch_game(void) {
     *(uintptr_t *)so_find_rel_addr("_ZN4CCam20Process_FollowCar_SAERK7CVectorfffb") = (uintptr_t)CCam__Process_FollowCar_SA_Patched;
   }
 
+  // Force using GL_UNSIGNED_SHORT
   if (config.fix_skin_weights) {
-    // Force using GL_UNSIGNED_SHORT
     uint16_t movs_r1_1 = 0x2101;
     kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x001C8064), &movs_r1_1, sizeof(movs_r1_1));
     kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x001C8082), &movs_r1_1, sizeof(movs_r1_1));
   }
 
-  if (config.fix_map_bottleneck) {
-    // Remove map highlight (explored regions) since it's rendered very inefficiently
+  // Remove map highlight (explored regions) since it's rendered very inefficiently
+  if (config.fix_map_bottleneck)
     hook_thumb((uintptr_t)(text_base + 0x002AADE0), (uintptr_t)(text_base + 0x002AAF9A + 0x1));
-  }
 
   hook_thumb(so_find_addr("__cxa_guard_acquire"), (uintptr_t)&__cxa_guard_acquire);
   hook_thumb(so_find_addr("__cxa_guard_release"), (uintptr_t)&__cxa_guard_release);
@@ -310,7 +309,7 @@ void glCompressedTexImage2DHook(GLenum target, GLint level, GLenum format, GLsiz
 }
 
 void glShaderSourceHook(GLuint shader, GLsizei count, const GLchar **string, const GLint *length) {
-  if (!config.enable_shader_cache) {
+  if (!config.use_shader_cache) {
     glShaderSource(shader, count, string, length);
     return;
   }
@@ -360,7 +359,7 @@ void glShaderSourceHook(GLuint shader, GLsizei count, const GLchar **string, con
 }
 
 void glCompileShaderHook(GLuint shader) {
-  if (!config.enable_shader_cache)
+  if (!config.use_shader_cache)
     glCompileShader(shader);
 }
 
