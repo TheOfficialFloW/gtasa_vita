@@ -69,10 +69,8 @@ int fios_open(const char *file, int flags) {
   SceFiosOpenParams params = SCE_FIOS_OPENPARAMS_INITIALIZER;
   params.openFlags = flags;
   res = sceFiosFHOpenSync(NULL, &handle, file, &params);
-  if (res != SCE_FIOS_OK) {
-    debugPrintf("fios_open %s failed: 0x%08X\n", file, res);
+  if (res != SCE_FIOS_OK)
     return res;
-  }
 
   return handle;
 }

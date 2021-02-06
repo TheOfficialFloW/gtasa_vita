@@ -226,22 +226,6 @@ void *OS_ThreadSetValue(void *RenderQueue) {
   return NULL;
 }
 
-static int In_Process_FollowCar_SA = 0;
-
-void *(* FindPlayerVehicle_Ref)(int r0, int r1);
-void *FindPlayerVehicle_Patched(int r0, int r1) {
-  if (In_Process_FollowCar_SA)
-    return NULL;
-  return FindPlayerVehicle_Ref(r0, r1);
-}
-
-void (* CCam__Process_FollowCar_SA_Ref)(void *this, int r1, int r2, int r3, int r4);
-void CCam__Process_FollowCar_SA_Patched(void *this, int r1, int r2, int r3, int r4) {
-  In_Process_FollowCar_SA = 1;
-  CCam__Process_FollowCar_SA_Ref(this, r1, r2, r3, r4);
-  In_Process_FollowCar_SA = 0;
-}
-
 extern void *__cxa_guard_acquire;
 extern void *__cxa_guard_release;
 
@@ -252,12 +236,19 @@ void patch_game(void) {
   if (config.disable_detail_textures)
     *(int *)so_find_addr("gNoDetailTextures") = 1;
 
+  // Dummy all FindPlayerVehicle calls so the right analog stick can be used as camera again
   if (config.fix_heli_plane_camera) {
-    FindPlayerVehicle_Ref = (void *)so_find_addr("_Z17FindPlayerVehicleib");
-    *(uintptr_t *)so_find_rel_addr("_Z17FindPlayerVehicleib") = (uintptr_t)FindPlayerVehicle_Patched;
+    uint32_t movs_r0_0 = 0xBF002000;
 
-    CCam__Process_FollowCar_SA_Ref = (void *)so_find_addr("_ZN4CCam20Process_FollowCar_SAERK7CVectorfffb");
-    *(uintptr_t *)so_find_rel_addr("_ZN4CCam20Process_FollowCar_SAERK7CVectorfffb") = (uintptr_t)CCam__Process_FollowCar_SA_Patched;
+    kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x003C0866), &movs_r0_0, sizeof(movs_r0_0));
+    kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x003C1652), &movs_r0_0, sizeof(movs_r0_0));
+    kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x003C1518), &movs_r0_0, sizeof(movs_r0_0));
+    kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x003C198A), &movs_r0_0, sizeof(movs_r0_0));
+
+    kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x003FC462), &movs_r0_0, sizeof(movs_r0_0));
+    // kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x003FC482), &movs_r0_0, sizeof(movs_r0_0));
+    kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x003FC754), &movs_r0_0, sizeof(movs_r0_0));
+    // kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x003FC774), &movs_r0_0, sizeof(movs_r0_0));
   }
 
   // Force using GL_UNSIGNED_SHORT
