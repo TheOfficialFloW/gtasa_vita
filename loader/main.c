@@ -295,7 +295,7 @@ void glTexImage2DHook(GLenum target, GLint level, GLint internalformat, GLsizei 
 
 void glCompressedTexImage2DHook(GLenum target, GLint level, GLenum format, GLsizei width, GLsizei height, GLint border, GLsizei imageSize, const void * data) {
   // mips for PVRTC textures break when they're under 1 block in size
-  if (level == 0 || (width >= 4 && height >= 4) || (format != 0x8C01 && format != 0x8C02))
+  if (level == 0 || (!config.disable_mipmaps && ((width >= 4 && height >= 4) || (format != 0x8C01 && format != 0x8C02))))
     glCompressedTexImage2D(target, level, format, width, height, border, imageSize, data);
 }
 

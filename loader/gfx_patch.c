@@ -1043,34 +1043,32 @@ void BuildPixelSource_SkyGfx(int flags) {
 
 	PXL_EMIT("half4 gl_FragColor = fcolor;");
 
-	if (!config.disable_alpha_testing) {
-		if (flags & FLAG_ALPHA_TEST) {
-			PXL_EMIT("/*ATBEGIN*/");
-			if ((OS_SystemChip() == 13) && (flags & FLAG_TEX0)) {
-				if (flags & FLAG_TEXBIAS) {
-					PXL_EMIT("if (diffuseColor.a < 0.8) { discard; }");
-				} else {
-					if (flags & FLAG_CAMERA_BASED_NORMALS) {
-						PXL_EMIT("gl_FragColor.a = Out_Color.a;");
-						PXL_EMIT("if (diffuseColor.a < 0.5) { discard; }");
-					} else {
-						PXL_EMIT("if (diffuseColor.a < 0.2) { discard; }");
-					}
-				}
+	if (flags & FLAG_ALPHA_TEST) {
+		PXL_EMIT("/*ATBEGIN*/");
+		if ((OS_SystemChip() == 13) && (flags & FLAG_TEX0)) {
+			if (flags & FLAG_TEXBIAS) {
+				PXL_EMIT("if (diffuseColor.a < 0.8) { discard; }");
 			} else {
-				if (flags & FLAG_TEXBIAS) {
-					PXL_EMIT("if (gl_FragColor.a < 0.8) { discard; }");
+				if (flags & FLAG_CAMERA_BASED_NORMALS) {
+					PXL_EMIT("gl_FragColor.a = Out_Color.a;");
+					PXL_EMIT("if (diffuseColor.a < 0.5) { discard; }");
 				} else {
-					if (flags & FLAG_CAMERA_BASED_NORMALS) {
-						PXL_EMIT("if (gl_FragColor.a < 0.5) { discard; }");
-						PXL_EMIT("gl_FragColor.a = Out_Color.a;");
-					} else {
-						PXL_EMIT("if (gl_FragColor.a < 0.2) { discard; }");
-					}
+					PXL_EMIT("if (diffuseColor.a < 0.2) { discard; }");
 				}
 			}
-			PXL_EMIT("/*ATEND*/");
+		} else {
+			if (flags & FLAG_TEXBIAS) {
+				PXL_EMIT("if (gl_FragColor.a < 0.8) { discard; }");
+			} else {
+				if (flags & FLAG_CAMERA_BASED_NORMALS) {
+					PXL_EMIT("if (gl_FragColor.a < 0.5) { discard; }");
+					PXL_EMIT("gl_FragColor.a = Out_Color.a;");
+				} else {
+					PXL_EMIT("if (gl_FragColor.a < 0.2) { discard; }");
+				}
+			}
 		}
+		PXL_EMIT("/*ATEND*/");
 	}
 
 	if (flags & FLAG_ALPHA_MODULATE)

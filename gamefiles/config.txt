@@ -11,5 +11,5 @@ skygfx_colorfilter 2
 skygfx_ps2_sun 1
 disable_detail_textures 1
 disable_ped_spec 1
-disable_tex_bias 1
-disable_alpha_testing 0
+disable_tex_bias 0
+disable_mipmaps 0
