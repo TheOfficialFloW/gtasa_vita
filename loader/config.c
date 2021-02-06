@@ -33,8 +33,8 @@ int read_config(const char *file) {
   config.skygfx_ps2_sun = 1;
   config.disable_detail_textures = 1;
   config.disable_ped_spec = 1;
-  config.disable_tex_bias = 1;
-  config.disable_alpha_testing = 0;
+  config.disable_tex_bias = 0;
+  config.disable_mipmaps = 0;
 
   f = fopen(file, "r");
   if (f == NULL)
@@ -56,7 +56,7 @@ int read_config(const char *file) {
     CONFIG_VAR(disable_detail_textures);
     CONFIG_VAR(disable_ped_spec);
     CONFIG_VAR(disable_tex_bias);
-    CONFIG_VAR(disable_alpha_testing);
+    CONFIG_VAR(disable_mipmaps);
     #undef CONFIG_VAR
   }
 

@@ -34,10 +34,10 @@ bool use_shader_cache = true;
 bool skygfx_ps2_shading = true;
 int skygfx_colorfilter = SKYGFX_COLOR_FILTER_PS2;
 bool skygfx_ps2_sun = true;
-bool disable_detail_textures = true;
-bool disable_ped_spec = true;
-bool disable_tex_bias = true;
-bool disable_alpha_testing = false;
+bool detail_textures = false;
+bool ped_spec = false;
+bool tex_bias = true;
+bool mipmaps = true;
 
 void loadConfig() {
 	char buffer[30];
@@ -66,10 +66,10 @@ void loadConfig() {
 			else if (strcmp("skygfx_colorfilter", buffer) == 0) skygfx_colorfilter = value;
 			else if (strcmp("skygfx_ps2_sun", buffer) == 0) skygfx_ps2_sun = (bool)value;
 
-			else if (strcmp("disable_detail_textures", buffer) == 0) disable_detail_textures = (bool)value;
-			else if (strcmp("disable_ped_spec", buffer) == 0) disable_ped_spec = (bool)value;
-			else if (strcmp("disable_tex_bias", buffer) == 0) disable_tex_bias = (bool)value;
-			else if (strcmp("disable_alpha_testing", buffer) == 0) disable_alpha_testing = (bool)value;
+			else if (strcmp("disable_detail_textures", buffer) == 0) detail_textures = value ? false : true;
+			else if (strcmp("disable_ped_spec", buffer) == 0) ped_spec = value ? false : true;
+			else if (strcmp("disable_tex_bias", buffer) == 0) tex_bias = value ? false : true;
+			else if (strcmp("disable_mipmaps", buffer) == 0) mipmaps = value ? false : true;
 		}
 		fclose(config);
 	}
@@ -95,11 +95,11 @@ void saveConfig()
 		fprintf(config, "%s %d\n", "skygfx_colorfilter", skygfx_colorfilter);
 		fprintf(config, "%s %d\n", "skygfx_ps2_sun", (int)skygfx_ps2_sun);
 		
-		fprintf(config, "%s %d\n", "disable_detail_textures", (int)disable_detail_textures);
-		fprintf(config, "%s %d\n", "disable_ped_spec", (int)disable_ped_spec);
+		fprintf(config, "%s %d\n", "disable_detail_textures", detail_textures ? false : true);
+		fprintf(config, "%s %d\n", "disable_ped_spec", ped_spec ? false : true);
 		
-		fprintf(config, "%s %d\n", "disable_tex_bias", (int)disable_tex_bias);
-		fprintf(config, "%s %d\n", "disable_alpha_testing", (int)disable_alpha_testing);
+		fprintf(config, "%s %d\n", "disable_tex_bias", tex_bias ? false : true);
+		fprintf(config, "%s %d\n", "disable_mipmaps", mipmaps ? false : true);
 		fclose(config);
 	}
 }
@@ -114,8 +114,8 @@ char *options_descs[NUM_OPTIONS] = {
 	"Enables shading effects that resamble the PS2 build.\n\nThe default value is: Enabled.", // skygfx_ps2_shading
 	"Enables corona sun effect that resambles the PS2 build.\n\nThe default value is: Enabled.", // skygfx_ps2_sun
 	"When enabled, detail textures will be rendered.\n\nThe default value is: Disabled.", // disable_detail_textures
-	"When enabled, mipmaps will have more precise bias adjustments at the cost of more expensive GPU code execution.\n\nThe default value is: Disabled.", // disable_tex_bias
-	"When enabled, alpha testing is executed during GPU code execution. Makes GPU code more expensive but solves several glitches in the game related to translucent models.\n\nThe default value is: Enabled.", // disable_alpha_testing
+	"When enabled, mipmaps will have more precise bias adjustments at the cost of more expensive GPU code execution.\n\nThe default value is: Enabled.", // disable_tex_bias
+	"When enabled, mipmaps will be used causing an higher memory usage and CPU usage but lower memory bandwidth over GPU.\n\nThe default value is: Enabled.", // disable_mipmaps
 	"Makes hardware accelerated skinning properly work. Fixes broken animations especially noticeable in facial animations.\n\nThe default value is: Enabled.", // fix_skin_weights
 	"When enabled, peds will have specular lighting reflections applied to their models.\n\nThe default value is: Disabled.", // disable_ped_spec
 	"Makes compiled shaders be cached on storage for subsequent usage. When enabled, the game will stutter on very first time a shader is compiled but will make the game have more fluid gameplay later.\n\nThe default value is: Enabled.", // use_shader_cache
@@ -201,19 +201,19 @@ int main(){
 		
 		ImGui::TextColored(ImVec4(255, 255, 0, 255), "Graphics");
 		ImGui::Text("Detail Textures:"); ImGui::SameLine();
-		ImGui::Checkbox("##check4", &disable_detail_textures);
+		ImGui::Checkbox("##check4", &detail_textures);
 		SetDescription(8);
 		ImGui::Text("Texture Bias:"); ImGui::SameLine();
-		ImGui::Checkbox("##check5", &disable_tex_bias);
+		ImGui::Checkbox("##check5", &tex_bias);
 		SetDescription(9);
-		ImGui::Text("Alpha Testing:"); ImGui::SameLine();
-		ImGui::Checkbox("##check6", &disable_alpha_testing);
+		ImGui::Text("Mipmaps:"); ImGui::SameLine();
+		ImGui::Checkbox("##check6", &mipmaps);
 		SetDescription(10);
 		ImGui::Text("Skinning Fix:"); ImGui::SameLine();
 		ImGui::Checkbox("##check7", &fix_skin_weights);
 		SetDescription(11);
 		ImGui::Text("Peds Reflections:"); ImGui::SameLine();
-		ImGui::Checkbox("##check8", &disable_ped_spec);
+		ImGui::Checkbox("##check8", &ped_spec);
 		SetDescription(12);
 		ImGui::Separator();
 		
