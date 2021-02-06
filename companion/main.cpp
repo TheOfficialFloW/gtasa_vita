@@ -214,6 +214,7 @@ int main(){
 		SetDescription(11);
 		ImGui::Text("Peds Reflections:"); ImGui::SameLine();
 		ImGui::Checkbox("##check8", &disable_ped_spec);
+		SetDescription(12);
 		ImGui::Separator();
 		
 		ImGui::TextColored(ImVec4(255, 255, 0, 255), "Optimizations");
