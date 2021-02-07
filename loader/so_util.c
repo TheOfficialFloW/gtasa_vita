@@ -185,7 +185,7 @@ err_free_so:
   return res;
 }
 
-int so_resolve(DynLibFunction *functions, int num_functions) {
+int so_relocate(void) {
   for (int i = 0; i < elf_hdr->e_shnum; i++) {
     char *sh_name = shstrtab + sec_hdr[i].sh_name;
     if (strcmp(sh_name, ".rel.dyn") == 0 || strcmp(sh_name, ".rel.plt") == 0) {
@@ -207,20 +207,47 @@ int so_resolve(DynLibFunction *functions, int num_functions) {
           case R_ARM_GLOB_DAT:
           case R_ARM_JUMP_SLOT:
           {
-            if (sym->st_shndx != SHN_UNDEF) {
+            if (sym->st_shndx != SHN_UNDEF)
               *ptr = (uintptr_t)text_base + sym->st_value;
-              break;
-            }
+            break;
+          }
 
-            // make it crash for debugging
-            *ptr = rels[j].r_offset;
+          default:
+            debugPrintf("Error unknown relocation type: %x\n", type);
+            break;
+        }
+      }
+    }
+  }
 
-            char *name = dynstrtab + sym->st_name;
+  return 0;
+}
 
-            for (int k = 0; k < num_functions; k++) {
-              if (strcmp(name, functions[k].symbol) == 0) {
-                *ptr = functions[k].func;
-                break;
+int so_resolve(DynLibFunction *funcs, int num_funcs, int taint_missing_imports) {
+  for (int i = 0; i < elf_hdr->e_shnum; i++) {
+    char *sh_name = shstrtab + sec_hdr[i].sh_name;
+    if (strcmp(sh_name, ".rel.dyn") == 0 || strcmp(sh_name, ".rel.plt") == 0) {
+      Elf32_Rel *rels = (Elf32_Rel *)((uintptr_t)text_base + sec_hdr[i].sh_addr);
+      for (int j = 0; j < sec_hdr[i].sh_size / sizeof(Elf32_Rel); j++) {
+        uintptr_t *ptr = (uintptr_t *)(text_base + rels[j].r_offset);
+        Elf32_Sym *sym = &syms[ELF32_R_SYM(rels[j].r_info)];
+
+        int type = ELF32_R_TYPE(rels[j].r_info);
+        switch (type) {
+          case R_ARM_GLOB_DAT:
+          case R_ARM_JUMP_SLOT:
+          {
+            if (sym->st_shndx == SHN_UNDEF) {
+              // make it crash for debugging
+              if (taint_missing_imports)
+                *ptr = rels[j].r_offset;
+
+              char *name = dynstrtab + sym->st_name;
+              for (int k = 0; k < num_funcs; k++) {
+                if (strcmp(name, funcs[k].symbol) == 0) {
+                  *ptr = funcs[k].func;
+                  break;
+                }
               }
             }
 
@@ -228,7 +255,6 @@ int so_resolve(DynLibFunction *functions, int num_functions) {
           }
 
           default:
-            debugPrintf("Error unknown relocation type: %x\n", type);
             break;
         }
       }

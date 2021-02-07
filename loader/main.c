@@ -560,8 +560,8 @@ static DynLibFunction dynlib_functions[] = {
   { "ferror", (uintptr_t)&ferror },
   // { "fesetround", (uintptr_t)&fesetround },
   // { "fflush", (uintptr_t)&fflush },
-  { "fgetc", (uintptr_t)&fgetc },
-  { "fgets", (uintptr_t)&fgets },
+  // { "fgetc", (uintptr_t)&fgetc },
+  // { "fgets", (uintptr_t)&fgets },
   { "fopen", (uintptr_t)&fopen },
   // { "fprintf", (uintptr_t)&fprintf },
   // { "fputc", (uintptr_t)&fputc },
@@ -732,7 +732,8 @@ int main(int argc, char *argv[]) {
   stderr_fake = stderr;
 
   so_load(SO_PATH);
-  so_resolve(dynlib_functions, sizeof(dynlib_functions) / sizeof(DynLibFunction));
+  so_relocate();
+  so_resolve(dynlib_functions, sizeof(dynlib_functions) / sizeof(DynLibFunction), 1);
 
   patch_openal();
   patch_opengl();

@@ -75,125 +75,141 @@ int fios_open(const char *file, int flags) {
   return handle;
 }
 
-int fios_seek(SceFiosFH handle, SceFiosOffset offset, SceFiosWhence whence) {
+int64_t fios_seek(SceFiosFH handle, SceFiosOffset offset, SceFiosWhence whence) {
   return sceFiosFHSeek(handle, offset, whence);
 }
 
-int fios_tell(SceFiosFH handle) {
+int64_t fios_tell(SceFiosFH handle) {
   return sceFiosFHTell(handle);
 }
 
-int fios_getsize(SceFiosFH handle) {
+int64_t fios_getsize(SceFiosFH handle) {
   return sceFiosFHGetSize(handle);
 }
 
-int fios_read(SceFiosFH handle, void *data, int size) {
+int64_t fios_read(SceFiosFH handle, void *data, size_t size) {
   SceFiosOpAttr attr = SCE_FIOS_OPATTR_INITIALIZER;
 
   attr.deadline = SCE_FIOS_TIME_EARLIEST;
   attr.priority = SCE_FIOS_PRIO_MAX;
 
-  return sceFiosFHReadSync(&attr, handle, data, (SceFiosSize)size);
+  return sceFiosFHReadSync(&attr, handle, data, size);
 }
 
-int fios_write(SceFiosFH handle, const void *data, int size) {
-  return sceFiosFHWriteSync(NULL, handle, data, (SceFiosSize)size);
+int64_t fios_write(SceFiosFH handle, const void *data, size_t size) {
+  return sceFiosFHWriteSync(NULL, handle, data, size);
 }
 
 int fios_close(SceFiosFH handle) {
   return sceFiosFHCloseSync(NULL, handle);
 }
 
-void trim(char *path) {
-  for (int i = strlen(path) - 1; i >= 0; i--) {
-    if (path[i] == ' ')
-      path[i] = '\0';
-    else
-      break;
+typedef struct {
+  int handle;
+  int eof;
+  int error;
+} FIOS2_FILE;
+
+FILE *fopen_hook(const char *filename, const char *mode) {
+  int flags = 0;
+  if (strcmp(mode, "rb") == 0)
+    flags = SCE_FIOS_O_RDONLY;
+  else if (strcmp(mode, "rb+") == 0)
+    flags = SCE_FIOS_O_RDWR;
+  else if (strcmp(mode, "wb") == 0)
+    flags = SCE_FIOS_O_CREAT | SCE_FIOS_O_WRONLY;
+  else if (strcmp(mode, "wb+") == 0)
+    flags = SCE_FIOS_O_CREAT | SCE_FIOS_O_RDWR;
+
+  int handle = fios_open(filename, flags);
+  if (handle < 0)
+    return NULL;
+
+  FIOS2_FILE *file = malloc(sizeof(FIOS2_FILE));
+  file->handle = handle;
+  file->eof = 0;
+  file->error = 0;
+
+  return (FILE *)file;
+}
+
+size_t fread_hook(void *ptr, size_t size, size_t count, FILE *stream) {
+  if (size == 0 || count == 0)
+    return 0;
+
+  FIOS2_FILE *file = (FIOS2_FILE *)stream;
+  size_t read = fios_read(file->handle, ptr, size * count);
+  if (read < 0) {
+    file->error = 1;
+    return -1;
   }
+  if (read != size * count)
+    file->eof = 1;
+  return read;
 }
 
-int OS_FileGetDate(int area, char const *file) {
-  return 0;
-}
+size_t fwrite_hook(const void *ptr, size_t size, size_t count, FILE *stream) {
+  if (size == 0 || count == 0)
+    return 0;
 
-int OS_FileDelete(int area, char const *file) {
-  char path[1024];
-  snprintf(path, sizeof(path), "%s/%s", DATA_PATH, file);
-  trim(path);
-  sceFiosDeleteSync(NULL, path);
-  return 0;
-}
-
-int OS_FileOpen(int area, void **handle, char const *file, int access) {
-  char path[1024];
-  snprintf(path, sizeof(path), "%s/%s", DATA_PATH, file);
-  trim(path);
-  // debugPrintf("OS_FileOpen: %s, %x, %x\n", path, area, access);
-  int flags;
-  switch (access) {
-    case 0:
-      flags = SCE_FIOS_O_RDONLY;
-      break;
-    case 1:
-      flags = SCE_FIOS_O_CREAT | SCE_FIOS_O_WRONLY;
-      break;
-    case 2:
-      flags = SCE_FIOS_O_CREAT | SCE_FIOS_O_RDWR;
-      break;
-    default:
-      debugPrintf("Error unknown access mode %x\n", access);
-      return 1;
+  FIOS2_FILE *file = (FIOS2_FILE *)stream;
+  size_t written = fios_write(file->handle, ptr, size * count);
+  if (written != size * count) {
+    file->error = 1;
+    return -1;
   }
-  *handle = (void *)fios_open(path, flags);
-  if ((int)*handle < 0)
-    return 1;
+  return written;
+}
+
+int fseek_hook(FILE *stream, long int offset, int origin) {
+  FIOS2_FILE *file = (FIOS2_FILE *)stream;
+  if (fios_seek(file->handle, offset, origin) < 0) {
+    file->error = 1;
+    return -1;
+  }
   return 0;
 }
 
-int OS_FileRead(void *handle, void *data, int size) {
-  int read = fios_read((SceFiosFH)handle, data, size);
-  if (read < 0)
-    return 3;
-  if (read != size)
-    return 2;
+long int ftell_hook(FILE *stream) {
+  FIOS2_FILE *file = (FIOS2_FILE *)stream;
+  long int offset = fios_tell(file->handle);
+  if (offset < 0) {
+    file->error = 1;
+    return -1;
+  }
+  return offset;
+}
+
+int feof_hook(FILE *stream) {
+  FIOS2_FILE *file = (FIOS2_FILE *)stream;
+  return file->eof;
+}
+
+int ferror_hook(FILE *stream) {
+  FIOS2_FILE *file = (FIOS2_FILE *)stream;
+  return file->error;
+}
+
+int fclose_hook(FILE *stream) {
+  FIOS2_FILE *file = (FIOS2_FILE *)stream;
+  int handle = file->handle;
+  free(file);
+  if (fios_close(handle) < 0)
+    return EOF;
   return 0;
 }
 
-int OS_FileWrite(void *handle, void const *data, int size) {
-  if (fios_write((SceFiosFH)handle, data, size) != size)
-    return 3;
-  return 0;
-}
-
-int OS_FileGetPosition(void *handle) {
-  return fios_tell((SceFiosFH)handle);
-}
-
-int OS_FileSetPosition(void *handle, int pos) {
-  if (fios_seek((SceFiosFH)handle, pos, SCE_FIOS_SEEK_SET) != pos)
-    return 3;
-  return 0;
-}
-
-int OS_FileSize(void *handle) {
-  return fios_getsize((SceFiosFH)handle);
-}
-
-int OS_FileClose(void *handle) {
-  if (fios_close((SceFiosFH)handle) < 0)
-    return 1;
-  return 0;
-}
+static DynLibFunction dynlib_io_functions[] = {
+  { "fclose", (uintptr_t)&fclose_hook },
+  { "feof", (uintptr_t)&feof_hook },
+  { "ferror", (uintptr_t)&ferror_hook },
+  { "fopen", (uintptr_t)&fopen_hook },
+  { "fread", (uintptr_t)&fread_hook },
+  { "fseek", (uintptr_t)&fseek_hook },
+  { "ftell", (uintptr_t)&ftell_hook },
+  { "fwrite", (uintptr_t)&fwrite_hook },
+};
 
 void patch_io(void) {
-  hook_thumb(so_find_addr("_Z14OS_FileGetDate14OSFileDataAreaPKc"), (uintptr_t)&OS_FileGetDate);
-  hook_thumb(so_find_addr("_Z13OS_FileDelete14OSFileDataAreaPKc"), (uintptr_t)&OS_FileDelete);
-  hook_thumb(so_find_addr("_Z11OS_FileOpen14OSFileDataAreaPPvPKc16OSFileAccessType"), (uintptr_t)&OS_FileOpen);
-  hook_thumb(so_find_addr("_Z11OS_FileReadPvS_i"), (uintptr_t)&OS_FileRead);
-  hook_thumb(so_find_addr("_Z12OS_FileWritePvPKvi"), (uintptr_t)&OS_FileWrite);
-  hook_thumb(so_find_addr("_Z18OS_FileGetPositionPv"), (uintptr_t)&OS_FileGetPosition);
-  hook_thumb(so_find_addr("_Z18OS_FileSetPositionPvi"), (uintptr_t)&OS_FileSetPosition);
-  hook_thumb(so_find_addr("_Z11OS_FileSizePv"), (uintptr_t)&OS_FileSize);
-  hook_thumb(so_find_addr("_Z12OS_FileClosePv"), (uintptr_t)&OS_FileClose);
+  so_resolve(dynlib_io_functions, sizeof(dynlib_io_functions) / sizeof(DynLibFunction), 0);
 }
