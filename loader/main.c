@@ -229,6 +229,24 @@ void *OS_ThreadSetValue(void *RenderQueue) {
 extern void *__cxa_guard_acquire;
 extern void *__cxa_guard_release;
 
+char *ActiveScripts = NULL;
+
+int IsCutsceneSkipButtonBeingPressed(void *this, int a2) {
+  if (ActiveScripts) {
+    char *RunningScript = ActiveScripts + 8;
+    if (!strcmp(RunningScript, "cat3") ||
+      !strcmp(RunningScript, "cat4") ||
+      !strcmp(RunningScript, "zero1") ||
+      !strcmp(RunningScript, "la1fin1") ||
+      !strcmp(RunningScript, "bcrash1"))
+      return 0;
+  }
+	
+  SceCtrlData p;
+  sceCtrlPeekBufferPositive(0, &p, 1);
+  return p.buttons & SCE_CTRL_CROSS ? 1 : 0;
+}
+
 void patch_game(void) {
   *(int *)so_find_addr("UseCloudSaves") = 0;
   *(int *)so_find_addr("UseTouchSense") = 0;
@@ -286,6 +304,11 @@ void patch_game(void) {
   // no adjustable
   hook_thumb(so_find_addr("_ZN14CAdjustableHUD10SaveToDiskEv"), (uintptr_t)ret0);
   hook_thumb(so_find_addr("_ZN15CTouchInterface27RepositionAdjustableWidgetsEv"), (uintptr_t)ret0);
+  
+  // no skip cutscene widget
+  hook_thumb(so_find_addr("_ZN25CWidgetButtonSkipCutsceneC2EPKcRK14WidgetPosition"), (uintptr_t)ret0);
+  hook_thumb(so_find_addr("_ZN12CCutsceneMgr32IsCutsceneSkipButtonBeingPressedEv"), (uintptr_t)IsCutsceneSkipButtonBeingPressed);
+  ActiveScripts = *(char **)so_find_addr("_ZN11CTheScripts14pActiveScriptsE");
 }
 
 void glTexImage2DHook(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const void * data) {
