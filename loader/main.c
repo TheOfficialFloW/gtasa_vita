@@ -262,6 +262,22 @@ void patch_game(void) {
   if (config.fix_map_bottleneck)
     hook_thumb((uintptr_t)(text_base + 0x002AADE0), (uintptr_t)(text_base + 0x002AAF9A + 0x1));
 
+  // Ignore widgets and popups introduced in mobile
+  if (config.ignore_mobile_stuff) {
+    uint16_t nop16 = 0xbf00;
+    uint32_t nop32 = 0xbf00bf00;
+
+    // Ignore cutscene skip button
+    kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x0043A7A0), &nop32, sizeof(nop32));
+    kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x004627E6), &nop32, sizeof(nop32));
+
+    // Ignore steering control popup
+    kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x003F91B6), &nop16, sizeof(nop16));
+
+    // Ignore app rating popup
+    hook_thumb(so_find_addr("_Z12Menu_ShowNagv"), (uintptr_t)&ret0);
+  }
+
   hook_thumb(so_find_addr("__cxa_guard_acquire"), (uintptr_t)&__cxa_guard_acquire);
   hook_thumb(so_find_addr("__cxa_guard_release"), (uintptr_t)&__cxa_guard_release);
 
@@ -687,19 +703,18 @@ static DynLibFunction dynlib_functions[] = {
 };
 
 int main(int argc, char *argv[]) {
-	
   // Checking if we want to start the companion app
   sceAppUtilInit(&(SceAppUtilInitParam){}, &(SceAppUtilBootParam){});
   SceAppUtilAppEventParam eventParam;
   sceClibMemset(&eventParam, 0, sizeof(SceAppUtilAppEventParam));
   sceAppUtilReceiveAppEvent(&eventParam);
   if (eventParam.type == 0x05) {
-	char buffer[2048];
+    char buffer[2048];
     sceAppUtilAppEventParseLiveArea(&eventParam, buffer);
     if (strstr(buffer, "-config"))
       sceAppMgrLoadExec("app0:/companion.bin", NULL, NULL);
   }
-  
+
   sceCtrlSetSamplingModeExt(SCE_CTRL_MODE_ANALOG_WIDE);
   sceTouchSetSamplingState(SCE_TOUCH_PORT_FRONT, SCE_TOUCH_SAMPLING_STATE_START);
   sceTouchSetSamplingState(SCE_TOUCH_PORT_BACK, SCE_TOUCH_SAMPLING_STATE_START);

@@ -22,6 +22,7 @@ int read_config(const char *file) {
 
   memset(&config, 0, sizeof(Config));
   config.touch_x_margin = 100;
+  config.ignore_mobile_stuff = 1;
   config.use_fios2 = 1;
   config.io_cache_block_num = 64;
   config.io_cache_block_size = 65536;
@@ -45,6 +46,7 @@ int read_config(const char *file) {
   while ((fscanf(f, "%s %d", name, &value)) != EOF) {
     #define CONFIG_VAR(var) if (strcmp(name, #var) == 0) config.var = value;
     CONFIG_VAR(touch_x_margin);
+    CONFIG_VAR(ignore_mobile_stuff);
     CONFIG_VAR(use_fios2);
     CONFIG_VAR(io_cache_block_num);
     CONFIG_VAR(io_cache_block_size);
