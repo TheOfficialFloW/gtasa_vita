@@ -733,7 +733,7 @@ int main(int argc, char *argv[]) {
   fios_init();
 
   vglSetupRuntimeShaderCompiler(SHARK_OPT_UNSAFE, SHARK_ENABLE, SHARK_ENABLE, SHARK_ENABLE);
-  vglInitExtended(0, SCREEN_W, SCREEN_H, 16 * 1024 * 1024, SCE_GXM_MULTISAMPLE_4X);
+  vglInitExtended(0, SCREEN_W, SCREEN_H, 16 * 1024 * 1024, config.aa_mode);
   vglUseVram(GL_TRUE);
 
   jni_load();

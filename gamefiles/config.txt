@@ -13,3 +13,4 @@ disable_detail_textures 1
 disable_ped_spec 1
 disable_tex_bias 0
 disable_mipmaps 0
+aa_mode 2
