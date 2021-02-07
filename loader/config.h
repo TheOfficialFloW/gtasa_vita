@@ -36,6 +36,7 @@ typedef struct {
   int disable_ped_spec;
   int disable_tex_bias;
   int disable_mipmaps;
+  int aa_mode;
 } Config;
 
 extern Config config;

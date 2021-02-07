@@ -8,6 +8,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <vitasdk.h>
 
 #include "main.h"
 #include "config.h"
@@ -35,6 +36,7 @@ int read_config(const char *file) {
   config.disable_ped_spec = 1;
   config.disable_tex_bias = 0;
   config.disable_mipmaps = 0;
+  config.aa_mode = SCE_GXM_MULTISAMPLE_4X;
 
   f = fopen(file, "r");
   if (f == NULL)
@@ -57,6 +59,7 @@ int read_config(const char *file) {
     CONFIG_VAR(disable_ped_spec);
     CONFIG_VAR(disable_tex_bias);
     CONFIG_VAR(disable_mipmaps);
+    CONFIG_VAR(aa_mode);
     #undef CONFIG_VAR
   }
 
