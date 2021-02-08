@@ -117,9 +117,9 @@ FILE *fopen_hook(const char *filename, const char *mode) {
   else if (strcmp(mode, "rb+") == 0)
     flags = SCE_FIOS_O_RDWR;
   else if (strcmp(mode, "wb") == 0)
-    flags = SCE_FIOS_O_CREAT | SCE_FIOS_O_WRONLY;
+    flags = SCE_FIOS_O_WRONLY | SCE_FIOS_O_CREAT | SCE_FIOS_O_TRUNC;
   else if (strcmp(mode, "wb+") == 0)
-    flags = SCE_FIOS_O_CREAT | SCE_FIOS_O_RDWR;
+    flags = SCE_FIOS_O_RDWR | SCE_FIOS_O_CREAT | SCE_FIOS_O_TRUNC;
 
   int handle = fios_open(filename, flags);
   if (handle < 0)

@@ -673,7 +673,7 @@ static DynLibFunction dynlib_functions[] = {
   // { "read", (uintptr_t)&read },
   // { "readdir", (uintptr_t)&readdir },
   // { "remove", (uintptr_t)&remove },
-  { "stat", (uintptr_t)stat },
+  { "stat", (uintptr_t)&stat },
 
   { "stderr", (uintptr_t)&stderr_fake },
   { "strcasecmp", (uintptr_t)&strcasecmp },
