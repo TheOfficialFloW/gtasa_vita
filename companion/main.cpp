@@ -51,9 +51,7 @@ bool mipmaps = true;
 void loadConfig() {
 	char buffer[30];
 	int value;
-	int gTempPostProcessing = 0;
-	int gTempOverlay = 0;
-	
+
 	FILE *config = fopen(CONFIG_FILE_PATH, "r");
 
 	if (config)

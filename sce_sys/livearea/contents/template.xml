@@ -4,17 +4,16 @@
 	<livearea-background>
 		<image>bg.png</image>
 	</livearea-background>
-	
+	 
 	<gate>
 		<startup-image>startup.png</startup-image>
 	</gate>
-	
+		
 	<frame id="frame3">
 		<liveitem>
 			<target>psla:-config</target>
-			<text valign="bottom" align="left" text-align="left" word-wrap="off" ellipsis="on">
-				<str size="20" color="#ffffff" shadow="on">Click to launch configurator app</str>
-			</text>
+			<background valign="bottom" align="center">config.png</background>
 		</liveitem>
-	</frame>	
+	</frame>
+	
 </livearea>
