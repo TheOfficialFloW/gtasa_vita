@@ -4,7 +4,7 @@
 #include <stdio.h>
 
 #define CONFIG_FILE_PATH "ux0:data/gtasa/config.txt"
-#define NUM_OPTIONS 16
+#define NUM_OPTIONS 17
 
 int _newlib_heap_size_user = 192 * 1024 * 1024;
 
@@ -39,6 +39,7 @@ bool fix_skin_weights = true;
 bool fix_map_bottleneck = true;
 bool use_shader_cache = true;
 bool skygfx_ps2_shading = true;
+bool mobile_stuff = false;
 int skygfx_colorfilter = SKYGFX_COLOR_FILTER_PS2;
 int aa_mode = SCE_GXM_MULTISAMPLE_4X;
 bool skygfx_ps2_sun = true;
@@ -65,6 +66,7 @@ void loadConfig() {
 			
 			else if (strcmp("touch_x_margin", buffer) == 0) touch_x_margin = value;
 			else if (strcmp("fix_heli_plane_camera", buffer) == 0) fix_heli_plane_camera = (bool)value;
+			else if (strcmp("ignore_mobile_stuff", buffer) == 0) mobile_stuff = value ? false : true;
 			
 			else if (strcmp("fix_skin_weights", buffer) == 0) fix_skin_weights = (bool)value;
 			else if (strcmp("fix_map_bottleneck", buffer) == 0) fix_map_bottleneck = (bool)value;
@@ -95,6 +97,7 @@ void saveConfig()
 		
 		fprintf(config, "%s %d\n", "touch_x_margin", touch_x_margin);
 		fprintf(config, "%s %d\n", "fix_heli_plane_camera", (int)fix_heli_plane_camera);
+		fprintf(config, "%s %d\n", "ignore_mobile_stuff", mobile_stuff ? false : true);
 		
 		fprintf(config, "%s %d\n", "fix_skin_weights", (int)fix_skin_weights);
 		fprintf(config, "%s %d\n", "fix_map_bottleneck", (int)fix_map_bottleneck);
@@ -130,7 +133,8 @@ char *options_descs[NUM_OPTIONS] = {
 	"When enabled, peds will have specular lighting reflections applied to their models.\n\nThe default value is: Disabled.", // disable_ped_spec
 	"Makes compiled shaders be cached on storage for subsequent usage. When enabled, the game will stutter on very first time a shader is compiled but will make the game have more fluid gameplay later.\n\nThe default value is: Enabled.", // use_shader_cache
 	"Removes regions highlighting in the pause menu map. This will fix the performance issues during advanced stages of the game in pause menu.\n\nThe default value is: Enabled.", // fix_map_bottleneck
-	"Anti-Aliasing is a technique used to reduce graphical artifacts surrounding 3D models. Greatly improves graphics quality at the cost of some GPU power.\n\nThe default value is: MSAA 4x." // aa_mode
+	"Anti-Aliasing is a technique used to reduce graphical artifacts surrounding 3D models. Greatly improves graphics quality at the cost of some GPU power.\n\nThe default value is: MSAA 4x.", // aa_mode
+	"When enabled, Mobile build widgets and windows will be shown (eg. App rating window, cutscene skip widgets, etc...)\n\nThe default value is: Disabled." // ignore_mobile_stuff
 };
 
 enum {
@@ -149,7 +153,8 @@ enum {
 	OPT_PED_SPEC,
 	OPT_SHADER_CACHE,
 	OPT_MAP_FIX,
-	OPT_ANTIALIASING
+	OPT_ANTIALIASING,
+	OPT_MOBILE_STUFF
 };
 
 char *desc = nullptr;
@@ -260,6 +265,9 @@ int main(){
 		ImGui::Text("Peds Reflections:"); ImGui::SameLine();
 		ImGui::Checkbox("##check8", &ped_spec);
 		SetDescription(OPT_PED_SPEC);
+		ImGui::Text("Mobile Widgets:"); ImGui::SameLine();
+		ImGui::Checkbox("##check11", &mobile_stuff);
+		SetDescription(OPT_MOBILE_STUFF);
 		ImGui::Separator();
 		
 		ImGui::TextColored(ImVec4(255, 255, 0, 255), "Optimizations");
