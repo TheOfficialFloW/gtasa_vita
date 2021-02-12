@@ -77,7 +77,7 @@ void BuildVertexSource(int flags) {
   }
 
   if (flags & (FLAG_BONE3 | FLAG_BONE4))
-    VTX_EMIT("uniform float4 Bones[%d],", *RQMaxBones * 3 + 4);
+    VTX_EMIT("uniform float4 Bones[%d],", *RQMaxBones * 3);
 
   if (flags & FLAG_TEXMATRIX)
     VTX_EMIT("uniform float3x3 NormalMatrix,");
