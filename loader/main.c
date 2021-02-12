@@ -226,6 +226,113 @@ void *OS_ThreadSetValue(void *RenderQueue) {
   return NULL;
 }
 
+#define HARRIER_NOZZLE_ROTATE_LIMIT 5000
+#define HARRIER_NOZZLE_ROTATERATE 25.0f
+
+static void *(* CPad__GetPad)(int pad);
+static int (* CPad__GetCarGunUpDown)(void *pad, int r1, int r2, float r3, int r4);
+
+static float *CTimer__ms_fTimeStep;
+
+void CPlane_ProcessControlInputs_Harrier(void *this, int pad) {
+  uint16_t modelIndex = *(uint16_t *)(this + 0x26);
+  if (modelIndex == 520) {
+    float rightStickY = (float)CPad__GetCarGunUpDown(CPad__GetPad(pad), 0, 0, 2500.0f, 0);
+    if (fabsf(rightStickY) > 10.0f) {
+      *(int16_t *)(this + 0x882) = *(int16_t *)(this + 0x880);
+      *(int16_t *)(this + 0x880) += (int16_t)(rightStickY / 128.0f * HARRIER_NOZZLE_ROTATERATE * *CTimer__ms_fTimeStep);
+      if (*(int16_t *)(this + 0x880) < 0)
+        *(int16_t *)(this + 0x880) = 0;
+      else if (*(int16_t *)(this + 0x880) > HARRIER_NOZZLE_ROTATE_LIMIT)
+        *(int16_t *)(this + 0x880) = HARRIER_NOZZLE_ROTATE_LIMIT;
+    }
+  }
+}
+
+__attribute__((naked)) void CPlane_ProcessControlInputs_Harrier_stub(void) {
+  asm volatile(
+    "push {r0-r11}\n"
+    "mov r0, r4\n"
+    "mov r1, r8\n"
+    "bl CPlane_ProcessControlInputs_Harrier\n"
+  );
+
+  register uintptr_t retAddr asm ("r12") = (uintptr_t)text_base + 0x005765F0 + 0x1;
+
+  asm volatile(
+    "pop {r0-r11}\n"
+    "bx %0\n"
+  :: "r" (retAddr));
+}
+
+int CCam__Process_FollowCar_SA_camSetArrPos(void *this) {
+  uint16_t modelIndex = *(uint16_t *)(this + 0x26);
+  if (modelIndex == 520 && *(int16_t *)(this + 0x880) >= 3000) {
+    return 2; // heli
+  } else {
+    return modelIndex == 539 ? 0 : 3; // car or plane
+  }
+}
+
+__attribute__((naked)) void CCam__Process_FollowCar_SA_camSetArrPos_stub(void) {
+  asm volatile(
+    "push {r0-r8, r10-r11}\n"
+    "mov r0, r11\n"
+    "bl CCam__Process_FollowCar_SA_camSetArrPos\n"
+    "mov r9, r0\n"
+  );
+
+  register uintptr_t retAddr asm ("r12") = (uintptr_t)text_base + 0x003C033A + 0x1;
+
+  asm volatile(
+    "pop {r0-r8, r10-r11}\n"
+    "bx %0\n"
+  :: "r" (retAddr));
+}
+
+uint64_t CCam__Process_FollowCar_SA_yMovement(void *this, uint32_t xMovement, uint32_t yMovement) {
+  uint16_t modelIndex = *(uint16_t *)(this + 0x26);
+  switch (modelIndex) {
+    case 564:
+      xMovement = 0;
+    // Fall-through
+    case 406:
+    case 443:
+    case 486:
+    case 520:
+    case 524:
+    case 525:
+    case 530:
+    case 531:
+    case 592:
+      yMovement = 0;
+      break;
+    default:
+      break;
+  }
+
+  return (uint64_t)xMovement | (uint64_t)yMovement << 32;
+}
+
+__attribute__((naked)) void CCam__Process_FollowCar_SA_yMovement_stub(void) {
+  asm volatile(
+    "push {r0-r11}\n"
+    "mov r0, r11\n"
+    "vmov r1, s21\n"
+    "vmov r2, s28\n"
+    "bl CCam__Process_FollowCar_SA_yMovement\n"
+    "vmov s28, r1\n"
+    "vmov s21, r0\n"
+  );
+
+  register uintptr_t retAddr asm ("r12") = (uintptr_t)text_base + 0x003C1308 + 0x1;
+
+  asm volatile(
+    "pop {r0-r11}\n"
+    "bx %0\n"
+  :: "r" (retAddr));
+}
+
 extern void *__cxa_guard_acquire;
 extern void *__cxa_guard_release;
 
@@ -236,12 +343,11 @@ void patch_game(void) {
   if (config.disable_detail_textures)
     *(int *)so_find_addr("gNoDetailTextures") = 1;
 
-  // Dummy all FindPlayerVehicle calls so the right analog stick can be used as camera again
   if (config.fix_heli_plane_camera) {
+    // Dummy all FindPlayerVehicle calls so the right analog stick can be used as camera again
     uint32_t movs_r0_0 = 0xBF002000;
-
     kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x003C0866), &movs_r0_0, sizeof(movs_r0_0));
-    kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x003C1652), &movs_r0_0, sizeof(movs_r0_0));
+    // kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x003C1652), &movs_r0_0, sizeof(movs_r0_0));
     kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x003C1518), &movs_r0_0, sizeof(movs_r0_0));
     kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x003C198A), &movs_r0_0, sizeof(movs_r0_0));
 
@@ -249,6 +355,15 @@ void patch_game(void) {
     // kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x003FC482), &movs_r0_0, sizeof(movs_r0_0));
     kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x003FC754), &movs_r0_0, sizeof(movs_r0_0));
     // kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x003FC774), &movs_r0_0, sizeof(movs_r0_0));
+
+    // Fix Harrier thruster control
+    hook_thumb((uintptr_t)(text_base + 0x003C057C), (uintptr_t)CCam__Process_FollowCar_SA_camSetArrPos_stub);
+    hook_thumb((uintptr_t)(text_base + 0x003C12F4), (uintptr_t)CCam__Process_FollowCar_SA_yMovement_stub);
+
+    CPad__GetPad = (void *)so_find_addr("_ZN4CPad6GetPadEi");
+    CPad__GetCarGunUpDown = (void *)so_find_addr("_ZN4CPad15GetCarGunUpDownEbP11CAutomobilefb");
+    CTimer__ms_fTimeStep = (float *)so_find_addr("_ZN6CTimer12ms_fTimeStepE");
+    hook_thumb((uintptr_t)(text_base + 0x00576432), (uintptr_t)CPlane_ProcessControlInputs_Harrier_stub);
   }
 
   // Force using GL_UNSIGNED_SHORT
@@ -275,7 +390,7 @@ void patch_game(void) {
     kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x003F91B6), &nop16, sizeof(nop16));
 
     // Ignore app rating popup
-    hook_thumb(so_find_addr("_Z12Menu_ShowNagv"), (uintptr_t)&ret0);
+    hook_thumb(so_find_addr("_Z12Menu_ShowNagv"), (uintptr_t)ret0);
   }
 
   hook_thumb(so_find_addr("__cxa_guard_acquire"), (uintptr_t)&__cxa_guard_acquire);

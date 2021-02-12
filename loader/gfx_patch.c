@@ -499,19 +499,20 @@ void ColorFilter(void *sp) {
 
 __attribute__((naked)) void ColorFilter_stub(void) {
 	asm volatile(
-		"push {r0-r3}\n"
-		"add r0, sp, 0x10\n"
+		"push {r0-r11}\n" // 12*4=0x30
+		"add r0, sp, 0x30\n"
 		"bl ColorFilter\n"
-		"vldr s2, [sp, #(0x30+0x10)]\n" // red.r
-		"vldr s4, [sp, #(0x24+0x10)]\n" // green.g
-		"vldr s6, [sp, #(0x18+0x10)]\n" // blue.b
+		"vldr s2, [sp, #(0x30+0x30)]\n" // red.r
+		"vldr s4, [sp, #(0x24+0x30)]\n" // green.g
+		"vldr s6, [sp, #(0x18+0x30)]\n" // blue.b
 	);
 
+	register uintptr_t retAddr asm ("r12") = (uintptr_t)text_base + 0x005B6444 + 0x1;
+
 	asm volatile(
-		"pop {r0-r3}\n"
-		"mov lr, %0\n"
-		"bx lr\n"
-	:: "r" (text_base + 0x005B6444 + 0x1) : "r0", "r1", "r2", "r3");
+		"pop {r0-r11}\n"
+		"bx %0\n"
+	:: "r" (retAddr));
 }
 
 
