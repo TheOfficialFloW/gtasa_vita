@@ -4,7 +4,7 @@
 #include <stdio.h>
 
 #define CONFIG_FILE_PATH "ux0:data/gtasa/config.txt"
-#define NUM_OPTIONS 18
+#define NUM_OPTIONS 19
 
 int _newlib_heap_size_user = 192 * 1024 * 1024;
 
@@ -48,6 +48,7 @@ bool ped_spec = false;
 bool tex_bias = true;
 bool mipmaps = true;
 bool enable_mvp_optimization = false;
+bool enable_bones_optimization = false;
 
 void loadConfig() {
 	char buffer[30];
@@ -72,6 +73,7 @@ void loadConfig() {
 			else if (strcmp("use_shader_cache", buffer) == 0) use_shader_cache = (bool)value;
 			else if (strcmp("aa_mode", buffer) == 0) aa_mode = value;
 			else if (strcmp("enable_mvp_optimization", buffer) == 0) enable_mvp_optimization = (bool)value;
+			else if (strcmp("enable_bones_optimization", buffer) == 0) enable_bones_optimization = (bool)value;
 			
 			else if (strcmp("skygfx_ps2_shading", buffer) == 0) skygfx_ps2_shading = (bool)value;
 			else if (strcmp("skygfx_colorfilter", buffer) == 0) skygfx_colorfilter = value;
@@ -104,6 +106,7 @@ void saveConfig()
 		fprintf(config, "%s %d\n", "use_shader_cache", (int)use_shader_cache);
 		fprintf(config, "%s %d\n", "aa_mode", aa_mode);
 		fprintf(config, "%s %d\n", "enable_mvp_optimization", (int)enable_mvp_optimization);
+		fprintf(config, "%s %d\n", "enable_bones_optimization", (int)enable_bones_optimization);
 		
 		fprintf(config, "%s %d\n", "skygfx_ps2_shading", (int)skygfx_ps2_shading);
 		fprintf(config, "%s %d\n", "skygfx_colorfilter", skygfx_colorfilter);
@@ -119,24 +122,25 @@ void saveConfig()
 }
 
 char *options_descs[NUM_OPTIONS] = {
-	"Enables sceFios2 usage for I/O operations. This allows to have caching on input operations reducing stuttering while in game.\n\nThe default value is: Enabled.", // use_fios2
-	"Number of blocks to use with sceFios2.\n\nThe default value is: 64.", // io_cache_block_num
-	"Size in bytes for each block used by sceFios2.\n\nThe default value is: 65536.", // io_cache_block_size
-	"Deadzone in pixels to use between inputs on both rearpad and touchscreen.\n\nThe default value is: 100.", // touch_x_margin
-	"Makes it possible to move the camera with the right stick when using a flying vehicle (Planes and helicopters).\n\nThe default value is: Enabled.", // fix_heli_plane_camera
-	"Select the desired post processing effect filter to apply to the 3D rendering.\n\nThe default value is: PS2.", // skygfx_colorfilter
-	"Enables shading effects that resamble the PS2 build.\n\nThe default value is: Enabled.", // skygfx_ps2_shading
-	"Enables corona sun effect that resambles the PS2 build.\n\nThe default value is: Enabled.", // skygfx_ps2_sun
-	"When enabled, detail textures will be rendered.\n\nThe default value is: Disabled.", // disable_detail_textures
-	"When enabled, mipmaps will have more precise bias adjustments at the cost of more expensive GPU code execution.\n\nThe default value is: Enabled.", // disable_tex_bias
-	"When enabled, mipmaps will be used causing an higher memory usage and CPU usage but lower memory bandwidth over GPU.\n\nThe default value is: Enabled.", // disable_mipmaps
-	"Makes hardware accelerated skinning properly work. Fixes broken animations especially noticeable in facial animations.\n\nThe default value is: Enabled.", // fix_skin_weights
-	"When enabled, peds will have specular lighting reflections applied to their models.\n\nThe default value is: Disabled.", // disable_ped_spec
-	"Makes compiled shaders be cached on storage for subsequent usage. When enabled, the game will stutter on very first time a shader is compiled but will make the game have more fluid gameplay later.\n\nThe default value is: Enabled.", // use_shader_cache
-	"Removes regions highlighting in the pause menu map. This will fix the performance issues during advanced stages of the game in pause menu.\n\nThe default value is: Enabled.", // fix_map_bottleneck
-	"Anti-Aliasing is a technique used to reduce graphical artifacts surrounding 3D models. Greatly improves graphics quality at the cost of some GPU power.\n\nThe default value is: MSAA 4x.", // aa_mode
-	"When enabled, Mobile build widgets and windows will be shown (eg. App rating window, cutscene skip widgets, etc...)\n\nThe default value is: Disabled.", // ignore_mobile_stuff
-	"Moves MVP calculation from GPU to CPU. May improve performances.\n\nThe default value is: Disabled.", // enable_mvp_optimization
+	"Enables sceFios2 usage for I/O operations. This allows to have caching on input operations reducing stuttering while in game.\nThe default value is: Enabled.", // use_fios2
+	"Number of blocks to use with sceFios2.\nThe default value is: 64.", // io_cache_block_num
+	"Size in bytes for each block used by sceFios2.\nThe default value is: 65536.", // io_cache_block_size
+	"Deadzone in pixels to use between inputs on both rearpad and touchscreen.\nThe default value is: 100.", // touch_x_margin
+	"Makes it possible to move the camera with the right stick when using a flying vehicle (Planes and helicopters).\nThe default value is: Enabled.", // fix_heli_plane_camera
+	"Select the desired post processing effect filter to apply to the 3D rendering.\nThe default value is: PS2.", // skygfx_colorfilter
+	"Enables shading effects that resamble the PS2 build.\nThe default value is: Enabled.", // skygfx_ps2_shading
+	"Enables corona sun effect that resambles the PS2 build.\nThe default value is: Enabled.", // skygfx_ps2_sun
+	"When enabled, detail textures will be rendered.\nThe default value is: Disabled.", // disable_detail_textures
+	"When enabled, mipmaps will have more precise bias adjustments at the cost of more expensive GPU code execution.\nThe default value is: Enabled.", // disable_tex_bias
+	"When enabled, mipmaps will be used causing an higher memory usage and CPU usage but lower memory bandwidth over GPU.\nThe default value is: Enabled.", // disable_mipmaps
+	"Makes hardware accelerated skinning properly work. Fixes broken animations especially noticeable in facial animations.\nThe default value is: Enabled.", // fix_skin_weights
+	"When enabled, peds will have specular lighting reflections applied to their models.\nThe default value is: Disabled.", // disable_ped_spec
+	"Makes compiled shaders be cached on storage for subsequent usage. When enabled, the game will stutter on very first time a shader is compiled but will make the game have more fluid gameplay later.\nThe default value is: Enabled.", // use_shader_cache
+	"Removes regions highlighting in the pause menu map. This will fix the performance issues during advanced stages of the game in pause menu.\nThe default value is: Enabled.", // fix_map_bottleneck
+	"Anti-Aliasing is a technique used to reduce graphical artifacts surrounding 3D models. Greatly improves graphics quality at the cost of some GPU power.\nThe default value is: MSAA 4x.", // aa_mode
+	"When enabled, Mobile build widgets and windows will be shown (eg. App rating window, cutscene skip widgets, etc...)\nThe default value is: Disabled.", // ignore_mobile_stuff
+	"Moves MVP calculation from GPU to CPU. May improve performances.\nThe default value is: Disabled.", // enable_mvp_optimization
+	"Simplify GPU code related to bones calculations by preventing CPU to transpose the related matrix.\nThe default value is: Disabled.", // enable_bones_optimization
 };
 
 enum {
@@ -157,7 +161,8 @@ enum {
 	OPT_MAP_FIX,
 	OPT_ANTIALIASING,
 	OPT_MOBILE_STUFF,
-	OPT_MVP_OPT
+	OPT_MVP_OPT,
+	OPT_BONES_OPT
 };
 
 char *desc = nullptr;
@@ -187,7 +192,7 @@ int main(){
 		
 		ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiSetCond_Always);
 		ImGui::SetNextWindowSize(ImVec2(960, 544), ImGuiSetCond_Always);
-		ImGui::Begin("Grand Theft Auto: San Andreas - Config Manager", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus);
+		ImGui::Begin("Grand Theft Auto: San Andreas - Config Manager", nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus);
 		
 		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.0f, 0.0f));
 		ImGui::TextColored(ImVec4(255, 255, 0, 255), "I/O Caching");
@@ -283,6 +288,9 @@ int main(){
 		ImGui::Text("MVP Optimization:"); ImGui::SameLine();
 		ImGui::Checkbox("##check12", &enable_mvp_optimization);
 		SetDescription(OPT_MVP_OPT);
+		ImGui::Text("Bones Optimization:"); ImGui::SameLine();
+		ImGui::Checkbox("##check13", &enable_bones_optimization);
+		SetDescription(OPT_BONES_OPT);
 		ImGui::PopStyleVar();
 		ImGui::Separator();
 		
