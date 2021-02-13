@@ -589,9 +589,9 @@ void BuildVertexSource_SkyGfx(int flags) {
 
 #ifdef NEW_LIGHTING
 	// new names
-	VTX_EMIT("#define SurfAmb (MaterialAmbient.x)\n");
-	VTX_EMIT("#define SurfDiff (MaterialAmbient.y)\n");
-	VTX_EMIT("#define ColorScale (MaterialDiffuse)\n");
+	VTX_EMIT("#define SurfAmb (MaterialAmbient.x)");
+	VTX_EMIT("#define SurfDiff (MaterialAmbient.y)");
+	VTX_EMIT("#define ColorScale (MaterialDiffuse)");
 #endif
 
 	VTX_EMIT("void main(");
@@ -626,19 +626,19 @@ void BuildVertexSource_SkyGfx(int flags) {
 
 		if (flags & FLAG_LIGHT1) {
 			VTX_EMIT("uniform half3 DirLightDiffuseColor,");
-			VTX_EMIT("uniform float3 DirLightDirection,");
+			VTX_EMIT("uniform half3 DirLightDirection,");
 			if (GetMobileEffectSetting() == 3) {
 				if (flags & (FLAG_BACKLIGHT | FLAG_BONE3 | FLAG_BONE4))
-					VTX_EMIT("uniform float3 DirBackLightDirection,");
+					VTX_EMIT("uniform half3 DirBackLightDirection,");
 			}
 		}
 		if (flags & FLAG_LIGHT2) {
 			VTX_EMIT("uniform half3 DirLight2DiffuseColor,");
-			VTX_EMIT("uniform float3 DirLight2Direction,");
+			VTX_EMIT("uniform half3 DirLight2Direction,");
 		}
 		if (flags & FLAG_LIGHT3) {
 			VTX_EMIT("uniform half3 DirLight3DiffuseColor,");
-			VTX_EMIT("uniform float3 DirLight3Direction,");
+			VTX_EMIT("uniform half3 DirLight3Direction,");
 		}
 	}
 
@@ -677,8 +677,7 @@ void BuildVertexSource_SkyGfx(int flags) {
 
 	if (flags & FLAG_WATER) {
 		VTX_EMIT("half2 out Out_WaterDetail : TEXCOORD2,");
-		VTX_EMIT("half2 out Out_WaterDetail2 : TEXCOORD3,");
-		VTX_EMIT("half out Out_WaterAlphaBlend : TEXCOORD4,");
+		VTX_EMIT("half3 out Out_WaterDetail2 : TEXCOORD3,");
 	}
 
 	if (flags & (FLAG_COLOR | FLAG_LIGHTING))
@@ -693,8 +692,8 @@ void BuildVertexSource_SkyGfx(int flags) {
 
 	VTX_EMIT("float4 out gl_Position : POSITION,");
 
-	if (vtxbuf[strlen(vtxbuf)-1] == ',')
-		vtxbuf[strlen(vtxbuf)-1] = '\0';
+	if (vtxbuf[strlen(vtxbuf)-2] == ',')
+		vtxbuf[strlen(vtxbuf)-2] = ' ';
 
 	VTX_EMIT(") {");
 
@@ -936,8 +935,8 @@ void BuildVertexSource_SkyGfx(int flags) {
 
 	if (flags & FLAG_WATER) {
 		VTX_EMIT("Out_WaterDetail = (Out_Tex0 * 4.0) + float2(WaterSpecs.x * -0.3, WaterSpecs.x * 0.21);");
-		VTX_EMIT("Out_WaterDetail2 = (Out_Tex0 * -8.0) + float2(WaterSpecs.x * 0.12, WaterSpecs.x * -0.05);");
-		VTX_EMIT("Out_WaterAlphaBlend = distance(WorldPos.xy, CameraPosition.xy) * WaterSpecs.y;");
+		VTX_EMIT("Out_WaterDetail2.xy = (Out_Tex0 * -8.0) + float2(WaterSpecs.x * 0.12, WaterSpecs.x * -0.05);");
+		VTX_EMIT("Out_WaterDetail2.z = distance(WorldPos.xy, CameraPosition.xy) * WaterSpecs.y;");
 	}
 
 	VTX_EMIT("}");
@@ -964,8 +963,7 @@ void BuildPixelSource_SkyGfx(int flags) {
 
 	if (flags & FLAG_WATER) {
 		PXL_EMIT("half2 Out_WaterDetail : TEXCOORD2,");
-		PXL_EMIT("half2 Out_WaterDetail2 : TEXCOORD3,");
-		PXL_EMIT("half Out_WaterAlphaBlend : TEXCOORD4,");
+		PXL_EMIT("half3 Out_WaterDetail2 : TEXCOORD3,");
 	}
 
 	if (flags & (FLAG_COLOR | FLAG_LIGHTING))
@@ -994,8 +992,8 @@ void BuildPixelSource_SkyGfx(int flags) {
 	if (flags & FLAG_ALPHA_MODULATE)
 		PXL_EMIT("uniform half AlphaModulate,");
 
-	if (pxlbuf[strlen(pxlbuf)-1] == ',')
-		pxlbuf[strlen(pxlbuf)-1] = '\0';
+	if (pxlbuf[strlen(pxlbuf)-2] == ',')
+		pxlbuf[strlen(pxlbuf)-2] = ' ';
 
 	PXL_EMIT(") {");
 
@@ -1015,16 +1013,16 @@ void BuildPixelSource_SkyGfx(int flags) {
 
 		if (!(flags & (FLAG_COLOR | FLAG_LIGHTING))) {
 			if (flags & FLAG_WATER)
-				PXL_EMIT("fcolor.a += Out_WaterAlphaBlend;");
+				PXL_EMIT("fcolor.a += Out_WaterDetail2.z;");
 		} else if (!(flags & FLAG_DETAILMAP)) {
 			PXL_EMIT("fcolor *= Out_Color;");
 			if (flags & FLAG_WATER)
-				PXL_EMIT("fcolor.a += Out_WaterAlphaBlend;");
+				PXL_EMIT("fcolor.a += Out_WaterDetail2.z;");
 		} else {
 			if (flags & FLAG_WATER) {
-				PXL_EMIT("half waterDetail = tex2Dbias(EnvMap, half4(Out_WaterDetail, 0.0, -1.0)).x + tex2Dbias(EnvMap, half4(Out_WaterDetail2, 0.0, -1.0)).x;");
+				PXL_EMIT("half waterDetail = tex2Dbias(EnvMap, half4(Out_WaterDetail, 0.0, -1.0)).x + tex2Dbias(EnvMap, half4(Out_WaterDetail2.xy, 0.0, -1.0)).x;");
 				PXL_EMIT("fcolor *= half4(Out_Color.xyz * waterDetail * 1.1, Out_Color.w);");
-				PXL_EMIT("fcolor.a += Out_WaterAlphaBlend;");
+				PXL_EMIT("fcolor.a += Out_WaterDetail2.z;");
 			} else {
 				PXL_EMIT("fcolor *= half4(Out_Color.xyz * tex2Dbias(EnvMap, half4(Out_Tex0.xy * DetailTiling, 0.0, -0.5)).xyz * 2.0, Out_Color.w);");
 			}

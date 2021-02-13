@@ -31,6 +31,7 @@
   do {                                       \
     snprintf(tmp, sizeof(tmp), __VA_ARGS__); \
     strcat(pxlbuf, tmp);                     \
+    strcat(pxlbuf, "\n");                    \
   } while (0)
 
 
@@ -38,6 +39,7 @@
   do {                                       \
     snprintf(tmp, sizeof(tmp), __VA_ARGS__); \
     strcat(vtxbuf, tmp);                     \
+    strcat(vtxbuf, "\n");                    \
   } while (0)
 
 typedef struct {
