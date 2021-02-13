@@ -26,6 +26,12 @@ In order to properly install the game, you'll have to follow these steps precise
 * **Optional**: For a more authentic console experience, copy the file `ux0:data/gtasa/data/360Default1280x720.cfg` to `ux0:data/gtasa/Adjustable.cfg`. This file is a leftover from the Xbox 360 version and provides you the console HUD (e.g. radar on bottom left).
 * Install [GTASA.vpk](https://github.com/TheOfficialFloW/gtasa_vita/releases/download/v1.0/GTASA.vpk) on your PS Vita.
 
+## Configurator App
+After fully installing the port, you'll be able to configure it with the Configurator app.  
+The Configurator app will allow users to enable or disable a set of optimizations, patches and renderer alterations to best match users taste.  
+You can launch the Configurato app by clicking on the `Configuration` button located on the Livearea section of the port as shown in the following screenshot.
+<p align="center"><img src="./screenshots/livearea_configuration.png"></p>
+
 ## Build Instructions (For Developers)
 In order to build the loader, you'll need a [vitasdk](https://github.com/vitasdk) build fully compiled with softfp usage.  
 You can find a precompiled version here: [Linux](https://github.com/vitasdk/buildscripts/suites/1824103476/artifacts/35161735) / [Windows](https://github.com/vitasdk/buildscripts/suites/1836262288/artifacts/35501612).  
