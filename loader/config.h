@@ -22,6 +22,7 @@ enum SkyGfxColorFilter {
 
 typedef struct {
   int touch_x_margin;
+  int enable_mvp_optimization;
   int ignore_mobile_stuff;
   int use_fios2;
   int io_cache_block_num;

@@ -49,9 +49,14 @@ void BuildVertexSource(int flags) {
   if (flags & FLAG_COLOR2)
     VTX_EMIT("float4 Color2,");
 
-  VTX_EMIT("uniform float4x4 ProjMatrix,");
-  VTX_EMIT("uniform float4x4 ViewMatrix,");
-  VTX_EMIT("uniform float4x4 ObjMatrix,");
+  if (config.enable_mvp_optimization) {
+    VTX_EMIT("uniform float4x4 ProjMatrix,");
+    VTX_EMIT("uniform float4x4 ObjMatrix,");
+  } else {
+    VTX_EMIT("uniform float4x4 ProjMatrix,");
+    VTX_EMIT("uniform float4x4 ViewMatrix,");
+    VTX_EMIT("uniform float4x4 ObjMatrix,");
+  }
 
   if (flags & FLAG_LIGHTING) {
     VTX_EMIT("uniform half3 AmbientLightColor,");
@@ -145,7 +150,8 @@ void BuildVertexSource(int flags) {
       VTX_EMIT("BoneToLocal[1] += Bones[BlendIndexArray.w*3+1] * BoneWeight.w;");
       VTX_EMIT("BoneToLocal[2] += Bones[BlendIndexArray.w*3+2] * BoneWeight.w;");
     }
-    VTX_EMIT("float4 WorldPos = mul(mul(BoneToLocal, float4(Position, 1.0)), ObjMatrix);");
+    VTX_EMIT("float4 BoneVertex = mul(BoneToLocal, float4(Position, 1.0));");
+    VTX_EMIT("float4 WorldPos = mul(BoneVertex, ObjMatrix);");
   } else {
     VTX_EMIT("float4 WorldPos = mul(float4(Position, 1.0), ObjMatrix);");
   }
@@ -156,8 +162,16 @@ void BuildVertexSource(int flags) {
     VTX_EMIT("ReflPos.xy = normalize(ReflPos.xy) * (ReflPos.z * 0.5 + 0.5);");
     VTX_EMIT("gl_Position = float4(ReflPos.xy, length(ReflVector) * 0.002, 1.0);");
   } else {
-    VTX_EMIT("float4 ViewPos = mul(WorldPos, ViewMatrix);");
-    VTX_EMIT("gl_Position = mul(ViewPos, ProjMatrix);");
+    if (config.enable_mvp_optimization) {
+      if (flags & (FLAG_BONE3 | FLAG_BONE4)) {
+        VTX_EMIT("gl_Position = mul(BoneVertex, ProjMatrix);");
+      } else {
+        VTX_EMIT("gl_Position = mul(float4(Position, 1.0), ProjMatrix);");
+      }
+    } else {
+      VTX_EMIT("float4 ViewPos = mul(WorldPos, ViewMatrix);");
+      VTX_EMIT("gl_Position = mul(ViewPos, ProjMatrix);");
+    }
   }
 
   if (flags & FLAG_LIGHTING) {

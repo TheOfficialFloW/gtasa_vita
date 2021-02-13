@@ -333,6 +333,55 @@ __attribute__((naked)) void CCam__Process_FollowCar_SA_yMovement_stub(void) {
   :: "r" (retAddr));
 }
 
+typedef enum {
+  MATRIX_PROJ_ID,
+  MATRIX_VIEW_ID,
+  MATRIX_OBJ_ID,
+  MATRIX_TEX_ID
+} RQShaderMatrixConstantID;
+
+void *(* GetCurrentProjectionMatrix)();
+void *(* GetCurrentViewMatrix)();
+void *(* GetCurrentObjectMatrix)();
+
+void SetMatrixConstant(void *this, RQShaderMatrixConstantID id, float *matrix) {
+  void *UniformMatrix = this + 0x4C * id;
+  float *UniformMatrixData = UniformMatrix + 0x2AC;
+  if (sceClibMemcmp(UniformMatrixData, matrix, 16 * 4) != 0) {
+    sceClibMemcpy(UniformMatrixData, matrix, 16 * 4);
+    *(uint8_t *)(UniformMatrix + 0x2A8) = 1;
+    *(uint8_t *)(UniformMatrix + 0x2EC) = 1;
+  }
+}
+
+void ES2Shader__SetMatrixConstant(void *this, RQShaderMatrixConstantID id, float *matrix) {
+  if (id == MATRIX_TEX_ID) {
+    SetMatrixConstant(this, id, matrix);
+  } else {
+    float *ProjMatrix = GetCurrentProjectionMatrix();
+    float *ViewMatrix = GetCurrentViewMatrix();
+    float *ObjMatrix = GetCurrentObjectMatrix();
+
+    int forced = ((id == MATRIX_PROJ_ID) && !((uint8_t *)ProjMatrix)[64]) ||
+                 ((id == MATRIX_VIEW_ID) && !((uint8_t *)ViewMatrix)[64]) ||
+                 ((id == MATRIX_OBJ_ID) && !((uint8_t *)ObjMatrix)[64]);
+    if (forced || ((uint8_t *)ProjMatrix)[64] || ((uint8_t *)ViewMatrix)[64] || ((uint8_t *)ObjMatrix)[64]) {
+      float mv[16], mvp[16];
+      matmul4_neon(ViewMatrix, ObjMatrix, mv);
+      matmul4_neon(ProjMatrix, mv, mvp);
+
+      SetMatrixConstant(this, MATRIX_PROJ_ID, mvp);
+
+      if (forced || ((uint8_t *)ObjMatrix)[64])
+         SetMatrixConstant(this, MATRIX_OBJ_ID, ObjMatrix);
+
+      ((uint8_t *)ProjMatrix)[64] = 0;
+      ((uint8_t *)ViewMatrix)[64] = 0;
+      ((uint8_t *)ObjMatrix)[64] = 0;
+    }
+  }
+}
+
 extern void *__cxa_guard_acquire;
 extern void *__cxa_guard_release;
 
@@ -371,6 +420,13 @@ void patch_game(void) {
     uint16_t movs_r1_1 = 0x2101;
     kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x001C8064), &movs_r1_1, sizeof(movs_r1_1));
     kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x001C8082), &movs_r1_1, sizeof(movs_r1_1));
+  }
+
+  if (config.enable_mvp_optimization) {
+    GetCurrentProjectionMatrix = (void *)so_find_addr("_Z26GetCurrentProjectionMatrixv");
+    GetCurrentViewMatrix = (void *)so_find_addr("_Z20GetCurrentViewMatrixv");
+    GetCurrentObjectMatrix = (void *)so_find_addr("_Z22GetCurrentObjectMatrixv");
+    hook_thumb(so_find_addr("_ZN9ES2Shader17SetMatrixConstantE24RQShaderMatrixConstantIDPKf"), (uintptr_t)ES2Shader__SetMatrixConstant);
   }
 
   // Remove map highlight (explored regions) since it's rendered very inefficiently
