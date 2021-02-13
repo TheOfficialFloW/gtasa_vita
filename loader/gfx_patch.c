@@ -642,8 +642,12 @@ void BuildVertexSource_SkyGfx(int flags) {
 		}
 	}
 
-	if (flags & (FLAG_BONE3 | FLAG_BONE4))
-		VTX_EMIT("uniform float4 Bones[%d],", *RQMaxBones * 3);
+	if (flags & (FLAG_BONE3 | FLAG_BONE4)) {
+		if (config.enable_bones_optimization)
+			VTX_EMIT("uniform float4x4 Bones[%d],", 96);
+		else
+			VTX_EMIT("uniform float4 Bones[%d],", *RQMaxBones * 3);
+	}
 
 	if (flags & FLAG_TEXMATRIX)
 		VTX_EMIT("uniform float3x3 NormalMatrix,");
@@ -697,22 +701,37 @@ void BuildVertexSource_SkyGfx(int flags) {
 	if (flags & (FLAG_BONE3 | FLAG_BONE4)) {
 		VTX_EMIT("int4 BlendIndexArray = int4(BoneIndices);");
 		VTX_EMIT("float4x4 BoneToLocal;");
-		VTX_EMIT("BoneToLocal[0] = Bones[BlendIndexArray.x*3] * BoneWeight.x;");
-		VTX_EMIT("BoneToLocal[1] = Bones[BlendIndexArray.x*3+1] * BoneWeight.x;");
-		VTX_EMIT("BoneToLocal[2] = Bones[BlendIndexArray.x*3+2] * BoneWeight.x;");
-		VTX_EMIT("BoneToLocal[3] = float4(0.0,0.0,0.0,1.0);");
-		VTX_EMIT("BoneToLocal[0] += Bones[BlendIndexArray.y*3] * BoneWeight.y;");
-		VTX_EMIT("BoneToLocal[1] += Bones[BlendIndexArray.y*3+1] * BoneWeight.y;");
-		VTX_EMIT("BoneToLocal[2] += Bones[BlendIndexArray.y*3+2] * BoneWeight.y;");
-		VTX_EMIT("BoneToLocal[0] += Bones[BlendIndexArray.z*3] * BoneWeight.z;");
-		VTX_EMIT("BoneToLocal[1] += Bones[BlendIndexArray.z*3+1] * BoneWeight.z;");
-		VTX_EMIT("BoneToLocal[2] += Bones[BlendIndexArray.z*3+2] * BoneWeight.z;");
-		if (flags & FLAG_BONE4) {
-			VTX_EMIT("BoneToLocal[0] += Bones[BlendIndexArray.w*3] * BoneWeight.w;");
-			VTX_EMIT("BoneToLocal[1] += Bones[BlendIndexArray.w*3+1] * BoneWeight.w;");
-			VTX_EMIT("BoneToLocal[2] += Bones[BlendIndexArray.w*3+2] * BoneWeight.w;");
+		if (config.enable_bones_optimization) {
+			VTX_EMIT("BoneToLocal = Bones[BlendIndexArray.x] * BoneWeight.x;");
+			VTX_EMIT("BoneToLocal += Bones[BlendIndexArray.y] * BoneWeight.y;");
+			VTX_EMIT("BoneToLocal += Bones[BlendIndexArray.z] * BoneWeight.z;");
+				if (flags & FLAG_BONE4)
+				VTX_EMIT("BoneToLocal += Bones[BlendIndexArray.w] * BoneWeight.w;");
+			VTX_EMIT("BoneToLocal[0][3] = 0.0;");
+			VTX_EMIT("BoneToLocal[1][3] = 0.0;");
+			VTX_EMIT("BoneToLocal[2][3] = 0.0;");
+			VTX_EMIT("BoneToLocal[3][3] = 1.0;");
+		} else {
+			VTX_EMIT("BoneToLocal[0] = Bones[BlendIndexArray.x*3] * BoneWeight.x;");
+			VTX_EMIT("BoneToLocal[1] = Bones[BlendIndexArray.x*3+1] * BoneWeight.x;");
+			VTX_EMIT("BoneToLocal[2] = Bones[BlendIndexArray.x*3+2] * BoneWeight.x;");
+			VTX_EMIT("BoneToLocal[3] = float4(0.0,0.0,0.0,1.0);");
+			VTX_EMIT("BoneToLocal[0] += Bones[BlendIndexArray.y*3] * BoneWeight.y;");
+			VTX_EMIT("BoneToLocal[1] += Bones[BlendIndexArray.y*3+1] * BoneWeight.y;");
+			VTX_EMIT("BoneToLocal[2] += Bones[BlendIndexArray.y*3+2] * BoneWeight.y;");
+			VTX_EMIT("BoneToLocal[0] += Bones[BlendIndexArray.z*3] * BoneWeight.z;");
+			VTX_EMIT("BoneToLocal[1] += Bones[BlendIndexArray.z*3+1] * BoneWeight.z;");
+			VTX_EMIT("BoneToLocal[2] += Bones[BlendIndexArray.z*3+2] * BoneWeight.z;");
+			if (flags & FLAG_BONE4) {
+				VTX_EMIT("BoneToLocal[0] += Bones[BlendIndexArray.w*3] * BoneWeight.w;");
+				VTX_EMIT("BoneToLocal[1] += Bones[BlendIndexArray.w*3+1] * BoneWeight.w;");
+				VTX_EMIT("BoneToLocal[2] += Bones[BlendIndexArray.w*3+2] * BoneWeight.w;");
+			}
 		}
-		VTX_EMIT("float4 BoneVertex = mul(BoneToLocal, float4(Position, 1.0));");
+		if (config.enable_bones_optimization)
+			VTX_EMIT("float4 BoneVertex = mul(float4(Position, 1.0), BoneToLocal);");
+		else
+			VTX_EMIT("float4 BoneVertex = mul(BoneToLocal, float4(Position, 1.0));");
 		VTX_EMIT("float4 WorldPos = mul(BoneVertex, ObjMatrix);");
 	} else {
 		VTX_EMIT("float4 WorldPos = mul(float4(Position, 1.0), ObjMatrix);");
@@ -741,10 +760,14 @@ void BuildVertexSource_SkyGfx(int flags) {
 			// unused
 			VTX_EMIT("float3 WorldNormal = normalize(float3(WorldPos.xy - CameraPosition.xy, 0.0001)) * 0.85;");
 		} else {
-			if (flags & (FLAG_BONE3 | FLAG_BONE4))
-				VTX_EMIT("float3 WorldNormal = mul(mul(float3x3(BoneToLocal), Normal), float3x3(ObjMatrix));");
-			else
+			if (flags & (FLAG_BONE3 | FLAG_BONE4)) {
+				if (config.enable_bones_optimization)
+					VTX_EMIT("float3 WorldNormal = mul(mul(Normal, float3x3(BoneToLocal)), float3x3(ObjMatrix));");
+				else
+					VTX_EMIT("float3 WorldNormal = mul(mul(float3x3(BoneToLocal), Normal), float3x3(ObjMatrix));");
+			} else {
 				VTX_EMIT("float3 WorldNormal = (mul(float4(Normal, 0.0), ObjMatrix)).xyz;");
+			}
 		}
 	} else {
 		if (flags & (FLAG_ENVMAP | FLAG_SPHERE_ENVMAP))

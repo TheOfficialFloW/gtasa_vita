@@ -337,7 +337,7 @@ void *NVThreadGetCurrentJNIEnv(void) {
   return fake_env;
 }
 
-int GetEnvFake(void *vm, void **env, int r2) {
+int GetEnv(void *vm, void **env, int r2) {
   memset(fake_env, 'A', sizeof(fake_env));
   *(uintptr_t *)(fake_env + 0x00) = (uintptr_t)fake_env; // just point to itself...
   *(uintptr_t *)(fake_env + 0x18) = (uintptr_t)ret0; // FindClass
@@ -367,7 +367,7 @@ void jni_load(void) {
 
   memset(fake_vm, 'A', sizeof(fake_vm));
   *(uintptr_t *)(fake_vm + 0x00) = (uintptr_t)fake_vm; // just point to itself...
-  *(uintptr_t *)(fake_vm + 0x18) = (uintptr_t)GetEnvFake;
+  *(uintptr_t *)(fake_vm + 0x18) = (uintptr_t)GetEnv;
 
   int (* JNI_OnLoad)(void *vm, void *reserved) = (void *)so_find_addr("JNI_OnLoad");
   JNI_OnLoad(fake_vm, NULL);

@@ -340,9 +340,9 @@ typedef enum {
   MATRIX_TEX_ID
 } RQShaderMatrixConstantID;
 
-void *(* GetCurrentProjectionMatrix)();
-void *(* GetCurrentViewMatrix)();
-void *(* GetCurrentObjectMatrix)();
+static void *(* GetCurrentProjectionMatrix)();
+static void *(* GetCurrentViewMatrix)();
+static void *(* GetCurrentObjectMatrix)();
 
 void SetMatrixConstant(void *this, RQShaderMatrixConstantID id, float *matrix) {
   void *UniformMatrix = this + 0x4C * id;
@@ -384,6 +384,22 @@ void ES2Shader__SetMatrixConstant(void *this, RQShaderMatrixConstantID id, float
   }
 }
 
+// size of skin_map is 128 * 4 * 4 * 3 = 0x1800
+static float *skin_map;
+static int *skin_dirty;
+static int *skin_num;
+
+int emu_InternalSkinGetVectorCount(void) {
+  return 4 * *skin_num;
+}
+
+void SkinSetMatrices(void *skin, float *matrix) {
+  int num = *(int *)(skin + 4);
+  sceClibMemcpy(skin_map, matrix, 64 * num);
+  *skin_dirty = 1;
+  *skin_num = num;
+}
+
 extern void *__cxa_guard_acquire;
 extern void *__cxa_guard_release;
 
@@ -422,6 +438,14 @@ void patch_game(void) {
     uint16_t movs_r1_1 = 0x2101;
     kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x001C8064), &movs_r1_1, sizeof(movs_r1_1));
     kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x001C8082), &movs_r1_1, sizeof(movs_r1_1));
+  }
+
+  if (config.enable_bones_optimization) {
+    skin_map = (float *)so_find_addr("skin_map");
+    skin_dirty = (int *)so_find_addr("skin_dirty");
+    skin_num = (int *)so_find_addr("skin_num");
+    hook_thumb(so_find_addr("_Z30emu_InternalSkinGetVectorCountv"), (uintptr_t)emu_InternalSkinGetVectorCount);
+    hook_thumb((uintptr_t)text_base + 0x001C8670, (uintptr_t)SkinSetMatrices);
   }
 
   if (config.enable_mvp_optimization) {
