@@ -27,8 +27,8 @@ In order to properly install the game, you'll have to follow these steps precise
 * Install [GTASA.vpk](https://github.com/TheOfficialFloW/gtasa_vita/releases/download/v1.0/GTASA.vpk) on your PS Vita.
 
 ## Configurator App
-After fully installing the port, you'll be able to configure it with the Configurator app.<br>
-The Configurator app will allow users to enable or disable a set of optimizations, patches and renderer alterations to best match users taste.<br>
+After fully installing the port, you'll be able to configure it with the Configurator app.  
+The Configurator app will allow users to enable or disable a set of optimizations, patches and renderer alterations to best match users taste.  
 You can launch the Configurato app by clicking on the `Configuration` button located on the Livearea section of the port as shown in the following screenshot.
 <p align="center"><img src="./screenshots/livearea_configuration.png"></p>
 
