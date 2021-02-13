@@ -4,7 +4,7 @@
 #include <stdio.h>
 
 #define CONFIG_FILE_PATH "ux0:data/gtasa/config.txt"
-#define NUM_OPTIONS 17
+#define NUM_OPTIONS 18
 
 int _newlib_heap_size_user = 192 * 1024 * 1024;
 
@@ -47,6 +47,7 @@ bool detail_textures = false;
 bool ped_spec = false;
 bool tex_bias = true;
 bool mipmaps = true;
+bool enable_mvp_optimization = false;
 
 void loadConfig() {
 	char buffer[30];
@@ -70,6 +71,7 @@ void loadConfig() {
 			else if (strcmp("fix_map_bottleneck", buffer) == 0) fix_map_bottleneck = (bool)value;
 			else if (strcmp("use_shader_cache", buffer) == 0) use_shader_cache = (bool)value;
 			else if (strcmp("aa_mode", buffer) == 0) aa_mode = value;
+			else if (strcmp("enable_mvp_optimization", buffer) == 0) enable_mvp_optimization = (bool)value;
 			
 			else if (strcmp("skygfx_ps2_shading", buffer) == 0) skygfx_ps2_shading = (bool)value;
 			else if (strcmp("skygfx_colorfilter", buffer) == 0) skygfx_colorfilter = value;
@@ -101,6 +103,7 @@ void saveConfig()
 		fprintf(config, "%s %d\n", "fix_map_bottleneck", (int)fix_map_bottleneck);
 		fprintf(config, "%s %d\n", "use_shader_cache", (int)use_shader_cache);
 		fprintf(config, "%s %d\n", "aa_mode", aa_mode);
+		fprintf(config, "%s %d\n", "enable_mvp_optimization", (int)enable_mvp_optimization);
 		
 		fprintf(config, "%s %d\n", "skygfx_ps2_shading", (int)skygfx_ps2_shading);
 		fprintf(config, "%s %d\n", "skygfx_colorfilter", skygfx_colorfilter);
@@ -132,7 +135,8 @@ char *options_descs[NUM_OPTIONS] = {
 	"Makes compiled shaders be cached on storage for subsequent usage. When enabled, the game will stutter on very first time a shader is compiled but will make the game have more fluid gameplay later.\n\nThe default value is: Enabled.", // use_shader_cache
 	"Removes regions highlighting in the pause menu map. This will fix the performance issues during advanced stages of the game in pause menu.\n\nThe default value is: Enabled.", // fix_map_bottleneck
 	"Anti-Aliasing is a technique used to reduce graphical artifacts surrounding 3D models. Greatly improves graphics quality at the cost of some GPU power.\n\nThe default value is: MSAA 4x.", // aa_mode
-	"When enabled, Mobile build widgets and windows will be shown (eg. App rating window, cutscene skip widgets, etc...)\n\nThe default value is: Disabled." // ignore_mobile_stuff
+	"When enabled, Mobile build widgets and windows will be shown (eg. App rating window, cutscene skip widgets, etc...)\n\nThe default value is: Disabled.", // ignore_mobile_stuff
+	"Moves MVP calculation from GPU to CPU. May improve performances.\n\nThe default value is: Disabled.", // enable_mvp_optimization
 };
 
 enum {
@@ -152,7 +156,8 @@ enum {
 	OPT_SHADER_CACHE,
 	OPT_MAP_FIX,
 	OPT_ANTIALIASING,
-	OPT_MOBILE_STUFF
+	OPT_MOBILE_STUFF,
+	OPT_MVP_OPT
 };
 
 char *desc = nullptr;
@@ -275,6 +280,9 @@ int main(){
 		ImGui::Text("Map Bottleneck Fix:"); ImGui::SameLine();
 		ImGui::Checkbox("##check10", &fix_map_bottleneck);
 		SetDescription(OPT_MAP_FIX);
+		ImGui::Text("MVP Optimization:"); ImGui::SameLine();
+		ImGui::Checkbox("##check12", &enable_mvp_optimization);
+		SetDescription(OPT_MVP_OPT);
 		ImGui::PopStyleVar();
 		ImGui::Separator();
 		
