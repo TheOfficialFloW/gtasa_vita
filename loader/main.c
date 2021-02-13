@@ -371,14 +371,16 @@ void ES2Shader__SetMatrixConstant(void *this, RQShaderMatrixConstantID id, float
       matmul4_neon(ProjMatrix, mv, mvp);
 
       SetMatrixConstant(this, MATRIX_PROJ_ID, mvp);
-
-      if (forced || ((uint8_t *)ObjMatrix)[64])
-         SetMatrixConstant(this, MATRIX_OBJ_ID, ObjMatrix);
-
-      ((uint8_t *)ProjMatrix)[64] = 0;
-      ((uint8_t *)ViewMatrix)[64] = 0;
-      ((uint8_t *)ObjMatrix)[64] = 0;
     }
+
+    if (forced || ((uint8_t *)ViewMatrix)[64])
+       SetMatrixConstant(this, MATRIX_VIEW_ID, ViewMatrix);
+    if (forced || ((uint8_t *)ObjMatrix)[64])
+       SetMatrixConstant(this, MATRIX_OBJ_ID, ObjMatrix);
+
+    ((uint8_t *)ProjMatrix)[64] = 0;
+    ((uint8_t *)ViewMatrix)[64] = 0;
+    ((uint8_t *)ObjMatrix)[64] = 0;
   }
 }
 

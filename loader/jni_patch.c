@@ -22,6 +22,8 @@ enum MethodIDs {
   UNKNOWN = 0,
   INIT_EGL_AND_GLES2,
   SWAP_BUFFERS,
+  MAKE_CURRENT,
+  UN_MAKE_CURRENT,
   GET_APP_LOCAL_VALUE,
   FILE_GET_ARCHIVE_NAME,
   DELETE_FILE,
@@ -41,6 +43,8 @@ typedef struct {
 static NameToMethodID name_to_method_ids[] = {
   { "InitEGLAndGLES2", INIT_EGL_AND_GLES2 },
   { "swapBuffers", SWAP_BUFFERS },
+  { "makeCurrent", MAKE_CURRENT },
+  { "unMakeCurrent", UN_MAKE_CURRENT },
 
   { "getAppLocalValue", GET_APP_LOCAL_VALUE },
 
@@ -203,6 +207,14 @@ int InitEGLAndGLES2(void) {
   return 1;
 }
 
+int makeCurrent(void) {
+  return 1;
+}
+
+int unMakeCurrent(void) {
+  return 1;
+}
+
 char *getAppLocalValue(char *key) {
   if (strcmp(key, "STORAGE_ROOT") == 0)
     return DATA_PATH;
@@ -234,6 +246,10 @@ int CallBooleanMethodV(void *env, void *obj, int methodID, uintptr_t *args) {
       return InitEGLAndGLES2();
     case SWAP_BUFFERS:
       return swapBuffers();
+    case MAKE_CURRENT:
+      return makeCurrent();
+    case UN_MAKE_CURRENT:
+      return unMakeCurrent();
     case DELETE_FILE:
       return DeleteFile((char *)args[0]);
     default:

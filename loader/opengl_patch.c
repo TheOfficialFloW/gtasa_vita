@@ -49,14 +49,9 @@ void BuildVertexSource(int flags) {
   if (flags & FLAG_COLOR2)
     VTX_EMIT("float4 Color2,");
 
-  if (config.enable_mvp_optimization) {
-    VTX_EMIT("uniform float4x4 ProjMatrix,");
-    VTX_EMIT("uniform float4x4 ObjMatrix,");
-  } else {
-    VTX_EMIT("uniform float4x4 ProjMatrix,");
-    VTX_EMIT("uniform float4x4 ViewMatrix,");
-    VTX_EMIT("uniform float4x4 ObjMatrix,");
-  }
+  VTX_EMIT("uniform float4x4 ProjMatrix,");
+  VTX_EMIT("uniform float4x4 ViewMatrix,");
+  VTX_EMIT("uniform float4x4 ObjMatrix,");
 
   if (flags & FLAG_LIGHTING) {
     VTX_EMIT("uniform half3 AmbientLightColor,");
