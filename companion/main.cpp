@@ -32,7 +32,7 @@ char *AntiAliasingName[ANTI_ALIASING_NUM] = {
 
 int touch_x_margin = 100;
 bool use_fios2 = true;
-int io_cache_block_num = 64;
+int io_cache_block_num = 512;
 int io_cache_block_size = 65536;
 bool fix_heli_plane_camera = true;
 bool fix_skin_weights = true;
@@ -41,11 +41,11 @@ bool use_shader_cache = true;
 bool skygfx_ps2_shading = true;
 bool mobile_stuff = false;
 int skygfx_colorfilter = SKYGFX_COLOR_FILTER_PS2;
-int aa_mode = SCE_GXM_MULTISAMPLE_4X;
+int aa_mode = SCE_GXM_MULTISAMPLE_2X;
 bool skygfx_ps2_sun = true;
 bool detail_textures = false;
 bool ped_spec = false;
-bool tex_bias = true;
+bool tex_bias = false;
 bool mipmaps = true;
 bool enable_mvp_optimization = false;
 bool enable_bones_optimization = false;
@@ -123,7 +123,7 @@ void saveConfig()
 
 char *options_descs[NUM_OPTIONS] = {
 	"Enables sceFios2 usage for I/O operations. This allows to have caching on input operations reducing stuttering while in game.\nThe default value is: Enabled.", // use_fios2
-	"Number of blocks to use with sceFios2.\nThe default value is: 64.", // io_cache_block_num
+	"Number of blocks to use with sceFios2.\nThe default value is: 512.", // io_cache_block_num
 	"Size in bytes for each block used by sceFios2.\nThe default value is: 65536.", // io_cache_block_size
 	"Deadzone in pixels to use between inputs on both rearpad and touchscreen.\nThe default value is: 100.", // touch_x_margin
 	"Makes it possible to move the camera with the right stick when using a flying vehicle (Planes and helicopters).\nThe default value is: Enabled.", // fix_heli_plane_camera
@@ -131,13 +131,13 @@ char *options_descs[NUM_OPTIONS] = {
 	"Enables shading effects that resamble the PS2 build.\nThe default value is: Enabled.", // skygfx_ps2_shading
 	"Enables corona sun effect that resambles the PS2 build.\nThe default value is: Enabled.", // skygfx_ps2_sun
 	"When enabled, detail textures will be rendered.\nThe default value is: Disabled.", // disable_detail_textures
-	"When enabled, mipmaps will have more precise bias adjustments at the cost of more expensive GPU code execution.\nThe default value is: Enabled.", // disable_tex_bias
+	"When enabled, mipmaps will have more precise bias adjustments at the cost of more expensive GPU code execution.\nThe default value is: Disabled.", // disable_tex_bias
 	"When enabled, mipmaps will be used causing an higher memory usage and CPU usage but lower memory bandwidth over GPU.\nThe default value is: Enabled.", // disable_mipmaps
 	"Makes hardware accelerated skinning properly work. Fixes broken animations especially noticeable in facial animations.\nThe default value is: Enabled.", // fix_skin_weights
 	"When enabled, peds will have specular lighting reflections applied to their models.\nThe default value is: Disabled.", // disable_ped_spec
 	"Makes compiled shaders be cached on storage for subsequent usage. When enabled, the game will stutter on very first time a shader is compiled but will make the game have more fluid gameplay later.\nThe default value is: Enabled.", // use_shader_cache
 	"Removes regions highlighting in the pause menu map. This will fix the performance issues during advanced stages of the game in pause menu.\nThe default value is: Enabled.", // fix_map_bottleneck
-	"Anti-Aliasing is a technique used to reduce graphical artifacts surrounding 3D models. Greatly improves graphics quality at the cost of some GPU power.\nThe default value is: MSAA 4x.", // aa_mode
+	"Anti-Aliasing is a technique used to reduce graphical artifacts surrounding 3D models. Greatly improves graphics quality at the cost of some GPU power.\nThe default value is: MSAA 2x.", // aa_mode
 	"When enabled, Mobile build widgets and windows will be shown (eg. App rating window, cutscene skip widgets, etc...)\nThe default value is: Disabled.", // ignore_mobile_stuff
 	"Moves MVP calculation from GPU to CPU. May improve performances.\nThe default value is: Disabled.", // enable_mvp_optimization
 	"Simplify GPU code related to bones calculations by preventing CPU to transpose the related matrix.\nThe default value is: Disabled.", // enable_bones_optimization

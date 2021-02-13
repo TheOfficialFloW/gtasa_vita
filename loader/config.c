@@ -26,7 +26,7 @@ int read_config(const char *file) {
   config.enable_mvp_optimization = 0;
   config.ignore_mobile_stuff = 1;
   config.use_fios2 = 1;
-  config.io_cache_block_num = 64;
+  config.io_cache_block_num = 512;
   config.io_cache_block_size = 65536;
   config.fix_heli_plane_camera = 1;
   config.fix_skin_weights = 1;
@@ -37,9 +37,9 @@ int read_config(const char *file) {
   config.skygfx_ps2_sun = 1;
   config.disable_detail_textures = 1;
   config.disable_ped_spec = 1;
-  config.disable_tex_bias = 0;
+  config.disable_tex_bias = 1;
   config.disable_mipmaps = 0;
-  config.aa_mode = SCE_GXM_MULTISAMPLE_4X;
+  config.aa_mode = SCE_GXM_MULTISAMPLE_2X;
 
   f = fopen(file, "r");
   if (f == NULL)

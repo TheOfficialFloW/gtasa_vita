@@ -91,5 +91,7 @@ vita_create_vpk(GTASA.vpk ${VITA_TITLEID} eboot.bin
 
 add_custom_target(copy
   COMMAND cp eboot.bin E:/app/${VITA_TITLEID}/eboot.bin
+  COMMAND cp companion.bin E:/app/${VITA_TITLEID}/companion.bin
   DEPENDS eboot.bin
+  DEPENDS companion.bin
 )
