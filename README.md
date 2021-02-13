@@ -2,7 +2,7 @@
 
 <p align="center"><img src="./screenshots/game.png"></p>
 
-This is a wrapper/port of *Grand Theft Auto: San Andreas Mobile* for the *PS Vita*.
+This is a wrapper/port of *Grand Theft Auto: San Andreas Mobile* for the *PS Vita*.  
 The port works by loading the official Android executable in memory, resolving its imports with native functions and patching it in order to properly run.
 
 ## Setup Instructions (For End Users)
@@ -25,9 +25,10 @@ In order to properly install the game, you'll have to follow these steps precise
 * Extract [gamefiles.zip](https://github.com/TheOfficialFloW/gtasa_vita/releases/download/v1.0/gamefiles.zip) to `ux0:data/gtasa`.
 * **Optional**: For a more authentic console experience, copy the file `ux0:data/gtasa/data/360Default1280x720.cfg` to `ux0:data/gtasa/Adjustable.cfg`. This file is a leftover from the Xbox 360 version and provides you the console HUD (e.g. radar on bottom left).
 * Install [GTASA.vpk](https://github.com/TheOfficialFloW/gtasa_vita/releases/download/v1.0/GTASA.vpk) on your PS Vita.
+
 ## Build Instructions (For Developers)
-In order to build the loader, you'll need a [vitasdk](https://github.com/vitasdk) build fully compiled with softfp usage.
-You can find a precompiled version here: [Linux](https://github.com/vitasdk/buildscripts/suites/1824103476/artifacts/35161735) / [Windows](https://github.com/vitasdk/buildscripts/suites/1836262288/artifacts/35501612).
+In order to build the loader, you'll need a [vitasdk](https://github.com/vitasdk) build fully compiled with softfp usage.  
+You can find a precompiled version here: [Linux](https://github.com/vitasdk/buildscripts/suites/1824103476/artifacts/35161735) / [Windows](https://github.com/vitasdk/buildscripts/suites/1836262288/artifacts/35501612).  
 Additionally, you'll need these libraries to bee compiled as well with `-mfloat-abi=softfp` added to their CFLAGS:
 
 * [openal-soft](https://github.com/isage/openal-soft/tree/vita-1.19.1)
@@ -36,7 +37,7 @@ Additionally, you'll need these libraries to bee compiled as well with `-mfloat-
 * [imgui-vita](https://github.com/Rinnegatamante/imgui-vita)
 * [kubridge](https://github.com/TheOfficialFloW/kubridge)
 
-As last requirement, you'll need to compile [vitaGL](https://github.com/Rinnegatamante/vitaGL) with `make HAVE_SBRK=1 SOFTFP_ABI=1 SHARED_RENDERTARGETS=1 NO_DEBUG=1`.
+As last requirement, you'll need to compile [vitaGL](https://github.com/Rinnegatamante/vitaGL) with `make HAVE_SBRK=1 SOFTFP_ABI=1 SHARED_RENDERTARGETS=1 NO_DEBUG=1`.  
 After all these requirements are met, you can compile the loader with the following commands:
 
 ```
@@ -49,8 +50,8 @@ make
 
 - Rinnegatamante for porting the renderer using vitaGL, providing the companion app and making various improvements to the port.
 - aap for porting PS2-rendering aka skygfx.
-- Freakler for providing LiveArea asses.
-- frangarj, fgsfds and Bythos for graphics-related stuff.
+- Freakler for providing LiveArea assets.
+- frangarcj, fgsfds and Bythos for graphics-related stuff.
 - CBPS/SonicMastr for PIB, which was used on earlier stages of development.
 - isage for the native audio backend for OpenAL-Soft.
 
