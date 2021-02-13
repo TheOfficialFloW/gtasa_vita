@@ -7,11 +7,11 @@ The port works by loading the official Android executable in memory, resolving i
 
 ## Setup Instructions (For End Users)
 In order to properly install the game, you'll have to follow these steps precisely:
-* Install [kubridge](https://github.com/TheOfficialFloW/kubridge/releases/) and [FdFix](https://github.com/TheOfficialFloW/FdFix/releases/) by copying `kubridge.suprx` and `fd_fix.skprx` to your taiHEN plugins folder (usually `ux0:tai`) and adding two entries to your `config.txt` under `*KERNEL`:
+* Install [kubridge](https://github.com/TheOfficialFloW/kubridge/releases/) and [FdFix](https://github.com/TheOfficialFloW/FdFix/releases/) by copying `kubridge.skprx` and `fd_fix.skprx` to your taiHEN plugins folder (usually `ux0:tai`) and adding two entries to your `config.txt` under `*KERNEL`:
   
 ```
   *KERNEL
-  ux0:tai/kubridge.
+  ux0:tai/kubridge.skprx
   ux0:tai/fd_fix.skprx
 ```
 
@@ -29,7 +29,7 @@ In order to properly install the game, you'll have to follow these steps precise
 ## Configurator App
 After fully installing the port, you'll be able to configure it with the Configurator app.  
 The Configurator app will allow users to enable or disable a set of optimizations, patches and renderer alterations to best match users taste.  
-You can launch the Configurato app by clicking on the `Configuration` button located on the Livearea section of the port as shown in the following screenshot.
+You can launch the Configurator app by clicking on the `Configuration` button located on the Livearea section of the port as shown in the following screenshot.
 <p align="center"><img src="./screenshots/livearea_configuration.png"></p>
 
 ## Build Instructions (For Developers)
