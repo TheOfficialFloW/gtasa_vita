@@ -41,7 +41,7 @@ You can launch the Configurator app by clicking on the `Configuration` button lo
 
 ## Tips and Tricks
 
-- In order to avoid occassional stutters in-game, you can replace `ux0:data/scache_small.txt` and `ux0:data/scache_small_low.txt` with `ux0:data/scache.txt`. This will however make the loading screen longer since it needs to compile more shaders ahead.
+- In order to reduce occassional stutters in-game, you can replace `ux0:data/scache_small.txt` and `ux0:data/scache_small_low.txt` with `ux0:data/scache.txt`. This will however make the loading screen longer since it needs to compile more shaders ahead.
 
 ## Build Instructions (For Developers)
 
