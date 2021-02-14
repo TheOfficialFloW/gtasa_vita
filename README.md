@@ -2,8 +2,14 @@
 
 <p align="center"><img src="./screenshots/game.png"></p>
 
-This is a wrapper/port of *Grand Theft Auto: San Andreas Mobile* for the *PS Vita*.  
-The port works by loading the official Android executable in memory, resolving its imports with native functions and patching it in order to properly run.
+This is a wrapper/port of *Grand Theft Auto: San Andreas Android* for the *PS Vita* with lots of custom patches such as:
+
+- Fixed camera controls for flying vehicles (including the Hydra jet).
+- Fixed broken facial expressions.
+- Removed specular lighting on pedestrians.
+- Added PS2-like rendering.
+
+The port works by loading the official Android ARMv7 executable in memory, resolving its imports with native functions and patching it in order to properly run.
 
 ## Setup Instructions (For End Users)
 In order to properly install the game, you'll have to follow these steps precisely:
@@ -24,7 +30,7 @@ In order to properly install the game, you'll have to follow these steps precise
 * Extract the whole `patch.8.com.rockstargames.gtasa.obb` file to `ux0:data/gtasa`.
 * Extract [gamefiles.zip](https://github.com/TheOfficialFloW/gtasa_vita/releases/download/v1.0/gamefiles.zip) to `ux0:data/gtasa`.
 * **Optional**: For a more authentic console experience, copy the file `ux0:data/gtasa/data/360Default1280x720.cfg` to `ux0:data/gtasa/Adjustable.cfg`. This file is a leftover from the Xbox 360 version and provides you the console HUD (e.g. radar on bottom left).
-* Install [GTASA.vpk](https://github.com/TheOfficialFloW/gtasa_vita/releases/download/v1.0/GTASA.vpk) on your PS Vita.
+* Install [GTASA.vpk](https://github.com/TheOfficialFloW/gtasa_vita/releases/download/v1.0/GTASA.vpk) on your *PS Vita*.
 
 ## Configurator App
 After fully installing the port, you'll be able to configure it with the Configurator app.  
