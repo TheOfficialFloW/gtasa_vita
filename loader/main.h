@@ -9,6 +9,8 @@ int debugPrintf(char *text, ...);
 int ret0();
 int OS_SystemChip();
 
+SceUID _vshKernelSearchModuleByName(const char *, int *);
+
 extern SceTouchPanelInfo panelInfoFront, panelInfoBack;
 
 #endif

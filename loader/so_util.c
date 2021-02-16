@@ -16,6 +16,7 @@
 #include <string.h>
 
 #include "main.h"
+#include "dialog.h"
 #include "so_util.h"
 
 #include "elf.h"
@@ -213,7 +214,7 @@ int so_relocate(void) {
           }
 
           default:
-            debugPrintf("Error unknown relocation type: %x\n", type);
+            fatal_error("Error unknown relocation type %x\n", type);
             break;
         }
       }
@@ -284,7 +285,7 @@ uintptr_t so_find_addr(const char *symbol) {
       return (uintptr_t)text_base + syms[i].st_value;
   }
 
-  debugPrintf("Error could not find symbol %s\n", symbol);
+  fatal_error("Error could not find symbol %s\n", symbol);
   return 0;
 }
 
@@ -306,6 +307,6 @@ uintptr_t so_find_rel_addr(const char *symbol) {
     }
   }
 
-  debugPrintf("Error could not find symbol %s\n", symbol);
+  fatal_error("Error could not find symbol %s\n", symbol);
   return 0;
 }

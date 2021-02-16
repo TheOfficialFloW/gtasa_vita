@@ -20,6 +20,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=c++11 -Wno-write-strings")
 add_executable(GTASA
   loader/main.c
   loader/config.c
+  loader/dialog.c
   loader/so_util.c
   loader/jni_patch.c
   loader/openal_patch.c
@@ -56,6 +57,7 @@ target_link_libraries(GTASA
   SceSysmodule_stub
   ScePower_stub
   SceTouch_stub
+  SceVshBridge_stub
 )
 
 add_executable(companion

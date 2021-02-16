@@ -106,7 +106,7 @@ typedef struct SceFiosParams {
   SceFiosBuffer fhStorage;
   SceFiosBuffer dhStorage;
   SceFiosBuffer chunkStorage;
-  void *pVdebugPrintf;
+  void *pVprintf;
   void *pMemcpy;
   void *pProfileCallback;
   int threadPriority[3];

@@ -33,6 +33,7 @@
 
 #include "main.h"
 #include "config.h"
+#include "dialog.h"
 #include "so_util.h"
 #include "jni_patch.h"
 #include "openal_patch.h"
@@ -46,8 +47,9 @@ int _newlib_heap_size_user = MEMORY_MB * 1024 * 1024;
 SceTouchPanelInfo panelInfoFront, panelInfoBack;
 
 int debugPrintf(char *text, ...) {
+#ifdef DEBUG
   va_list list;
-  static char string[0x1000];
+  char string[512];
 
   va_start(list, text);
   vsprintf(string, text, list);
@@ -58,20 +60,21 @@ int debugPrintf(char *text, ...) {
     sceIoWrite(fd, string, strlen(string));
     sceIoClose(fd);
   }
-
+#endif
   return 0;
 }
 
 int __android_log_print(int prio, const char *tag, const char *fmt, ...) {
+#ifdef DEBUG
   va_list list;
-  static char string[0x1000];
+  char string[512];
 
   va_start(list, fmt);
   vsprintf(string, fmt, list);
   va_end(list);
 
   debugPrintf("%s: %s\n", tag, string);
-
+#endif
   return 0;
 }
 
@@ -899,6 +902,16 @@ static DynLibFunction dynlib_functions[] = {
   { "usleep", (uintptr_t)&usleep },
 };
 
+int check_kubridge(void) {
+  int search_unk[2];
+  return _vshKernelSearchModuleByName("kubridge", search_unk);
+}
+
+int file_exists(const char *path) {
+  SceIoStat stat;
+  return sceIoGetstat(path, &stat) >= 0;
+}
+
 int main(int argc, char *argv[]) {
   // Checking if we want to start the companion app
   sceAppUtilInit(&(SceAppUtilInitParam){}, &(SceAppUtilBootParam){});
@@ -911,6 +924,13 @@ int main(int argc, char *argv[]) {
     if (strstr(buffer, "-config"))
       sceAppMgrLoadExec("app0:/companion.bin", NULL, NULL);
   }
+
+  // Set common dialog config
+  SceCommonDialogConfigParam config_param;
+  sceCommonDialogConfigParamInit(&config_param);
+  sceAppUtilSystemParamGetInt(SCE_SYSTEM_PARAM_ID_LANG, (int *)&config_param.language);
+  sceAppUtilSystemParamGetInt(SCE_SYSTEM_PARAM_ID_ENTER_BUTTON, (int *)&config_param.enterButtonAssign);
+  sceCommonDialogSetConfigParam(&config_param);
 
   sceCtrlSetSamplingModeExt(SCE_CTRL_MODE_ANALOG_WIDE);
   sceTouchSetSamplingState(SCE_TOUCH_PORT_FRONT, SCE_TOUCH_SAMPLING_STATE_START);
@@ -926,9 +946,16 @@ int main(int argc, char *argv[]) {
   sceIoMkdir(SHADER_CACHE_PATH, 0777);
   read_config(CONFIG_PATH);
 
-  stderr_fake = stderr;
+  if (check_kubridge() < 0)
+    fatal_error("Error kubridge.skprx is not installed.");
 
-  so_load(SO_PATH);
+  if (!file_exists("ur0:/data/libshacccg.suprx"))
+    fatal_error("Error libshacccg.suprx is not installed.");
+
+  if (so_load(SO_PATH) < 0)
+    fatal_error("Error could not load %s.", SO_PATH);
+
+  stderr_fake = stderr;
   so_relocate();
   so_resolve(dynlib_functions, sizeof(dynlib_functions) / sizeof(DynLibFunction), 1);
 
@@ -943,7 +970,8 @@ int main(int argc, char *argv[]) {
   so_execute_init_array();
   so_free_temp();
 
-  fios_init();
+  if (fios_init() < 0)
+    fatal_error("Error could not initialize fios.");
 
   vglSetupRuntimeShaderCompiler(SHARK_OPT_UNSAFE, SHARK_ENABLE, SHARK_ENABLE, SHARK_ENABLE);
   vglInitExtended(0, SCREEN_W, SCREEN_H, 16 * 1024 * 1024, config.aa_mode);
