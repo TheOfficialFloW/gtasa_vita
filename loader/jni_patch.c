@@ -90,6 +90,9 @@ int GetGamepadType(void) {
 }
 
 int GetGamepadButtons(void) {
+  if (input_cheat)
+    return 0;
+
   int mask = 0;
 
   SceCtrlData pad;
@@ -145,6 +148,9 @@ int GetGamepadButtons(void) {
 }
 
 float GetGamepadAxis(int a0, int axis) {
+  if (input_cheat)
+    return 0.0f;
+
   SceCtrlData pad;
   sceCtrlPeekBufferPositiveExt2(0, &pad, 1);
 

@@ -6,6 +6,7 @@ This is a wrapper/port of *Grand Theft Auto: San Andreas Android* for the *PS Vi
 
 - Fixed camera controls for flying vehicles (including the Hydra jet).
 - Fixed broken facial expressions.
+- Fixed cheats hash key table.
 - Removed specular lighting on pedestrians.
 - Added PS2-like rendering.
 
@@ -42,6 +43,7 @@ You can launch the Configurator app by clicking on the `Configuration` button lo
 ## Tips and Tricks
 
 - In order to reduce occassional stutters in-game, you can replace `ux0:data/scache_small.txt` and `ux0:data/scache_small_low.txt` with `ux0:data/scache.txt`. This will however make the loading screen longer since it needs to compile more shaders ahead.
+- You can input PC cheats by pressing L+SELECT to open the on-screen keyboard. See https://gtagmodding.com/sanandreas/cheats/ for the full list of cheats. Note that a few cheats have been removed from the Android version.
 
 ## Build Instructions (For Developers)
 
