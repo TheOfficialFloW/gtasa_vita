@@ -198,7 +198,7 @@ float GetGamepadAxis(int a0, int axis) {
 }
 
 int swapBuffers(void) {
-  vglSwapBuffers(GL_FALSE);
+  vglSwapBuffers(input_cheat ? GL_TRUE : GL_FALSE);
   return 1;
 }
 

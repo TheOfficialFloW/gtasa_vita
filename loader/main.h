@@ -11,6 +11,8 @@ int OS_SystemChip();
 
 SceUID _vshKernelSearchModuleByName(const char *, int *);
 
+extern int input_cheat;
+
 extern SceTouchPanelInfo panelInfoFront, panelInfoBack;
 
 #endif

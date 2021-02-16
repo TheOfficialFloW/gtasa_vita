@@ -104,10 +104,6 @@ int OS_ScreenGetWidth(void) {
   return SCREEN_W;
 }
 
-int ProcessEvents(void) {
-  return 0; // 1 is exit!
-}
-
 // only used for NVEventAppMain
 int pthread_create_fake(int r0, int r1, int r2, void *arg) {
   int (* func)() = *(void **)(arg + 4);
@@ -403,6 +399,36 @@ void SkinSetMatrices(void *skin, float *matrix) {
   *skin_num = num;
 }
 
+static void (* CCheat__AddToCheatString)(char c);
+
+char *input_keyboard = NULL;
+int input_cheat = 0;
+
+void CCheat__DoCheats(void) {
+  if (input_keyboard) {
+    for (int i = 0; input_keyboard[i]; i++)
+      CCheat__AddToCheatString(input_keyboard[i]);
+    input_keyboard = NULL;
+  }
+}
+
+int ProcessEvents(void) {
+  if (!input_cheat) {
+    SceCtrlData pad;
+    sceCtrlPeekBufferPositiveExt2(0, &pad, 1);
+    if ((pad.buttons & SCE_CTRL_L1) && (pad.buttons & SCE_CTRL_SELECT)) {
+      init_ime_dialog("Insert cheat code", "");
+      input_cheat = 1;
+    }
+  } else {
+    input_keyboard = get_ime_dialog_result();
+    if (input_keyboard)
+      input_cheat = 0;
+  }
+
+  return 0; // 1 is exit!
+}
+
 extern void *__cxa_guard_acquire;
 extern void *__cxa_guard_release;
 
@@ -502,6 +528,10 @@ void patch_game(void) {
   // no adjustable
   hook_thumb(so_find_addr("_ZN14CAdjustableHUD10SaveToDiskEv"), (uintptr_t)ret0);
   hook_thumb(so_find_addr("_ZN15CTouchInterface27RepositionAdjustableWidgetsEv"), (uintptr_t)ret0);
+
+  // cheats support
+  CCheat__AddToCheatString = (void *)so_find_addr("_ZN6CCheat16AddToCheatStringEc");
+  hook_thumb(so_find_addr("_ZN6CCheat8DoCheatsEv"), (uintptr_t)CCheat__DoCheats);
 }
 
 void glTexImage2DHook(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const void * data) {
