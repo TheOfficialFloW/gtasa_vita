@@ -407,7 +407,7 @@ int input_cheat = 0;
 void CCheat__DoCheats(void) {
   if (input_keyboard) {
     for (int i = 0; input_keyboard[i]; i++)
-      CCheat__AddToCheatString(input_keyboard[i]);
+      CCheat__AddToCheatString(toupper(input_keyboard[i]));
     input_keyboard = NULL;
   }
 }
