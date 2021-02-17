@@ -39,6 +39,7 @@ The `ux0:data/gtasa` folder should contain all the files and directories as show
 <p align="center"><img src="./screenshots/layout.png"></p>
 
 ## Configurator App
+
 After fully installing the port, you'll be able to configure it with the Configurator app.  
 The Configurator app will allow users to enable or disable a set of optimizations, patches and renderer alterations to best match users taste.  
 You can launch the Configurator app by clicking on the `Configuration` button located on the LiveArea section of the port as shown in the following screenshot.
@@ -48,7 +49,7 @@ You can launch the Configurator app by clicking on the `Configuration` button lo
 ## Tips and Tricks
 
 - In order to reduce occasional stutters in-game, you can replace `ux0:data/scache_small.txt` and `ux0:data/scache_small_low.txt` with `ux0:data/scache.txt`. This will however make the loading screen longer since it needs to compile more shaders ahead.
-- You can input PC cheats by pressing L+SELECT to open the on-screen keyboard. See https://gtagmodding.com/sanandreas/cheats/ for the full list of cheats. Note that a few cheats have been removed from the Android version.
+- You can input PC cheats by pressing L+SELECT to open the on-screen keyboard. See https://gtagmodding.com/sanandreas/cheats/ for the full list of cheats (you can input cheat codes in lowercase as well as uppercase). Note that a few cheats have been removed from the Android version.
 - The L2/R2 buttons are mapped to the rear touchpad on the top and the L3/R3 buttons are mapped to the front touchpad on the bottom.
 
 ## Build Instructions (For Developers)
