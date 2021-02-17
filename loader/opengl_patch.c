@@ -440,81 +440,9 @@ void BuildPixelSource(int flags) {
   PXL_EMIT("}");
 }
 
-void (* _Z16BuildPixelSourcej)(int flags);
-void (* _Z17BuildVertexSourcej)(int flags);
-void (* _Z16OutputShaderCodePKc)(char *code);
-
-char **pxlbuf_orig, **vtxbuf_orig;
-
-int counter = 0;
-
-void OutputShaderCode(const char *a1)
-{
-  const char *v1; // r6
-  int v2; // r0
-  signed int v3; // r1
-  int v4; // r11
-  const char *v5; // r1
-  int v6; // r4
-  signed int v7; // r0
-  const char *v8; // r4
-  const char *i; // r5
-  signed int v10; // r1
-  int v11; // zf
-  static char v13[8192]; // [sp+0h] [bp-220h]
-
-  v1 = a1;
-  v2 = 0;
-LABEL_9:
-  v8 = v1;
-  for ( i = v1; ; ++i )
-  {
-    v10 = *(unsigned char *)i;
-    if ( v10 <= 'z' )
-      break;
-    v11 = v10 == '{';
-    if ( v10 != '{' )
-      v11 = v10 == '}';
-    if ( v11 )
-    {
-LABEL_2:
-      v11 = v10 == '}';
-      v3 = 0;
-      if ( !v11 )
-        v3 = 1;
-      v4 = v2 & v3;
-      v11 = (v2 & v3) == 0;
-      v5 = "\n";
-      if ( !v11 )
-        v5 = "\n    ";
-      strcpy(v13, v5);
-      v1 = i + 1;
-      strncat(v13, v8, i + 1 - v8);
-      v6 = *(unsigned char *)i;
-      debugPrintf(v13);
-      v7 = 0;
-      if ( v6 == '{' )
-        v7 = 1;
-      v2 = v7 | v4;
-      goto LABEL_9;
-    }
-LABEL_10:
-    ;
-  }
-  if ( *i )
-  {
-    if ( v10 == ';' )
-      goto LABEL_2;
-    goto LABEL_10;
-  }
-}
-
 int RQShader__BuildSource(int flags, char **pxlsrc, char **vtxsrc) {
   pxlbuf[0] = '\0';
   vtxbuf[0] = '\0';
-
-  // *pxlbuf_orig = '\0';
-  // *vtxbuf_orig = '\0';
 
   if (config.skygfx_ps2_shading) {
     BuildPixelSource_SkyGfx(flags);
@@ -523,29 +451,6 @@ int RQShader__BuildSource(int flags, char **pxlsrc, char **vtxsrc) {
     BuildPixelSource(flags);
     BuildVertexSource(flags);
   }
-
-  // _Z16BuildPixelSourcej(flags);
-  // _Z17BuildVertexSourcej(flags);
-
-  // debugPrintf("======== INFO: COUNT: %d, FLAGS: 0x%08x ========\n", counter, flags);
-
-  // debugPrintf("======== ORIG PIXEL SOURCE ========\n");
-  // OutputShaderCode(pxlbuf_orig);
-  // debugPrintf("\n");
-
-  // debugPrintf("======== VITA PIXEL SOURCE ========\n");
-  // OutputShaderCode(pxlbuf);
-  // debugPrintf("\n");
-
-  // debugPrintf("======== ORIG VERTEX SOURCE ========\n");
-  // OutputShaderCode(vtxbuf_orig);
-  // debugPrintf("\n");
-
-  // debugPrintf("======== VITA VERTEX SOURCE ========\n");
-  // OutputShaderCode(vtxbuf);
-  // debugPrintf("\n");
-
-  // counter++;
 
   *pxlsrc = pxlbuf;
   *vtxsrc = vtxbuf;
@@ -691,13 +596,6 @@ void main(
 )";
 
 void patch_opengl(void) {
-  pxlbuf_orig = (char **)(text_base + 0x006B8BE8);
-  vtxbuf_orig = (char **)(text_base + 0x006BABE9);
-
-  _Z16BuildPixelSourcej = (void *)so_find_addr("_Z16BuildPixelSourcej");
-  _Z17BuildVertexSourcej = (void *)so_find_addr("_Z17BuildVertexSourcej");
-  _Z16OutputShaderCodePKc = (void *)so_find_addr("_Z16OutputShaderCodePKc");
-
   *(char **)so_find_addr("shadowResolvePShader") = shadowResolvePShader;
   *(char **)so_find_addr("blurPShader") = blurPShader;
   *(char **)so_find_addr("gradingPShader") = gradingPShader;
