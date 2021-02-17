@@ -50,7 +50,7 @@ You can launch the Configurator app by clicking on the `Configuration` button lo
 
 ## Tips and Tricks
 
-- In order to reduce occasional stutters in-game, create another version of the `ux0:data/gtasa/scache.txt` file to have two version of it. (for exemple `scache.txt` and `scache(1).txt`) , then rename `scache.txt` to `scache_small.txt` and `scache(1).txt` to `scache_small_low.txt` and replace both `ux0:data/gtasa/scache_small_low.txt` and `ux0:data/gtasa/scache_small.txt` with them. This will however make the loading screen longer since it needs to compile more shaders ahead.
+- In order to reduce occasional stutters in-game, create a copy of the `ux0:data/gtasa/scache.txt` file to have two version of it. (for exemple `scache(1).txt` so in the end you end up with both `scache.txt` and `scache(1).txt`), then rename `scache.txt` to `scache_small.txt` and `scache(1).txt` to `scache_small_low.txt` and replace both `ux0:data/gtasa/scache_small_low.txt` and `ux0:data/gtasa/scache_small.txt` with them. This will however make the loading screen longer since it needs to compile more shaders ahead.
 - You can input PC cheats by pressing L+SELECT to open the on-screen keyboard. See https://gtagmodding.com/sanandreas/cheats/ for the full list of cheats (you can input cheat codes in lowercase as well as uppercase). Note that a few cheats have been removed from the Android version.
 - The L2/R2 buttons are mapped to the rear touchpad on the top and the L3/R3 buttons are mapped to the front touchpad on the bottom.
 
