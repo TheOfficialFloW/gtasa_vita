@@ -28,8 +28,8 @@ In order to properly install the game, you'll have to follow these steps precise
 - Obtain your copy of *Grand Theft Auto: San Andreas v2.00* legally (`com.rockstargames.gtasager` is not supported!) for Android in form of an `.apk` file and one or more `.obb` files (usually `main.8.com.rockstargames.gtasa.obb` and `patch.8.com.rockstargames.gtasa.obb` located in `/sdcard/android/obb/com.rockstargames.gtasa`). [You can get all the required files directly from your phone](https://stackoverflow.com/questions/11012976/how-do-i-get-the-apk-of-an-installed-app-without-root-access) and they can be extracted with whatever Zip extractor you prefer (eg: WinZip, WinRar, etc...).
 - Extract the `assets` folder from your `.apk` file to `ux0:data` and rename it to `gtasa`.
 - Extract the file `libGTASA.so` from the `lib/armeabi-v7a` folder inside your `.apk` file to `ux0:data/gtasa`.
-- Extract the whole `main.8.com.rockstargames.gtasa.obb` file to `ux0:data/gtasa`.
-- Extract the whole `patch.8.com.rockstargames.gtasa.obb` file to `ux0:data/gtasa`.
+- Extract the the contents of `main.8.com.rockstargames.gtasa.obb` file to `ux0:data/gtasa`.
+- Extract the the contents of `patch.8.com.rockstargames.gtasa.obb` file to `ux0:data/gtasa`.
 - Extract [gamefiles.zip](https://github.com/TheOfficialFloW/gtasa_vita/releases/download/v1.0/gamefiles.zip) to `ux0:data/gtasa`.
 - **Optional**: For a more authentic console experience, copy the file `ux0:data/gtasa/data/360Default1280x720.cfg` to `ux0:data/gtasa/Adjustable.cfg`. This file is a leftover from the Xbox 360 version and provides you the console HUD (e.g. radar on bottom left).
 - Install [GTASA.vpk](https://github.com/TheOfficialFloW/gtasa_vita/releases/download/v1.0/GTASA.vpk) on your *PS Vita*.
