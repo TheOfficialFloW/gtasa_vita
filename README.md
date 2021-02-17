@@ -64,7 +64,7 @@ Additionally, you'll need these libraries to bee compiled as well with `-mfloat-
 - [imgui-vita](https://github.com/Rinnegatamante/imgui-vita)
 - [kubridge](https://github.com/TheOfficialFloW/kubridge)
 
-As last requirement, you'll need to compile [vitaGL](https://github.com/Rinnegatamante/vitaGL) with `make HAVE_SBRK=1 HAVE_SHARK=1 SOFTFP_ABI=1 SHARED_RENDERTARGETS=1 NO_DEBUG=1 install`.  
+As last requirement, you'll need to compile [vitaGL](https://github.com/Rinnegatamante/vitaGL) with `make HAVE_SBRK=1 SOFTFP_ABI=1 SHARED_RENDERTARGETS=1 NO_DEBUG=1 install`.  
 After all these requirements are met, you can compile the loader with the following commands:
 
 ```
