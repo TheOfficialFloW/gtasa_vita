@@ -25,16 +25,16 @@ In order to properly install the game, you'll have to follow these steps precise
 
 - **Optional**: Install [PSVshell](https://github.com/Electry/PSVshell/releases) to overclock your device to 500Mhz.
 - Install `libshacccg.suprx`, if you don't have it already, by following [this guide](https://samilops2.gitbook.io/vita-troubleshooting-guide/shader-compiler/extract-libshacccg.suprx).
-- Obtain your copy of *Grand Theft Auto: San Andreas v2.00* legally (`com.rockstargames.gtasager` is not supported!) for Android in form of an `.apk` file and one or more `.obb` files (usually `main.8.com.rockstargames.gtasa.obb` and `patch.8.com.rockstargames.gtasa.obb` located in `/sdcard/android/obb/com.rockstargames.gtasa`). [You can get all the required files directly from your phone](https://stackoverflow.com/questions/11012976/how-do-i-get-the-apk-of-an-installed-app-without-root-access) and they can be extracted with whatever Zip extractor you prefer (eg: WinZip, WinRar, etc...).
-- Extract the `assets` folder from your `.apk` file to `ux0:data` and rename it to `gtasa`.
-- Extract the file `libGTASA.so` from the `lib/armeabi-v7a` folder inside your `.apk` file to `ux0:data/gtasa`.
-- Extract the the contents of `main.8.com.rockstargames.gtasa.obb` file to `ux0:data/gtasa`.
-- Extract the the contents of `patch.8.com.rockstargames.gtasa.obb` file to `ux0:data/gtasa`.
-- Extract [gamefiles.zip](https://github.com/TheOfficialFloW/gtasa_vita/releases/download/v1.0/gamefiles.zip) to `ux0:data/gtasa`.
-- **Optional**: For a more authentic console experience, copy the file `ux0:data/gtasa/data/360Default1280x720.cfg` to `ux0:data/gtasa/Adjustable.cfg`. This file is a leftover from the Xbox 360 version and provides you the console HUD (e.g. radar on bottom left).
+- Obtain your copy of *Grand Theft Auto: San Andreas v2.00* legally (`com.rockstargames.gtasager` is not supported!) for Android in form of an `.apk` file and one or more `.obb` files (usually `main.8.com.rockstargames.gtasa.obb` and `patch.8.com.rockstargames.gtasa.obb` located in `/sdcard/android/obb/com.rockstargames.gtasa`). [You can get all the required files directly from your phone](https://stackoverflow.com/questions/11012976/how-do-i-get-the-apk-of-an-installed-app-without-root-access) and they can be extracted with whatever Zip extractor you prefer (eg: WinZip, WinRar, etc...) since apk is basically a zip file.
+- Open the apk with your zip explorer, extract the `assets` folder from your `.apk` file to `ux0:data` and rename it to `gtasa`. The result would be `ux0:data/gtasa/`
+- Still in the apk, extract the file `libGTASA.so` from the `lib/armeabi-v7a` folder to `ux0:data/gtasa`. 
+- Open the `main.8.com.rockstargames.gtasa.obb` with your zip explorer (`.obb` files are just zip files like `.apk` files) and extract the content to `ux0:data/gtasa`.
+- Same as before, open the `patch.8.com.rockstargames.gtasa.obb` with the zip explorer and extract the content inside the zip to `ux0:data/gtasa`.
+- Download the [gamefiles.zip](https://github.com/TheOfficialFloW/gtasa_vita/releases/download/v1.0/gamefiles.zip) and extract the content to `ux0:data/gtasa`.
+- **Optional**: For a more authentic console experience, copy the file `ux0:data/gtasa/data/360Default1280x720.cfg` to `ux0:data/gtasa/` and rename it from `360Default1280x720.cfg` to `Adjustable.cfg`. This file is a leftover from the Xbox 360 version and provides you the console HUD (e.g. radar on bottom left).
 - Install [GTASA.vpk](https://github.com/TheOfficialFloW/gtasa_vita/releases/download/v1.0/GTASA.vpk) on your *PS Vita*.
 
-The `ux0:data/gtasa` folder should contain all the files and directories as shown below.
+If you followed the steps correctly, this is how your `ux0:data/gtasa` folder should looks like.
 
 <p align="center"><img src="./screenshots/layout.png"></p>
 
@@ -48,7 +48,7 @@ You can launch the Configurator app by clicking on the `Configuration` button lo
 
 ## Tips and Tricks
 
-- In order to reduce occasional stutters in-game, you can replace `ux0:data/scache_small.txt` and `ux0:data/scache_small_low.txt` with `ux0:data/scache.txt`. This will however make the loading screen longer since it needs to compile more shaders ahead.
+- In order to reduce occasional stutters in-game, create another version of the `ux0:data/scache.txt` file to have two version of it. (for exemple `scache.txt` and `scache(1).txt`) , then rename `scache.txt` to `scache_small.txt` and `scache(1).txt` to `scache_small_low.txt` and replace both `ux0:data/scache_small_low.txt` and `ux0:data/scache_small.txt` with them. This will however make the loading screen longer since it needs to compile more shaders ahead.
 - You can input PC cheats by pressing L+SELECT to open the on-screen keyboard. See https://gtagmodding.com/sanandreas/cheats/ for the full list of cheats (you can input cheat codes in lowercase as well as uppercase). Note that a few cheats have been removed from the Android version.
 - The L2/R2 buttons are mapped to the rear touchpad on the top and the L3/R3 buttons are mapped to the front touchpad on the bottom.
 
