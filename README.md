@@ -34,16 +34,22 @@ In order to properly install the game, you'll have to follow these steps precise
 - **Optional**: For a more authentic console experience, copy the file `ux0:data/gtasa/data/360Default1280x720.cfg` to `ux0:data/gtasa/Adjustable.cfg`. This file is a leftover from the Xbox 360 version and provides you the console HUD (e.g. radar on bottom left).
 - Install [GTASA.vpk](https://github.com/TheOfficialFloW/gtasa_vita/releases/download/v1.0/GTASA.vpk) on your *PS Vita*.
 
+The `ux0:data/gtasa` folder should contain all the files and directories as shown below.
+
+<p align="center"><img src="./screenshots/layout.png"></p>
+
 ## Configurator App
 After fully installing the port, you'll be able to configure it with the Configurator app.  
 The Configurator app will allow users to enable or disable a set of optimizations, patches and renderer alterations to best match users taste.  
-You can launch the Configurator app by clicking on the `Configuration` button located on the Livearea section of the port as shown in the following screenshot.
+You can launch the Configurator app by clicking on the `Configuration` button located on the LiveArea section of the port as shown in the following screenshot.
+
 <p align="center"><img src="./screenshots/livearea_configuration.png"></p>
 
 ## Tips and Tricks
 
-- In order to reduce occassional stutters in-game, you can replace `ux0:data/scache_small.txt` and `ux0:data/scache_small_low.txt` with `ux0:data/scache.txt`. This will however make the loading screen longer since it needs to compile more shaders ahead.
+- In order to reduce occasional stutters in-game, you can replace `ux0:data/scache_small.txt` and `ux0:data/scache_small_low.txt` with `ux0:data/scache.txt`. This will however make the loading screen longer since it needs to compile more shaders ahead.
 - You can input PC cheats by pressing L+SELECT to open the on-screen keyboard. See https://gtagmodding.com/sanandreas/cheats/ for the full list of cheats. Note that a few cheats have been removed from the Android version.
+- The L2/R2 buttons are mapped to the rear touchpad on the top and the L3/R3 buttons are mapped to the front touchpad on the bottom.
 
 ## Build Instructions (For Developers)
 
@@ -57,7 +63,7 @@ Additionally, you'll need these libraries to bee compiled as well with `-mfloat-
 - [imgui-vita](https://github.com/Rinnegatamante/imgui-vita)
 - [kubridge](https://github.com/TheOfficialFloW/kubridge)
 
-As last requirement, you'll need to compile [vitaGL](https://github.com/Rinnegatamante/vitaGL) with `make HAVE_SBRK=1 HAVE_SHARK=1 SOFTFP_ABI=1 SHARED_RENDERTARGETS=1 NO_DEBUG=1`.  
+As last requirement, you'll need to compile [vitaGL](https://github.com/Rinnegatamante/vitaGL) with `make HAVE_SBRK=1 HAVE_SHARK=1 SOFTFP_ABI=1 SHARED_RENDERTARGETS=1 NO_DEBUG=1 install`.  
 After all these requirements are met, you can compile the loader with the following commands:
 
 ```
