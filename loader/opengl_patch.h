@@ -67,6 +67,8 @@ typedef struct {
   char hasBinningControlCap;               // 0x0A
   // Checks for GL_QCOM_alpha_test
   char hasAlphaTestCap;                    // 0x0B
+  // Checks for Adreno (TM) 320 or GL_AMD_compressed_ATC_texture
+  char isAdreno;                           // 0x0C
   // Set when there is no compression support
   char isMaliChip;                         // 0x0D
   // Checks for 225 or 540
