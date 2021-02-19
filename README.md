@@ -61,7 +61,7 @@ You can launch the Configurator app by clicking on the `Configuration` button lo
 
 In order to build the loader, you'll need a [vitasdk](https://github.com/vitasdk) build fully compiled with softfp usage.  
 You can find a precompiled version here: [Linux](https://github.com/vitasdk/buildscripts/suites/1824103476/artifacts/35161735) / [Windows](https://github.com/vitasdk/buildscripts/suites/1836262288/artifacts/35501612).  
-Additionally, you'll need these libraries to bee compiled as well with `-mfloat-abi=softfp` added to their CFLAGS:
+Additionally, you'll need these libraries to be compiled as well with `-mfloat-abi=softfp` added to their CFLAGS:
 
 - [openal-soft](https://github.com/isage/openal-soft/tree/vita-1.19.1)
 - [libmathneon](https://github.com/Rinnegatamante/math-neon)
