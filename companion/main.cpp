@@ -4,7 +4,7 @@
 #include <stdio.h>
 
 #define CONFIG_FILE_PATH "ux0:data/gtasa/config.txt"
-#define NUM_OPTIONS 16
+#define NUM_OPTIONS 17
 
 int _newlib_heap_size_user = 192 * 1024 * 1024;
 
@@ -32,6 +32,7 @@ char *AntiAliasingName[ANTI_ALIASING_NUM] = {
 
 int touch_x_margin = 100;
 bool fix_heli_plane_camera = true;
+bool front_touch_triggers = false;
 bool fix_skin_weights = true;
 bool fix_map_bottleneck = true;
 bool use_shader_cache = true;
@@ -57,6 +58,7 @@ void loadConfig() {
     while (EOF != fscanf(config, "%[^ ] %d\n", buffer, &value)) {
       if (strcmp("touch_x_margin", buffer) == 0) touch_x_margin = value;
       else if (strcmp("fix_heli_plane_camera", buffer) == 0) fix_heli_plane_camera = (bool)value;
+      else if (strcmp("front_touch_triggers", buffer) == 0) front_touch_triggers = (bool)value;
       else if (strcmp("ignore_mobile_stuff", buffer) == 0) mobile_stuff = value ? false : true;
 
       else if (strcmp("fix_skin_weights", buffer) == 0) fix_skin_weights = (bool)value;
@@ -85,6 +87,7 @@ void saveConfig() {
   if (config) {
     fprintf(config, "%s %d\n", "touch_x_margin", touch_x_margin);
     fprintf(config, "%s %d\n", "fix_heli_plane_camera", (int)fix_heli_plane_camera);
+    fprintf(config, "%s %d\n", "front_touch_triggers", (int)front_touch_triggers);
     fprintf(config, "%s %d\n", "ignore_mobile_stuff", mobile_stuff ? false : true);
 
     fprintf(config, "%s %d\n", "fix_skin_weights", (int)fix_skin_weights);
@@ -110,6 +113,7 @@ void saveConfig() {
 char *options_descs[NUM_OPTIONS] = {
   "Deadzone in pixels to use between inputs on both rearpad and touchscreen.\nThe default value is: 100.", // touch_x_margin
   "Makes it possible to move the camera with the right stick when using a flying vehicle (Planes and helicopters).\nThe default value is: Enabled.", // fix_heli_plane_camera
+  "When enabled, L2/R2 will be mapped to the top of the front touchpad instead of the rear.\nThe default value is: Disabled.", // front_touch_triggers
   "Select the desired post processing effect filter to apply to the 3D rendering.\nThe default value is: PS2.", // skygfx_colorfilter
   "Enables shading effects that resamble the PS2 build.\nThe default value is: Enabled.", // skygfx_ps2_shading
   "Enables corona sun effect that resambles the PS2 build.\nThe default value is: Enabled.", // skygfx_ps2_sun
@@ -129,6 +133,7 @@ char *options_descs[NUM_OPTIONS] = {
 enum {
   OPT_DEADZONE,
   OPT_FLYING_VEHICLES_FIX,
+  OPT_FRONT_TOUCH_TRIGGERS,
   OPT_COLOR_FILTER,
   OPT_PS2_SHADING,
   OPT_PS2_SUN,
@@ -183,6 +188,9 @@ int main(int argc, char *argv[]) {
     ImGui::Text("Flying Vehicles Camera Fix:"); ImGui::SameLine();
     ImGui::Checkbox("##check1", &fix_heli_plane_camera);
     SetDescription(OPT_FLYING_VEHICLES_FIX);
+    ImGui::Text("Front Touchpad L2/R2:"); ImGui::SameLine();
+    ImGui::Checkbox("##check14", &front_touch_triggers); 
+    SetDescription(OPT_FRONT_TOUCH_TRIGGERS);
     ImGui::Separator();
     ImGui::PopStyleVar();
 
