@@ -3,7 +3,7 @@
 
 // #define DEBUG
 
-#define LOAD_ADDRESS 0x98000000
+// #define LOAD_ADDRESS 0x98000000
 
 #define MEMORY_MB 240
 

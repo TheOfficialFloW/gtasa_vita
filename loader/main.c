@@ -590,6 +590,9 @@ void patch_game(void) {
   CCheat__AddToCheatString = (void *)so_find_addr("_ZN6CCheat16AddToCheatStringEc");
   kuKernelCpuUnrestrictedMemcpy((void *)so_find_addr("_ZN6CCheat16m_aCheatHashKeysE"), CCheat__m_aCheatHashKeys, sizeof(CCheat__m_aCheatHashKeys));
   hook_thumb(so_find_addr("_ZN6CCheat8DoCheatsEv"), (uintptr_t)CCheat__DoCheats);
+
+  // use xbox360 mapping
+  hook_thumb(so_find_addr("_ZN15CHIDJoystickPS3C2EPKc"), so_find_addr("_ZN19CHIDJoystickXbox360C2EPKc"));
 }
 
 void glTexImage2DHook(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const void * data) {
