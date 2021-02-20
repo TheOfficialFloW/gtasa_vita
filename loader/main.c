@@ -490,6 +490,10 @@ int ProcessEvents(void) {
   return 0; // 1 is exit!
 }
 
+int MainMenuScreen__OnExit(void) {
+  return sceKernelExitProcess(0);
+}
+
 extern void *__cxa_guard_acquire;
 extern void *__cxa_guard_release;
 
@@ -563,6 +567,12 @@ void patch_game(void) {
 
     // Ignore app rating popup
     hook_thumb(so_find_addr("_Z12Menu_ShowNagv"), (uintptr_t)ret0);
+
+    // Ignore items in the controls menu
+    kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x0029E4AE), &nop32, sizeof(nop32));
+    kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x0029E4E6), &nop32, sizeof(nop32));
+    kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x0029E50A), &nop32, sizeof(nop32));
+    kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x0029E530), &nop32, sizeof(nop32));
   }
 
   hook_thumb(so_find_addr("__cxa_guard_acquire"), (uintptr_t)&__cxa_guard_acquire);
@@ -597,6 +607,9 @@ void patch_game(void) {
 
   // use xbox360 mapping
   hook_thumb(so_find_addr("_ZN15CHIDJoystickPS3C2EPKc"), so_find_addr("_ZN19CHIDJoystickXbox360C2EPKc"));
+
+  // support graceful exit
+  hook_thumb(so_find_addr("_ZN14MainMenuScreen6OnExitEv"), (uintptr_t)MainMenuScreen__OnExit);
 }
 
 void glTexImage2DHook(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const void * data) {
