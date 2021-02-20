@@ -1,0 +1,35 @@
+modules:
+  SceLibcBridge:
+    nid: 0x43FBA801
+    libraries:
+      SceLibc:
+        kernel: false
+        nid: 0xBE43BB07
+        functions:
+          sceLibcBridge___cxa_guard_acquire: 0xD0310E31
+          sceLibcBridge___cxa_guard_release: 0x4ED1056F
+          sceLibcBridge_rand: 0xC0883865
+          sceLibcBridge_srand: 0x3AAD41B0
+          sceLibcBridge_qsort: 0xA7CBE4A6
+          sceLibcBridge_sscanf: 0xEC585241
+          sceLibcBridge_calloc: 0xE7EC3D0B
+          sceLibcBridge_free: 0x5B9BB802
+          sceLibcBridge_malloc: 0x775A0CB2
+          sceLibcBridge_memalign: 0xA9363E6B
+          sceLibcBridge_realloc: 0x006B54BA
+          sceLibcBridge_fclose: 0xEC97321C
+          sceLibcBridge_feof: 0xBF96AD71
+          sceLibcBridge_ferror: 0xB724BFC1
+          sceLibcBridge_fopen: 0xFFFBE239
+          sceLibcBridge_fread: 0xB31C73A9
+          sceLibcBridge_fseek: 0xC3A7CDE1
+          sceLibcBridge_ftell: 0x41C2AF95
+          sceLibcBridge_fwrite: 0x8BCDCC4E
+      SceLibstdcxx:
+        kernel: false
+        nid: 0xF7629240
+        functions:
+          sceLibcBridge__ZdaPv: 0x91B0DC47
+          sceLibcBridge__ZdlPv: 0x72293931
+          sceLibcBridge__Znaj: 0xE7FB2BF4
+          sceLibcBridge__Znwj: 0xF99ED5AC

@@ -21,11 +21,11 @@ add_executable(GTASA
   loader/main.c
   loader/config.c
   loader/dialog.c
+  loader/fios.c
   loader/so_util.c
   loader/jni_patch.c
   loader/openal_patch.c
   loader/opengl_patch.c
-  loader/io_patch.c
   loader/gfx_patch.c
   loader/sha1.c
 )
@@ -42,6 +42,7 @@ target_link_libraries(GTASA
   vitaGL
   vitashark
   mathneon
+  taihen_stub
   kubridge_stub
   SceAppMgr_stub
   SceAppUtil_stub
@@ -52,6 +53,7 @@ target_link_libraries(GTASA
   SceDisplay_stub
   SceFios2_stub
   SceGxm_stub
+  SceLibcBridge_stub
   SceHid_stub
   SceShaccCg_stub
   SceSysmodule_stub

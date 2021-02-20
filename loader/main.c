@@ -11,6 +11,7 @@
 #include <psp2/kernel/threadmgr.h>
 #include <psp2/power.h>
 #include <psp2/touch.h>
+#include <taihen.h>
 #include <kubridge.h>
 #include <vitashark.h>
 #include <vitaGL.h>
@@ -34,15 +35,18 @@
 #include "main.h"
 #include "config.h"
 #include "dialog.h"
+#include "fios.h"
 #include "so_util.h"
 #include "jni_patch.h"
 #include "openal_patch.h"
 #include "opengl_patch.h"
-#include "io_patch.h"
 #include "gfx_patch.h"
 #include "sha1.h"
 
-int _newlib_heap_size_user = MEMORY_MB * 1024 * 1024;
+#include "libc_bridge.h"
+
+int sceLibcHeapSize = MEMORY_SCELIBC_MB * 1024 * 1024;
+int _newlib_heap_size_user = MEMORY_NEWLIB_MB * 1024 * 1024;
 
 SceTouchPanelInfo panelInfoFront, panelInfoBack;
 
@@ -625,14 +629,15 @@ void glShaderSourceHook(GLuint shader, GLsizei count, const GLchar **string, con
   size_t shaderSize;
   void *shaderBuf;
 
-  SceUID fd = sceIoOpen(path, SCE_O_RDONLY, 0);
-  if (fd >= 0) {
-    shaderSize = sceIoLseek(fd, 0, SCE_SEEK_END);
-    sceIoLseek(fd, 0, SCE_SEEK_SET);
+  FILE *file = sceLibcBridge_fopen(path, "rb");
+  if (file) {
+    sceLibcBridge_fseek(file, 0, SEEK_END);
+    shaderSize = sceLibcBridge_ftell(file);
+    sceLibcBridge_fseek(file, 0, SEEK_SET);
 
     shaderBuf = malloc(shaderSize);
-    sceIoRead(fd, shaderBuf, shaderSize);
-    sceIoClose(fd);
+    sceLibcBridge_fread(shaderBuf, 1, shaderSize, file);
+    sceLibcBridge_fclose(file);
 
     glShaderBinary(1, &shader, 0, shaderBuf, shaderSize);
 
@@ -646,10 +651,10 @@ void glShaderSourceHook(GLuint shader, GLsizei count, const GLchar **string, con
     shaderBuf = shark_compile_shader_extended(*string, &shaderSize, sharkType, SHARK_OPT_UNSAFE, SHARK_ENABLE, SHARK_ENABLE, SHARK_ENABLE);
     glShaderBinary(1, &shader, 0, shaderBuf, shaderSize);
 
-    fd = sceIoOpen(path, SCE_O_WRONLY | SCE_O_CREAT | SCE_O_TRUNC, 0777);
-    if (fd >= 0) {
-      sceIoWrite(fd, shaderBuf, shaderSize);
-      sceIoClose(fd);
+    file = sceLibcBridge_fopen(path, "w");
+    if (file) {
+      sceLibcBridge_fwrite(shaderBuf, 1, shaderSize, file);
+      sceLibcBridge_fclose(file);
     }
 
     shark_clear_output();
@@ -844,24 +849,24 @@ static DynLibFunction dynlib_functions[] = {
   { "abort", (uintptr_t)&abort },
   { "exit", (uintptr_t)&exit },
 
-  { "fclose", (uintptr_t)&fclose },
+  { "fclose", (uintptr_t)&sceLibcBridge_fclose },
   // { "fdopen", (uintptr_t)&fdopen },
   // { "fegetround", (uintptr_t)&fegetround },
-  { "feof", (uintptr_t)&feof },
-  { "ferror", (uintptr_t)&ferror },
+  { "feof", (uintptr_t)&sceLibcBridge_feof },
+  { "ferror", (uintptr_t)&sceLibcBridge_ferror },
   // { "fesetround", (uintptr_t)&fesetround },
   // { "fflush", (uintptr_t)&fflush },
   // { "fgetc", (uintptr_t)&fgetc },
   // { "fgets", (uintptr_t)&fgets },
-  { "fopen", (uintptr_t)&fopen },
+  { "fopen", (uintptr_t)&sceLibcBridge_fopen },
   // { "fprintf", (uintptr_t)&fprintf },
   // { "fputc", (uintptr_t)&fputc },
   // { "fputs", (uintptr_t)&fputs },
   // { "fputwc", (uintptr_t)&fputwc },
-  { "fread", (uintptr_t)&fread },
-  { "fseek", (uintptr_t)&fseek },
-  { "ftell", (uintptr_t)&ftell },
-  { "fwrite", (uintptr_t)&fwrite },
+  { "fread", (uintptr_t)&sceLibcBridge_fread },
+  { "fseek", (uintptr_t)&sceLibcBridge_fseek },
+  { "ftell", (uintptr_t)&sceLibcBridge_ftell },
+  { "fwrite", (uintptr_t)&sceLibcBridge_fwrite },
 
   { "getenv", (uintptr_t)&getenv },
   // { "gettid", (uintptr_t)&gettid },
@@ -1049,8 +1054,6 @@ int main(int argc, char *argv[]) {
   patch_openal();
   patch_opengl();
   patch_game();
-  if (config.use_fios2)
-    patch_io();
   patch_gfx();
   so_flush_caches();
 

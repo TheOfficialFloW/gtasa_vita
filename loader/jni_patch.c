@@ -72,7 +72,7 @@ int GetDeviceType(void) {
   // 0x1: phone
   // 0x2: tegra
   // low memory is < 256
-  return (MEMORY_MB << 6) | (3 << 2) | 0x1;
+  return (MEMORY_NEWLIB_MB << 6) | (3 << 2) | 0x1;
 }
 
 int GetDeviceLocale(void) {

@@ -5,7 +5,8 @@
 
 // #define LOAD_ADDRESS 0x98000000
 
-#define MEMORY_MB 240
+#define MEMORY_SCELIBC_MB 8
+#define MEMORY_NEWLIB_MB 240
 
 #define DATA_PATH "ux0:data/gtasa"
 #define SO_PATH DATA_PATH "/" "libGTASA.so"
@@ -27,9 +28,6 @@ typedef struct {
   int enable_bones_optimization;
   int enable_mvp_optimization;
   int ignore_mobile_stuff;
-  int use_fios2;
-  int io_cache_block_num;
-  int io_cache_block_size;
   int fix_heli_plane_camera;
   int fix_skin_weights;
   int fix_map_bottleneck;

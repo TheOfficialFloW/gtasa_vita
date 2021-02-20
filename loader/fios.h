@@ -1,15 +1,5 @@
-#ifndef __IO_PATCH_H__
-#define __IO_PATCH_H__
-
-#define SCE_FIOS_OK 0
-
-#define SCE_FIOS_TIME_NULL ((SceFiosTime)0)
-#define SCE_FIOS_TIME_EARLIEST ((SceFiosTime)1)
-#define SCE_FIOS_TIME_LATEST ((SceFiosTime)0x7FFFFFFFFFFFFFFFLL)
-
-#define SCE_FIOS_PRIO_MIN ((int8_t)-128)
-#define SCE_FIOS_PRIO_DEFAULT ((int8_t)0)
-#define SCE_FIOS_PRIO_MAX ((int8_t)127)
+#ifndef __FIOS_H__
+#define __FIOS_H__
 
 #define SCE_FIOS_FH_SIZE 80
 #define SCE_FIOS_DH_SIZE 80
@@ -26,8 +16,6 @@
 
 #define SCE_FIOS_BUFFER_INITIALIZER  { 0, 0 }
 #define SCE_FIOS_PARAMS_INITIALIZER { 0, sizeof(SceFiosParams), 0, 0, 2, 1, 0, 0, 256 * 1024, 2, 0, 0, 0, 0, 0, SCE_FIOS_BUFFER_INITIALIZER, SCE_FIOS_BUFFER_INITIALIZER, SCE_FIOS_BUFFER_INITIALIZER, SCE_FIOS_BUFFER_INITIALIZER, NULL, NULL, NULL, { 66, 189, 66 }, { 0x40000, 0, 0x40000}, { 8 * 1024, 16 * 1024, 8 * 1024}}
-#define SCE_FIOS_OPENPARAMS_INITIALIZER { 0, 0, 0, SCE_FIOS_BUFFER_INITIALIZER }
-#define SCE_FIOS_OPATTR_INITIALIZER { 0, 0, 0, 0, 0, 0, 0, 0 }
 #define SCE_FIOS_RAM_CACHE_CONTEXT_INITIALIZER { sizeof(SceFiosRamCacheContext), 0, (64 * 1024), NULL, NULL, 0, {0, 0, 0} }
 
 typedef enum SceFiosThreadType {
@@ -36,45 +24,6 @@ typedef enum SceFiosThreadType {
   SCE_FIOS_CALLBACK_THREAD = 2,
   SCE_FIOS_THREAD_TYPES = 3
 } SceFiosThreadType;
-
-typedef enum SceFiosWhence {
-  SCE_FIOS_SEEK_SET = 0,
-  SCE_FIOS_SEEK_CUR = 1,
-  SCE_FIOS_SEEK_END = 2
-} SceFiosWhence;
-
-typedef enum SceFiosOpenFlags {
-  SCE_FIOS_O_RDONLY = (1 << 0),
-  SCE_FIOS_O_WRONLY = (1 << 1),
-  SCE_FIOS_O_RDWR = (SCE_FIOS_O_RDONLY | SCE_FIOS_O_WRONLY),
-  SCE_FIOS_O_APPEND = (1 << 2),
-  SCE_FIOS_O_CREAT = (1 << 3),
-  SCE_FIOS_O_TRUNC = (1 << 4),
-} SceFiosOpenFlags;
-
-typedef int64_t SceFiosTime;
-
-typedef int32_t SceFiosFH;
-typedef int32_t SceFiosDH;
-typedef uint64_t SceFiosDate;
-typedef int64_t SceFiosOffset;
-typedef int64_t SceFiosSize;
-
-typedef struct SceFiosBuffer {
-  void *pPtr;
-  size_t length;
-} SceFiosBuffer;
-
-typedef struct SceFiosOpAttr {
-  SceFiosTime deadline;
-  void *pCallback;
-  void *pCallbackContext;
-  int32_t priority : 8;
-  uint32_t opflags : 24;
-  uint32_t userTag;
-  void *userPtr;
-  void *pReserved;
-} SceFiosOpAttr;
 
 typedef struct SceFiosRamCacheContext {
   size_t sizeOfContext;
@@ -86,12 +35,10 @@ typedef struct SceFiosRamCacheContext {
   intptr_t reserved[3];
 } SceFiosRamCacheContext;
 
-typedef struct SceFiosOpenParams {
-  uint32_t openFlags : 16;
-  uint32_t opFlags : 16;
-  uint32_t reserved;
-  SceFiosBuffer buffer;
-} SceFiosOpenParams;
+typedef struct SceFiosBuffer {
+  void *pPtr;
+  size_t length;
+} SceFiosBuffer;
 
 typedef struct SceFiosParams {
   uint32_t initialized : 1;
@@ -121,38 +68,12 @@ typedef struct SceFiosParams {
   int threadStackSize[3];
 } SceFiosParams;
 
-typedef struct SceFiosStat {
-  SceFiosOffset fileSize;
-  SceFiosDate accessDate;
-  SceFiosDate modificationDate;
-  SceFiosDate creationDate;
-  uint32_t statFlags;
-  uint32_t reserved;
-  int64_t uid;
-  int64_t gid;
-  int64_t dev;
-  int64_t ino;
-  int64_t mode;
-} SceFiosStat;
-
 int sceFiosInitialize(const SceFiosParams *params);
 void sceFiosTerminate();
-
-int sceFiosDeleteSync(const SceFiosOpAttr *attr, const char *path);
-
-int sceFiosFHOpenSync(const SceFiosOpAttr *attr, SceFiosFH *fh, const char *path, const void *params);
-SceFiosSize sceFiosFHReadSync(const SceFiosOpAttr *attr, SceFiosFH fh, void *data, SceFiosSize size);
-SceFiosSize sceFiosFHWriteSync(const SceFiosOpAttr *attr, SceFiosFH fh, const void *data, SceFiosSize size);
-int sceFiosFHCloseSync(const SceFiosOpAttr *attr, SceFiosFH fh);
-
-SceFiosOffset sceFiosFHSeek(SceFiosFH fh, SceFiosOffset offset, SceFiosWhence whence);
-SceFiosOffset sceFiosFHTell(SceFiosFH fh);
-SceFiosSize sceFiosFHGetSize(SceFiosFH fh);
 
 int sceFiosIOFilterAdd(int index, void *pFilterCallback, void *pFilterContext);
 void sceFiosIOFilterCache();
 
 int fios_init(void);
-void patch_io(void);
 
 #endif

@@ -25,9 +25,6 @@ int read_config(const char *file) {
   config.enable_bones_optimization = 0;
   config.enable_mvp_optimization = 0;
   config.ignore_mobile_stuff = 1;
-  config.use_fios2 = 1;
-  config.io_cache_block_num = 512;
-  config.io_cache_block_size = 65536;
   config.fix_heli_plane_camera = 1;
   config.fix_skin_weights = 1;
   config.fix_map_bottleneck = 1;
@@ -51,9 +48,6 @@ int read_config(const char *file) {
     CONFIG_VAR(enable_bones_optimization);
     CONFIG_VAR(enable_mvp_optimization);
     CONFIG_VAR(ignore_mobile_stuff);
-    CONFIG_VAR(use_fios2);
-    CONFIG_VAR(io_cache_block_num);
-    CONFIG_VAR(io_cache_block_size);
     CONFIG_VAR(fix_heli_plane_camera);
     CONFIG_VAR(fix_skin_weights);
     CONFIG_VAR(fix_map_bottleneck);
