@@ -30,6 +30,13 @@
 #define SCE_FIOS_OPATTR_INITIALIZER { 0, 0, 0, 0, 0, 0, 0, 0 }
 #define SCE_FIOS_RAM_CACHE_CONTEXT_INITIALIZER { sizeof(SceFiosRamCacheContext), 0, (64 * 1024), NULL, NULL, 0, {0, 0, 0} }
 
+typedef enum SceFiosThreadType {
+  SCE_FIOS_IO_THREAD = 0,
+  SCE_FIOS_DECOMPRESSOR_THREAD = 1,
+  SCE_FIOS_CALLBACK_THREAD = 2,
+  SCE_FIOS_THREAD_TYPES = 3
+} SceFiosThreadType;
+
 typedef enum SceFiosWhence {
   SCE_FIOS_SEEK_SET = 0,
   SCE_FIOS_SEEK_CUR = 1,

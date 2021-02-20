@@ -172,33 +172,52 @@ int thread_stub(SceSize args, uintptr_t *argp) {
   return sceKernelExitDeleteThread(0);
 }
 
-// CdStream with priority 0
-// Es2Thread with priority 0
-// MainThread with priority 1
-// StreamThread with priority 2
-// BankLoader with priority 3
-void *OS_ThreadLaunch(int (* func)(), void *arg, int r2, char *name, int r4, int priority) {
+// CdStream with cpu 3 and priority 3
+// RenderQueue with cpu 2 and priority 3
+// MainThread with cpu 1 and priority 2
+// StreamThread with cpu 3 and priority 1
+// BankLoader with cpu 4 and priority 0
+void *OS_ThreadLaunch(int (* func)(), void *arg, int cpu, char *name, int unused, int priority) {
   int vita_priority;
+  int vita_affinity;
 
   switch (priority) {
     case 0:
-      vita_priority = 0x10000100;
+      vita_priority = 67;
       break;
     case 1:
-      vita_priority = 0x10000100 - 15;
+      vita_priority = 66;
       break;
     case 2:
-      vita_priority = 0x10000100 - 31;
+      vita_priority = 65;
       break;
     case 3:
-      vita_priority = 0x40;
+      vita_priority = 64;
       break;
     default:
       vita_priority = 0x10000100;
       break;
   }
 
-  SceUID thid = sceKernelCreateThread(name, (SceKernelThreadEntry)thread_stub, vita_priority, 128 * 1024, 0, 0, NULL);
+  switch (cpu) {
+    case 1:
+      vita_affinity = 0x10000;
+      break;
+    case 2:
+      vita_affinity = 0x20000;
+      break;
+    case 3:
+      vita_affinity = 0x40000;
+      break;
+    case 4:
+      vita_affinity = 0x40000;
+      break;
+    default:
+      vita_affinity = 0;
+      break;
+  }
+
+  SceUID thid = sceKernelCreateThread(name, (SceKernelThreadEntry)thread_stub, vita_priority, 128 * 1024, 0, vita_affinity, NULL);
   if (thid >= 0) {
     char *out = malloc(0x48);
     *(int *)(out + 0x24) = thid;
@@ -919,8 +938,8 @@ static DynLibFunction dynlib_functions[] = {
   // { "longjmp", (uintptr_t)&longjmp },
   // { "setjmp", (uintptr_t)&setjmp },
 
-  { "memchr", (uintptr_t)&memchr },
-  { "memcmp", (uintptr_t)&memcmp },
+  { "memchr", (uintptr_t)&sceClibMemchr },
+  { "memcmp", (uintptr_t)&sceClibMemcmp },
 
   { "puts", (uintptr_t)&puts },
   { "qsort", (uintptr_t)&qsort },
@@ -948,17 +967,17 @@ static DynLibFunction dynlib_functions[] = {
   { "strcasecmp", (uintptr_t)&strcasecmp },
   { "strcat", (uintptr_t)&strcat },
   { "strchr", (uintptr_t)&strchr },
-  { "strcmp", (uintptr_t)&strcmp },
+  { "strcmp", (uintptr_t)&sceClibStrcmp },
   { "strcpy", (uintptr_t)&strcpy },
   { "strerror", (uintptr_t)&strerror },
   { "strlen", (uintptr_t)&strlen },
-  { "strncasecmp", (uintptr_t)&strncasecmp },
-  { "strncat", (uintptr_t)&strncat },
-  { "strncmp", (uintptr_t)&strncmp },
-  { "strncpy", (uintptr_t)&strncpy },
+  { "strncasecmp", (uintptr_t)&sceClibStrncasecmp },
+  { "strncat", (uintptr_t)&sceClibStrncat },
+  { "strncmp", (uintptr_t)&sceClibStrncmp },
+  { "strncpy", (uintptr_t)&sceClibStrncpy },
   { "strpbrk", (uintptr_t)&strpbrk },
-  { "strrchr", (uintptr_t)&strrchr },
-  { "strstr", (uintptr_t)&strstr },
+  { "strrchr", (uintptr_t)&sceClibStrrchr },
+  { "strstr", (uintptr_t)&sceClibStrstr },
   { "strtof", (uintptr_t)&strtof },
   { "strtok", (uintptr_t)&strtok },
   { "strtol", (uintptr_t)&strtol },
@@ -994,12 +1013,8 @@ int main(int argc, char *argv[]) {
       sceAppMgrLoadExec("app0:/companion.bin", NULL, NULL);
   }
 
-  // Set common dialog config
-  SceCommonDialogConfigParam config_param;
-  sceCommonDialogConfigParamInit(&config_param);
-  sceAppUtilSystemParamGetInt(SCE_SYSTEM_PARAM_ID_LANG, (int *)&config_param.language);
-  sceAppUtilSystemParamGetInt(SCE_SYSTEM_PARAM_ID_ENTER_BUTTON, (int *)&config_param.enterButtonAssign);
-  sceCommonDialogSetConfigParam(&config_param);
+  sceKernelChangeThreadPriority(0, 127);
+  sceKernelChangeThreadCpuAffinityMask(0, 0x40000);
 
   sceCtrlSetSamplingModeExt(SCE_CTRL_MODE_ANALOG_WIDE);
   sceTouchSetSamplingState(SCE_TOUCH_PORT_FRONT, SCE_TOUCH_SAMPLING_STATE_START);

@@ -39,6 +39,14 @@ int fios_init(void) {
   params.dhStorage.length = sizeof(g_DHStorage);
   params.pathMax = MAX_PATH_LENGTH;
 
+  params.threadAffinity[SCE_FIOS_IO_THREAD] = 0x20000;
+  params.threadAffinity[SCE_FIOS_CALLBACK_THREAD] = 0;
+  params.threadAffinity[SCE_FIOS_DECOMPRESSOR_THREAD] = 0;
+
+  params.threadPriority[SCE_FIOS_IO_THREAD] = 64;
+  params.threadPriority[SCE_FIOS_CALLBACK_THREAD] = 191;
+  params.threadPriority[SCE_FIOS_DECOMPRESSOR_THREAD] = 191;
+
   res = sceFiosInitialize(&params);
   if (res < 0)
     return res;
