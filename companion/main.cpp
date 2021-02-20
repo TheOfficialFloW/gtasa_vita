@@ -54,8 +54,7 @@ void loadConfig() {
   FILE *config = fopen(CONFIG_FILE_PATH, "r");
 
   if (config) {
-    while (EOF != fscanf(config, "%[^ ] %d\n", buffer, &value))
-    {
+    while (EOF != fscanf(config, "%[^ ] %d\n", buffer, &value)) {
       if (strcmp("touch_x_margin", buffer) == 0) touch_x_margin = value;
       else if (strcmp("fix_heli_plane_camera", buffer) == 0) fix_heli_plane_camera = (bool)value;
       else if (strcmp("ignore_mobile_stuff", buffer) == 0) mobile_stuff = value ? false : true;
