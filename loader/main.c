@@ -311,18 +311,18 @@ __attribute__((naked)) void CCam__Process_FollowCar_SA_camSetArrPos_stub(void) {
 uint64_t CCam__Process_FollowCar_SA_yMovement(void *this, uint32_t xMovement, uint32_t yMovement) {
   uint16_t modelIndex = *(uint16_t *)(this + 0x26);
   switch (modelIndex) {
-    case 564:
-      xMovement = 0;
-    // Fall-through
-    case 406:
-    case 443:
-    case 486:
+    // case 564:
+      // xMovement = 0;
+    // // Fall-through
+    // case 406:
+    // case 443:
+    // case 486:
     case 520:
-    case 524:
-    case 525:
-    case 530:
-    case 531:
-    case 592:
+    // case 524:
+    // case 525:
+    // case 530:
+    // case 531:
+    // case 592:
       yMovement = 0;
       break;
     default:
