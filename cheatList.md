@@ -1,6 +1,6 @@
 # GTA: SA PS Vita - Cheat List
 
-### Available Cheats
+## Available Cheats
 
 As TheFloW said in the official gtasa_vita [repo](https://github.com/TheOfficialFloW/gtasa_vita#tips-and-tricks "repo"): 
 > You can input PC cheats by pressing **L**+**SELECT** to open the on-screen keyboard. Note that a few cheats have been removed from the Android (Vita port) version.
@@ -74,7 +74,7 @@ As TheFloW said in the official gtasa_vita [repo](https://github.com/TheOfficial
 |64|Spawn Stunt Plane|FlyingToStunt|0x86988DAE
 |65|Spawn Monster|MonsterMash|0x2BDD2FA1
 
-### Unavailable Cheats
+## Unavailable Cheats
 
 And if you are wondering what PC cheats are not available for the Android (Vita port) version, here a list:
 
