@@ -137,15 +137,13 @@ int GetGamepadButtons(int port) {
 
   if (port == 0) {
     for (int i = 0; i < touch_front.reportNum; i++) {
-      for (int i = 0; i < touch_front.reportNum; i++) {
-        if (touch_front.report[i].y >= (panelInfoFront.minAaY + panelInfoFront.maxAaY) / 2) {
-          if (touch_front.report[i].x < (panelInfoFront.minAaX + panelInfoFront.maxAaX) / 2) {
-            if (touch_front.report[i].x >= config.touch_x_margin)
-              mask |= 0x1000; // L3
-          } else {
-            if (touch_front.report[i].x < (panelInfoFront.maxAaX - config.touch_x_margin))
-              mask |= 0x2000; // R3
-          }
+      if (touch_front.report[i].y >= (panelInfoFront.minAaY + panelInfoFront.maxAaY) / 2) {
+        if (touch_front.report[i].x < (panelInfoFront.minAaX + panelInfoFront.maxAaX) / 2) {
+          if (touch_front.report[i].x >= config.touch_x_margin)
+            mask |= 0x1000; // L3
+        } else {
+          if (touch_front.report[i].x < (panelInfoFront.maxAaX - config.touch_x_margin))
+            mask |= 0x2000; // R3
         }
       }
     }
