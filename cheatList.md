@@ -3,7 +3,8 @@
 ## Available Cheats
 
 As TheFloW said in the official gtasa_vita [repo](https://github.com/TheOfficialFloW/gtasa_vita#tips-and-tricks "repo"): 
-> You can input PC cheats by pressing **L**+**SELECT** to open the on-screen keyboard. Note that a few cheats have been removed from the Android (Vita port) version.
+> You can input PC cheats by pressing **L**+**SELECT** to open the on-screen keyboard. You can input cheat codes in lowercase as well as uppercase. Note that a few cheats have been removed from the Android (Vita port) version.
+
 
 |No.|Description|Cheat Code|Hash
 | :------------: | :------------: | :------------: | :------------: |
