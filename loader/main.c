@@ -187,16 +187,16 @@ void *OS_ThreadLaunch(int (* func)(), void *arg, int cpu, char *name, int unused
 
   switch (priority) {
     case 0:
-      vita_priority = 67;
+      vita_priority = 68;
       break;
     case 1:
-      vita_priority = 66;
+      vita_priority = 67;
       break;
     case 2:
-      vita_priority = 65;
+      vita_priority = 66;
       break;
     case 3:
-      vita_priority = 64;
+      vita_priority = 65;
       break;
     default:
       vita_priority = 0x10000100;
@@ -1064,7 +1064,7 @@ int main(int argc, char *argv[]) {
     fatal_error("Error could not initialize fios.");
 
   vglSetupRuntimeShaderCompiler(SHARK_OPT_UNSAFE, SHARK_ENABLE, SHARK_ENABLE, SHARK_ENABLE);
-  vglInitExtended(0, SCREEN_W, SCREEN_H, 16 * 1024 * 1024, config.aa_mode);
+  vglInitExtended(0, SCREEN_W, SCREEN_H, 24 * 1024 * 1024, config.aa_mode);
   vglUseVram(GL_TRUE);
 
   jni_load();
