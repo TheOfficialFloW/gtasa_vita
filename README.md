@@ -20,7 +20,7 @@ The port works by loading the official Android ARMv7 executable in memory, resol
   - Fixes fighting moves
   - Allows switching target using L2/R2.
   - Changes bunny hop from double X to L1.
-- Fixed rain drawing.
+- Fixed rain and classic shadows rendering.
 - Improved loading speed. Thanks to Graphene.
 - Fixed thread scheduling. Thanks to Graphene.
 - Fixed crash on exit.
