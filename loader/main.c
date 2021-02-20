@@ -182,16 +182,16 @@ void *OS_ThreadLaunch(int (* func)(), void *arg, int r2, char *name, int r4, int
 
   switch (priority) {
     case 0:
-      vita_priority = 0x40;
+      vita_priority = 0x10000100;
       break;
     case 1:
-      vita_priority = 0x10000100 - 31;
-      break;
-    case 2:
       vita_priority = 0x10000100 - 15;
       break;
+    case 2:
+      vita_priority = 0x10000100 - 31;
+      break;
     case 3:
-      vita_priority = 0x10000100;
+      vita_priority = 0x40;
       break;
     default:
       vita_priority = 0x10000100;
@@ -770,10 +770,10 @@ static DynLibFunction dynlib_functions[] = {
   { "sigaction", (uintptr_t)&ret0 },
   { "sigemptyset", (uintptr_t)&ret0 },
 
-  { "acosf", (uintptr_t)&acosf_c },
-  { "asinf", (uintptr_t)&asinf_c },
-  { "atan2f", (uintptr_t)&atan2f_c },
-  { "atanf", (uintptr_t)&atanf_c },
+  { "acosf", (uintptr_t)&acosf },
+  { "asinf", (uintptr_t)&asinf },
+  { "atan2f", (uintptr_t)&atan2f },
+  { "atanf", (uintptr_t)&atanf },
   { "ceilf", (uintptr_t)&ceilf_c },
   { "cos", (uintptr_t)&cos },
   { "cosf", (uintptr_t)&cosf_c },
