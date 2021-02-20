@@ -17,13 +17,13 @@
 
 #define MAX_PATH_LENGTH 256
 
-int64_t g_OpStorage[SCE_FIOS_OP_STORAGE_SIZE(64, MAX_PATH_LENGTH) / sizeof(int64_t) + 1];
-int64_t g_ChunkStorage[SCE_FIOS_CHUNK_STORAGE_SIZE(1024) / sizeof(int64_t) + 1];
-int64_t g_FHStorage[SCE_FIOS_FH_STORAGE_SIZE(512, MAX_PATH_LENGTH) / sizeof(int64_t) + 1];
-int64_t g_DHStorage[SCE_FIOS_DH_STORAGE_SIZE(32, MAX_PATH_LENGTH) / sizeof(int64_t) + 1];
+static int64_t g_OpStorage[SCE_FIOS_OP_STORAGE_SIZE(64, MAX_PATH_LENGTH) / sizeof(int64_t) + 1];
+static int64_t g_ChunkStorage[SCE_FIOS_CHUNK_STORAGE_SIZE(1024) / sizeof(int64_t) + 1];
+static int64_t g_FHStorage[SCE_FIOS_FH_STORAGE_SIZE(512, MAX_PATH_LENGTH) / sizeof(int64_t) + 1];
+static int64_t g_DHStorage[SCE_FIOS_DH_STORAGE_SIZE(32, MAX_PATH_LENGTH) / sizeof(int64_t) + 1];
 
-SceFiosRamCacheContext g_RamCacheContext = SCE_FIOS_RAM_CACHE_CONTEXT_INITIALIZER;
-char *g_RamCacheWorkBuffer;
+static SceFiosRamCacheContext g_RamCacheContext = SCE_FIOS_RAM_CACHE_CONTEXT_INITIALIZER;
+static char *g_RamCacheWorkBuffer;
 
 int fios_init(void) {
   int res;
@@ -88,12 +88,7 @@ int64_t fios_getsize(SceFiosFH handle) {
 }
 
 int64_t fios_read(SceFiosFH handle, void *data, size_t size) {
-  SceFiosOpAttr attr = SCE_FIOS_OPATTR_INITIALIZER;
-
-  attr.deadline = SCE_FIOS_TIME_EARLIEST;
-  attr.priority = SCE_FIOS_PRIO_MAX;
-
-  return sceFiosFHReadSync(&attr, handle, data, size);
+  return sceFiosFHReadSync(NULL, handle, data, size);
 }
 
 int64_t fios_write(SceFiosFH handle, const void *data, size_t size) {
