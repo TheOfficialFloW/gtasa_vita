@@ -83,7 +83,7 @@ As TheFloW said in the official gtasa_vita [repo](https://github.com/TheOfficial
 
 ## Unavailable Cheats
 
-And if you are wondering what PC cheats are not available for the Android (Vita port) version, here a list:
+And if you are wondering which PC cheats are not available for the Android (Vita port) version, here's a list:
 
 |No.|Description|Cheat Code|Hash
 | :------------: | :------------: | :------------: | :------------: |
@@ -116,4 +116,4 @@ And if you are wondering what PC cheats are not available for the Android (Vita 
 
 ## Credits
 - The amazing team behind [gtasa_vita](https://github.com/TheOfficialFloW/gtasa_vita "gtasa_vita").
-- [gtagmodding](https://gtagmodding.com/sanandreas/cheats/ "gtagmodding") for providing the list.
+- [gtagmodding](https://gtagmodding.com/sanandreas/cheats/ "gtagmodding") who provided the list.
