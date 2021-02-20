@@ -51,7 +51,7 @@ You can launch the Configurator app by clicking on the `Configuration` button lo
 ## Tips and Tricks
 
 - In order to reduce occasional stutters in-game, delete both `ux0:data/gtasa/scache_small_low.txt` and `ux0:data/gtasa/scache_small.txt`, then create a copy of the `ux0:data/gtasa/scache.txt` file to have two version of it. (for example `scache(1).txt` so in the end you end up with both `scache.txt` and `scache(1).txt` inside the `ux0:data/gtasa/` folder), then rename `scache.txt` to `scache_small.txt` and `scache(1).txt` to `scache_small_low.txt` . This will however make the loading screen longer since it needs to compile more shaders ahead.
-- You can input PC cheats by pressing L+SELECT to open the on-screen keyboard. See https://gtagmodding.com/sanandreas/cheats/ for the full list of cheats (you can input cheat codes in lowercase as well as uppercase). Note that a few cheats have been removed from the Android version.
+- You can input PC cheats by pressing L+SELECT to open the on-screen keyboard. See https://github.com/JonathanERC/gtasa_vita/blob/master/cheatList.md for available and unavailable cheats (you can input cheat codes in lowercase as well as uppercase).
 - The L2/R2 buttons are mapped to the rear touchpad on the top and the L3/R3 buttons are mapped to the front touchpad on the bottom.
 - In order to save storage on your Memory Card, you can safely delete all files in sub-folders of `ux0:data/gtasa/texdb` which end with:
   - `.dxt.dat`, `.dxt.tmb`, `dxt.toc`
@@ -86,4 +86,4 @@ make
 - frangarcj, fgsfds and Bythos for graphics-related stuff.
 - CBPS/SonicMastr for PIB, which was used on earlier stages of development.
 - isage for the native audio backend for OpenAL-Soft.
-
+- JonathanERC and gtagmodding for the Cheat List 
