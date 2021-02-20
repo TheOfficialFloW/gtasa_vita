@@ -1,5 +1,11 @@
 # GTA: SA PS Vita - Cheat List
 
+### Table of Contents
++ [GTA: SA PS Vita - Cheat List](#gta-sa-ps-vita---cheat-list)
+  + [Available Cheats](#available-cheats)  
+  + [Unavailable Cheats](#unavailable-cheats)
++ [Credits](#credits)
+
 ## Available Cheats
 
 As TheFloW said in the official gtasa_vita [repo](https://github.com/TheOfficialFloW/gtasa_vita#tips-and-tricks "repo"): 
