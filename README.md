@@ -1,4 +1,4 @@
-# Grand Theft Auto: San Andreas PS Vita
+# GTA: SA Vita
 
 <p align="center"><img src="./screenshots/game.png"></p>
 
