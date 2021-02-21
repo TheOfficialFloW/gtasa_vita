@@ -25,11 +25,11 @@ enum SkyGfxColorFilter {
 
 typedef struct {
   int touch_x_margin;
+  int front_touch_triggers;
   int enable_bones_optimization;
   int enable_mvp_optimization;
   int ignore_mobile_stuff;
   int fix_heli_plane_camera;
-  int front_touch_triggers;
   int fix_skin_weights;
   int fix_map_bottleneck;
   int use_shader_cache;
