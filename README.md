@@ -17,7 +17,7 @@ The port works by loading the official Android ARMv7 executable in memory, resol
 ### v1.2
 
 - Fixed memory leak in vitaGL leading to corrupted textures.
-- Added ability to map L2/R2 to the front touchpad on the top.
+- Added ability to map L2/R2 to the front touchpad on the top. Thanks to adjutantt.
 
 ### v1.1
 
