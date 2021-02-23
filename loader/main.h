@@ -15,6 +15,4 @@ extern int input_cheat;
 
 extern SceTouchPanelInfo panelInfoFront, panelInfoBack;
 
-void patchControl(uint8_t btn, uint8_t action);
-
 #endif

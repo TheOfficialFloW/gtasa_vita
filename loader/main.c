@@ -490,36 +490,30 @@ int ProcessEvents(void) {
   return 0; // 1 is exit!
 }
 
+static void *CHIDJoystickPS3__vtable;
+static void *(* CHIDJoystick__CHIDJoystick)(void *this, const char *name);
+static void (* CHIDJoystick__AddMapping)(void *this, int button_id, HIDMapping mapping);
+
+void *CHIDJoystickPS3__CHIDJoystickPS3(void *this, const char *name) {
+  CHIDJoystick__CHIDJoystick(this, name);
+  *(uintptr_t *)this = (uintptr_t)CHIDJoystickPS3__vtable + 8;
+
+  for (HIDMapping i = 0; i < sizeof(button_mapping) / sizeof(ButtonID); i++) {
+    if (button_mapping[i] == BUTTON_UNKNOWN)
+      continue;
+
+    CHIDJoystick__AddMapping(this, button_mapping[i], i);
+  }
+
+  return this;
+}
+
 int MainMenuScreen__OnExit(void) {
   return sceKernelExitProcess(0);
 }
 
 extern void *__cxa_guard_acquire;
 extern void *__cxa_guard_release;
-
-
-void patchControl(uint8_t btn, uint8_t action)
-{
-	//Hooking would be better but i suck at reversing so meh
-	//tpo
-	//0x0028F974
-	//debugPrintf("BTN %d: %d\n", btn, action);
-	static int cnt=0;
-	if(cnt ==0)
-	{
-		uint8_t zero = 0x00;
-		for(int i=0;i<100;i++)
-		{
-			kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x0028F974+2 + cnt*0xA + (!!(cnt))*0xA), &zero, sizeof(zero));
-		}
-	}
-	if(cnt < 100 && btn != 0xFF){
-	kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x0028F974 + cnt*0xA + (!!(cnt))*0xA), &btn, sizeof(btn));
-	kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x0028F974+2 + cnt*0xA + (!!(cnt))*0xA), &action, sizeof(action));
-	cnt++;
-	}
-}
-
 
 void patch_game(void) {
   *(int *)so_find_addr("UseCloudSaves") = 0;
@@ -629,17 +623,14 @@ void patch_game(void) {
   kuKernelCpuUnrestrictedMemcpy((void *)so_find_addr("_ZN6CCheat16m_aCheatHashKeysE"), CCheat__m_aCheatHashKeys, sizeof(CCheat__m_aCheatHashKeys));
   hook_thumb(so_find_addr("_ZN6CCheat8DoCheatsEv"), (uintptr_t)CCheat__DoCheats);
 
-  // load custom 360 config
-  if (config.custom_controls)
-  {
-  read_controller_config(CONTROLLER_CONFIG_PATH);
-  }
-  // use xbox360 mapping
-  hook_thumb(so_find_addr("_ZN15CHIDJoystickPS3C2EPKc"), so_find_addr("_ZN19CHIDJoystickXbox360C2EPKc"));
+  // hook buttons mapping
+  CHIDJoystickPS3__vtable = (void *)so_find_addr("_ZTV15CHIDJoystickPS3");
+  CHIDJoystick__CHIDJoystick = (void *)so_find_addr("_ZN12CHIDJoystickC2EPKc");
+  CHIDJoystick__AddMapping = (void *)so_find_addr("_ZN12CHIDJoystick10AddMappingEi10HIDMapping");
+  hook_thumb(so_find_addr("_ZN15CHIDJoystickPS3C2EPKc"), (uintptr_t)CHIDJoystickPS3__CHIDJoystickPS3);
 
   // support graceful exit
   hook_thumb(so_find_addr("_ZN14MainMenuScreen6OnExitEv"), (uintptr_t)MainMenuScreen__OnExit);
-
 }
 
 void glTexImage2DHook(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const void * data) {
@@ -1080,7 +1071,7 @@ int main(int argc, char *argv[]) {
 
   sceIoMkdir(SHADER_CACHE_PATH, 0777);
   read_config(CONFIG_PATH);
-  
+  read_controller_config(CONTROLLER_CONFIG_PATH);
 
   if (check_kubridge() < 0)
     fatal_error("Error kubridge.skprx is not installed.");
