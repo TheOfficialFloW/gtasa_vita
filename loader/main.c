@@ -497,6 +497,30 @@ int MainMenuScreen__OnExit(void) {
 extern void *__cxa_guard_acquire;
 extern void *__cxa_guard_release;
 
+
+void patchControl(uint8_t btn, uint8_t action)
+{
+	//Hooking would be better but i suck at reversing so meh
+	//tpo
+	//0x0028F974
+	//debugPrintf("BTN %d: %d\n", btn, action);
+	static int cnt=0;
+	if(cnt ==0)
+	{
+		uint8_t zero = 0x00;
+		for(int i=0;i<100;i++)
+		{
+			kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x0028F974+2 + cnt*0xA + (!!(cnt))*0xA), &zero, sizeof(zero));
+		}
+	}
+	if(cnt < 100 && btn != 0xFF){
+	kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x0028F974 + cnt*0xA + (!!(cnt))*0xA), &btn, sizeof(btn));
+	kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x0028F974+2 + cnt*0xA + (!!(cnt))*0xA), &action, sizeof(action));
+	cnt++;
+	}
+}
+
+
 void patch_game(void) {
   *(int *)so_find_addr("UseCloudSaves") = 0;
   *(int *)so_find_addr("UseTouchSense") = 0;
@@ -605,11 +629,17 @@ void patch_game(void) {
   kuKernelCpuUnrestrictedMemcpy((void *)so_find_addr("_ZN6CCheat16m_aCheatHashKeysE"), CCheat__m_aCheatHashKeys, sizeof(CCheat__m_aCheatHashKeys));
   hook_thumb(so_find_addr("_ZN6CCheat8DoCheatsEv"), (uintptr_t)CCheat__DoCheats);
 
+  // load custom 360 config
+  if (config.custom_controls)
+  {
+  read_controller_config(CONTROLLER_CONFIG_PATH);
+  }
   // use xbox360 mapping
   hook_thumb(so_find_addr("_ZN15CHIDJoystickPS3C2EPKc"), so_find_addr("_ZN19CHIDJoystickXbox360C2EPKc"));
 
   // support graceful exit
   hook_thumb(so_find_addr("_ZN14MainMenuScreen6OnExitEv"), (uintptr_t)MainMenuScreen__OnExit);
+
 }
 
 void glTexImage2DHook(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const void * data) {
@@ -1050,6 +1080,7 @@ int main(int argc, char *argv[]) {
 
   sceIoMkdir(SHADER_CACHE_PATH, 0777);
   read_config(CONFIG_PATH);
+  
 
   if (check_kubridge() < 0)
     fatal_error("Error kubridge.skprx is not installed.");
