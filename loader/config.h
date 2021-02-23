@@ -131,7 +131,7 @@ typedef enum {
 } HIDMapping;
 
 typedef enum {
-  BUTTON_UNKNOWN = -1,
+  BUTTON_UNUSED = -1,
   BUTTON_CROSS = 0,
   BUTTON_CIRCLE = 1,
   BUTTON_SQUARE = 2,

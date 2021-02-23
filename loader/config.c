@@ -80,6 +80,7 @@ typedef struct {
 } NameToButtonID;
 
 static NameToButtonID name_to_button_ids[] = {
+  { "BUTTON_UNUSED", BUTTON_UNUSED },
   { "BUTTON_CROSS", BUTTON_CROSS },
   { "BUTTON_CIRCLE", BUTTON_CIRCLE },
   { "BUTTON_SQUARE", BUTTON_SQUARE },
@@ -92,12 +93,10 @@ static NameToButtonID name_to_button_ids[] = {
   { "BUTTON_R2", BUTTON_R2 },
   { "BUTTON_SELECT", BUTTON_SELECT },
   { "BUTTON_START", BUTTON_START },
-
   { "DPAD_UP", DPAD_UP },
   { "DPAD_DOWN", DPAD_DOWN },
   { "DPAD_LEFT", DPAD_LEFT },
   { "DPAD_RIGHT", DPAD_RIGHT },
-
   { "ANALOG_LEFT_X", ANALOG_LEFT_X },
   { "ANALOG_LEFT_Y", ANALOG_LEFT_Y },
   { "ANALOG_RIGHT_X", ANALOG_RIGHT_X },
