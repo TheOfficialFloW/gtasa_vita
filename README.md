@@ -90,11 +90,12 @@ In order to build the loader, you'll need a [vitasdk](https://github.com/vitasdk
 You can find a precompiled version here: [Linux](https://github.com/vitasdk/buildscripts/suites/1824103476/artifacts/35161735) / [Windows](https://github.com/vitasdk/buildscripts/suites/1836262288/artifacts/35501612).  
 Additionally, you'll need these libraries to be compiled as well with `-mfloat-abi=softfp` added to their CFLAGS:
 
-- [openal-soft](https://github.com/isage/openal-soft/tree/vita-1.19.1)
+- [openal-soft](https://github.com/Rinnegatamante/openal-soft)
+
+  - Remove `-ftree-vectorize` from `Makefile.vita`.
 
   - ```bash
-    mkdir build && cd build
-    cmake -DCMAKE_TOOLCHAIN_FILE=${VITASDK}/share/vita.toolchain.cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS=-mfloat-abi=softfp .. && make install
+    make -f Makefile.vita install
     ```
 
 - [libmathneon](https://github.com/Rinnegatamante/math-neon)
