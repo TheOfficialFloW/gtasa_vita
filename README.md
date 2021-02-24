@@ -83,7 +83,11 @@ You can launch the Configurator app by clicking on the `Configuration` button lo
 - In order to save storage on your Memory Card, you can safely delete all files in sub-folders of `ux0:data/gtasa/texdb` which end with:
   - `.dxt.dat`, `.dxt.tmb`, `dxt.toc`
   - `.etc.dat`, `.etc.tmb`, `etc.toc`
-
+- To get local freeroam coop and rampages working you will need to replace the main scripts with those of the PS3 version:
+  - Obtain `mainPS3.scm` and `scriptps3.img` from the `/PS3_GAME/USRDIR/PS3Data.obb -> /data/script` folder of a PS3 copy. In order to extract the `.obb` file rename it to `.zip` and use your favorite archive extractor.
+  - Rename the files to `mainV1.scm` and `scriptv1.img` and copy them to both `ux0:data/gtasa/data/` and `ux0:data/gtasa/data/script/` replacing both original files in both directories each time.
+  - Keep in mind that saves made with the old files will be incompatible with a game using the new files and vice-versa.
+  
 ## Build Instructions (For Developers)
 
 In order to build the loader, you'll need a [vitasdk](https://github.com/vitasdk) build fully compiled with softfp usage.  
