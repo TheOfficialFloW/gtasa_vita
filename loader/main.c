@@ -498,11 +498,8 @@ void *CHIDJoystickPS3__CHIDJoystickPS3(void *this, const char *name) {
   CHIDJoystick__CHIDJoystick(this, name);
   *(uintptr_t *)this = (uintptr_t)CHIDJoystickPS3__vtable + 8;
 
-  for (HIDMapping i = 0; i < sizeof(button_mapping) / sizeof(ButtonID); i++) {
-    if (button_mapping[i] == BUTTON_UNUSED)
-      continue;
-
-    CHIDJoystick__AddMapping(this, button_mapping[i], i);
+  for (int i = 0; i < mapping_count; i++) {
+    CHIDJoystick__AddMapping(this, button_mapping[i].button_id, button_mapping[i].hid_mapping);
   }
 
   return this;

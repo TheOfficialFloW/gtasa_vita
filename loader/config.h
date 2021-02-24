@@ -154,6 +154,13 @@ typedef enum {
   BUTTON_R2 = 69,
 } ButtonID;
 
+#define MAX_BUTTON_MAPPING 128
+
+typedef struct {
+  HIDMapping hid_mapping;
+  ButtonID button_id;
+} ButtonMapping;
+
 typedef enum {
   SKYGFX_COLOR_FILTER_MOBILE,
   SKYGFX_COLOR_FILTER_NONE,
@@ -181,7 +188,8 @@ typedef struct {
   int aa_mode;
 } Config;
 
-extern ButtonID button_mapping[NUM_BUTTON_MAPPING];
+extern int mapping_count;
+extern ButtonMapping button_mapping[MAX_BUTTON_MAPPING];
 extern Config config;
 
 int read_config(const char *file);
