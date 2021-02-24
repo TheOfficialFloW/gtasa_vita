@@ -87,6 +87,8 @@ You can launch the Configurator app by clicking on the `Configuration` button lo
   - Obtain `mainPS3.scm` and `scriptps3.img` from the `/PS3_GAME/USRDIR/PS3Data.obb -> /data/script` folder of a PS3 copy. In order to extract the `.obb` file rename it to `.zip` and use your favorite archive extractor.
   - Rename the files to `mainV1.scm` and `scriptv1.img` and copy them to both `ux0:data/gtasa/data/` and `ux0:data/gtasa/data/script/` replacing both original files in both directories each time.
   - Keep in mind that saves made with the old files will be incompatible with a game using the new files and vice-versa.
+  - To use the multiplayer functionality navigate to a corresponding marker (a list can be found here [Marker locations](https://gta.fandom.com/wiki/Multiplayer_in_GTA_San_Andreas) ). You will have to have another controller connected via Bluetooth and set up as controller number 2 (you can configure that via the qick menu, accessible by holding the PS-Button on that controller once connected).
+  - On a PSVita (as opposed to on a PSTV) you will also need to use [MiniVitaTV](https://github.com/TheOfficialFloW/MiniVitaTV) to connect the controller in the first place.
   
 ## Build Instructions (For Developers)
 
