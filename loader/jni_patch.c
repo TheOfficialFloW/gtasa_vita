@@ -89,7 +89,7 @@ static SceTouchData touch_front, touch_back;
 // 9: IOSExtended
 // 10: IOSSimple
 int GetGamepadType(int port) {
-  if (port == 2 || port == 3)
+  if (port != 0 && port != 1)
     return -1;
 
   if (sceCtrlPeekBufferPositiveExt2(port == 0 ? 0 : 2, &pad, 1) < 0)
