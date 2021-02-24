@@ -82,14 +82,17 @@ int GetDeviceLocale(void) {
 static SceCtrlData pad;
 static SceTouchData touch_front, touch_back;
 
+// 0, 5, 6: XBOX 360
+// 4: MogaPocket
+// 7: MogaPro
+// 8: PS3
+// 9: IOSExtended
+// 10: IOSSimple
 int GetGamepadType(int port) {
-  // 0, 5, 6: XBOX 360
-  // 4: MogaPocket
-  // 7: MogaPro
-  // 8: PS3
-  // 9: IOSExtended
-  // 10: IOSSimple
-  if (sceCtrlPeekBufferPositiveExt2(port, &pad, 1) < 0)
+  if (port == 2 || port == 3)
+    return -1;
+
+  if (sceCtrlPeekBufferPositiveExt2(port == 0 ? 0 : 2, &pad, 1) < 0)
     return -1;
 
   if (port == 0) {
@@ -190,8 +193,8 @@ float GetGamepadAxis(int port, int axis) {
                 if (touch_front.report[i].x >= config.touch_x_margin)
                   if (axis == 4) val = 1.0f;
               } else {
-               if (touch_back.report[i].x < (panelInfoFront.maxAaX - config.touch_x_margin))
-                if (axis == 5) val = 1.0f;
+                if (touch_back.report[i].x < (panelInfoFront.maxAaX - config.touch_x_margin))
+                  if (axis == 5) val = 1.0f;
               }
             }
           }
