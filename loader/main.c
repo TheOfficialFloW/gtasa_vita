@@ -549,6 +549,9 @@ void patch_game(void) {
     kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x001C8082), &movs_r1_1, sizeof(movs_r1_1));
   }
 
+  if (config.enable_high_detail_player)
+    hook_thumb(so_find_addr("_Z17UseHiDetailPlayerv"), (uintptr_t)ret1);
+
   if (config.enable_bones_optimization) {
     skin_map = (float *)so_find_addr("skin_map");
     skin_dirty = (int *)so_find_addr("skin_dirty");

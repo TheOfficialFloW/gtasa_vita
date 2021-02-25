@@ -14,6 +14,14 @@ The port works by loading the official Android ARMv7 executable in memory, resol
 
 ## Changelog
 
+### v1.3
+
+- Added ability to remap controls with `ux0:data/gtasa/controls.txt`. Thanks to PoisonPoisonPoison.
+- Added default vita-enhanced controls schema by darthbellic.
+- Added support for co-op rampage missions when using PS3 scripts. See `Tips and Tricks` for instructions.
+- Added option to enable high detail player textures.
+- Switched to OpenAL-SDL for better performance.
+
 ### v1.2
 
 - Fixed memory leak in vitaGL leading to corrupted textures.
@@ -77,6 +85,7 @@ You can launch the Configurator app by clicking on the `Configuration` button lo
 ## Tips and Tricks
 
 - In order to reduce occasional stutters in-game, delete both `ux0:data/gtasa/scache_small_low.txt` and `ux0:data/gtasa/scache_small.txt`, then create a copy of the `ux0:data/gtasa/scache.txt` file to have two version of it. (for example `scache(1).txt` so in the end you end up with both `scache.txt` and `scache(1).txt` inside the `ux0:data/gtasa/` folder), then rename `scache.txt` to `scache_small.txt` and `scache(1).txt` to `scache_small_low.txt` . This will however make the loading screen longer since it needs to compile more shaders ahead.
+  - If the folder `ux0:data/gtasa/cache` contains much more than 300 files, it's recommended to delete the folder and have it rebuilt.
 - You can input PC cheats by pressing L+SELECT to open the on-screen keyboard. See [CHEATS.md](CHEATS.md) for available and unavailable cheats (you can input cheat codes in lowercase as well as uppercase).
 - The L2/R2 buttons are mapped to the rear touchpad on the top and the L3/R3 buttons are mapped to the front touchpad on the bottom. With v1.2 and higher, you can map L2/R2 to the front touchpad on the top.
 - You can open the map by holding START and then releasing.

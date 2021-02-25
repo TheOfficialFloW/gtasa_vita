@@ -4,7 +4,7 @@
 #include <stdio.h>
 
 #define CONFIG_FILE_PATH "ux0:data/gtasa/config.txt"
-#define NUM_OPTIONS 17
+#define NUM_OPTIONS 18
 
 int _newlib_heap_size_user = 192 * 1024 * 1024;
 
@@ -41,6 +41,7 @@ bool mobile_stuff = false;
 int skygfx_colorfilter = SKYGFX_COLOR_FILTER_PS2;
 int aa_mode = SCE_GXM_MULTISAMPLE_2X;
 bool skygfx_ps2_sun = true;
+bool high_detail_player = false;
 bool detail_textures = false;
 bool ped_spec = false;
 bool tex_bias = false;
@@ -72,6 +73,7 @@ void loadConfig(void) {
       else if (strcmp("skygfx_colorfilter", buffer) == 0) skygfx_colorfilter = value;
       else if (strcmp("skygfx_ps2_sun", buffer) == 0) skygfx_ps2_sun = (bool)value;
 
+      else if (strcmp("enable_high_detail_player", buffer) == 0) high_detail_player = (bool)value;
       else if (strcmp("disable_detail_textures", buffer) == 0) detail_textures = value ? false : true;
       else if (strcmp("disable_ped_spec", buffer) == 0) ped_spec = value ? false : true;
       else if (strcmp("disable_tex_bias", buffer) == 0) tex_bias = value ? false : true;
@@ -101,9 +103,9 @@ void saveConfig(void) {
     fprintf(config, "%s %d\n", "skygfx_colorfilter", skygfx_colorfilter);
     fprintf(config, "%s %d\n", "skygfx_ps2_sun", (int)skygfx_ps2_sun);
 
+    fprintf(config, "%s %d\n", "enable_high_detail_player", (int)high_detail_player);
     fprintf(config, "%s %d\n", "disable_detail_textures", detail_textures ? false : true);
     fprintf(config, "%s %d\n", "disable_ped_spec", ped_spec ? false : true);
-
     fprintf(config, "%s %d\n", "disable_tex_bias", tex_bias ? false : true);
     fprintf(config, "%s %d\n", "disable_mipmaps", mipmaps ? false : true);
     fclose(config);
@@ -117,6 +119,7 @@ char *options_descs[NUM_OPTIONS] = {
   "Select the desired post processing effect filter to apply to the 3D rendering.\nThe default value is: PS2.", // skygfx_colorfilter
   "Enables shading effects that resamble the PS2 build.\nThe default value is: Enabled.", // skygfx_ps2_shading
   "Enables corona sun effect that resambles the PS2 build.\nThe default value is: Enabled.", // skygfx_ps2_sun
+  "When enabled, high detail player textures are used.\nThe default value is: Disabled.", // high_detail_player
   "When enabled, detail textures will be rendered.\nThe default value is: Disabled.", // disable_detail_textures
   "When enabled, mipmaps will have more precise bias adjustments at the cost of more expensive GPU code execution.\nThe default value is: Disabled.", // disable_tex_bias
   "When enabled, mipmaps will be used causing an higher memory usage and CPU usage but lower memory bandwidth over GPU.\nThe default value is: Enabled.", // disable_mipmaps
@@ -137,6 +140,7 @@ enum {
   OPT_COLOR_FILTER,
   OPT_PS2_SHADING,
   OPT_PS2_SUN,
+  OPT_HI_DETAIL_PLAYER,
   OPT_DETAIL_TEX,
   OPT_TEX_BIAS,
   OPT_MIPMAPS,
@@ -233,6 +237,9 @@ int main(int argc, char *argv[]) {
     }
     SetDescription(OPT_ANTIALIASING);
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.0f, 0.0f));
+    ImGui::Text("High Detail Player Textures:"); ImGui::SameLine();
+    ImGui::Checkbox("##check15", &high_detail_player);
+    SetDescription(OPT_HI_DETAIL_PLAYER);
     ImGui::Text("Detail Textures:"); ImGui::SameLine();
     ImGui::Checkbox("##check4", &detail_textures);
     SetDescription(OPT_DETAIL_TEX);

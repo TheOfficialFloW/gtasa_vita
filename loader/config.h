@@ -116,12 +116,12 @@ typedef enum {
   MAPPING_BUNNY_HOP,
   MAPPING_MAP_ZOOM_IN,
   MAPPING_MAP_ZOOM_OUT,
-  HID_MAPPING_ALT_ATTACK,
-  HID_MAPPING_BLOCK,
-  HID_MAPPING_TAKE_COVER_LEFT,
-  HID_MAPPING_TAKE_COVER_RIGHT,
-  HID_MAPPING_TOGGLE_LANDING_GEAR,
-  HID_MAPPING_KISS,
+  MAPPING_ALT_ATTACK,
+  MAPPING_BLOCK,
+  MAPPING_TAKE_COVER_LEFT,
+  MAPPING_TAKE_COVER_RIGHT,
+  MAPPING_TOGGLE_LANDING_GEAR,
+  MAPPING_KISS,
   MAPPING_DANCING_UP,
   MAPPING_DANCING_DOWN,
   MAPPING_DANCING_LEFT,
@@ -181,6 +181,7 @@ typedef struct {
   int skygfx_ps2_shading; // lighting and vehicle reflections
   int skygfx_colorfilter;
   int skygfx_ps2_sun;
+  int enable_high_detail_player;
   int disable_detail_textures;
   int disable_ped_spec;
   int disable_tex_bias;
