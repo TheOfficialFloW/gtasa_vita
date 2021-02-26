@@ -12,7 +12,7 @@ MAPPING_CANCEL                             BUTTON_TRIANGLE
 MAPPING_SWAP_WEAPONS_AND_PURCHASE          BUTTON_L1
 MAPPING_GRAB                               BUTTON_L1
 MAPPING_PHONE                              BUTTON_L1
-MAPPING_VITAL_STATS                        BUTTON_L1
+MAPPING_VITAL_STATS                        DPAD_LEFT
 MAPPING_BUNNY_HOP                          BUTTON_L1
 MAPPING_MISSION_START_AND_CANCEL           BUTTON_TRIANGLE
 MAPPING_PED_LOOK_BACK                      BUTTON_R3
