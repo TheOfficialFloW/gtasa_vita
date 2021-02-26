@@ -3,7 +3,7 @@
 MAPPING_ATTACK                             BUTTON_CIRCLE
 MAPPING_SPRINT                             BUTTON_CROSS
 MAPPING_JUMP                               BUTTON_SQUARE
-MAPPING_CROUCH                             DPAD_DOWN
+MAPPING_CROUCH                             BUTTON_L3
 MAPPING_ENTER_CAR                          BUTTON_TRIANGLE
 MAPPING_CAMERA_CLOSER                      BUTTON_SELECT
 MAPPING_CAMERA_FARTHER                     BUTTON_SELECT
@@ -12,10 +12,11 @@ MAPPING_CANCEL                             BUTTON_TRIANGLE
 MAPPING_SWAP_WEAPONS_AND_PURCHASE          BUTTON_L1
 MAPPING_GRAB                               BUTTON_L1
 MAPPING_PHONE                              BUTTON_L1
-MAPPING_VITAL_STATS                        DPAD_LEFT
+MAPPING_VITAL_STATS                        BUTTON_L1
 MAPPING_BUNNY_HOP                          BUTTON_L1
 MAPPING_MISSION_START_AND_CANCEL           BUTTON_TRIANGLE
 MAPPING_SKIP_CUTSCENE                      BUTTON_CROSS
+MAPPING_SKIP_CUTSCENE                      BUTTON_START
 MAPPING_PED_LOOK_BACK                      BUTTON_R3
 
 MAPPING_ENTER_AND_EXIT_TARGETING           BUTTON_R1
@@ -58,7 +59,7 @@ MAPPING_NITRO                              BUTTON_L1
 MAPPING_TOGGLE_LANDING_GEAR                DPAD_RIGHT
 MAPPING_HELICOPTER_MAGNET_UP               DPAD_LEFT
 MAPPING_HELICOPTER_MAGNET_DOWN             DPAD_RIGHT
-MAPPING_FLIGHT_PRIMARY_ATTACK              BUTTON_L1
+MAPPING_FLIGHT_PRIMARY_ATTACK              BUTTON_R1
 MAPPING_FLIGHT_SECONDARY_ATTACK            BUTTON_CIRCLE
 
 MAPPING_CRANE_UP                           BUTTON_SQUARE
@@ -67,8 +68,8 @@ MAPPING_DROP_CRANE                         BUTTON_CIRCLE
 MAPPING_DROP_ITEM                          BUTTON_TRIANGLE
 MAPPING_MAGNET                             BUTTON_CIRCLE
 
-MAPPING_GANG_RECRUIT                       DPAD_LEFT
-MAPPING_GANG_IGNORE                        DPAD_RIGHT
+MAPPING_GANG_RECRUIT                       DPAD_UP
+MAPPING_GANG_IGNORE                        DPAD_DOWN
 MAPPING_GANG_FOLLOW                        DPAD_UP
 MAPPING_GANG_HOLD_POSITION                 DPAD_DOWN
 
