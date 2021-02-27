@@ -499,10 +499,26 @@ void *CHIDJoystickPS3__CHIDJoystickPS3(void *this, const char *name) {
   *(uintptr_t *)this = (uintptr_t)CHIDJoystickPS3__vtable + 8;
 
   for (int i = 0; i < mapping_count; i++) {
+    if (button_mapping[i].button_id == BUTTON_UNUSED)
+      continue;
     CHIDJoystick__AddMapping(this, button_mapping[i].button_id, button_mapping[i].hid_mapping);
   }
 
   return this;
+}
+static int (* CTouchInterface__CreateAll)(uint8_t *this);
+
+/*Hide Widgets*/
+int j_CTouchInterface__CreateAll(uint8_t *this) {
+  int ret = CTouchInterface__CreateAll(this);
+  uint32_t *CTouchInterface__m_pWidgets = (uint32_t *)(text_base + 0x006F3794);
+  uint32_t zero = 0x00000000;
+  uint8_t hideWidgets[] = {widget_enter_car, widget_attack, widget_accelerate, widget_brake, widget_handbrake, widget_horn, widget_phone, widget_mission_start, widget_mission_start_vigilante, widget_mission_cancel, widget_mission_cancel_vigilante};
+
+  for(int i = 0;i < sizeof(hideWidgets); i++) {
+	kuKernelCpuUnrestrictedMemcpy((void *)(CTouchInterface__m_pWidgets[hideWidgets[i]] + 0x1C), &zero, sizeof(zero));
+  }
+  return ret;
 }
 
 int MainMenuScreen__OnExit(void) {
@@ -591,6 +607,10 @@ void patch_game(void) {
     kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x0029E4E6), &nop32, sizeof(nop32));
     kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x0029E50A), &nop32, sizeof(nop32));
     kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x0029E530), &nop32, sizeof(nop32));
+	
+	// Hide Widgets
+    CTouchInterface__CreateAll = (void *)so_find_addr("_ZN15CTouchInterface9CreateAllEv");
+    hook_arm((uintptr_t)(text_base + 0x001995BC), (uintptr_t)j_CTouchInterface__CreateAll);
   }
 
   hook_thumb(so_find_addr("__cxa_guard_acquire"), (uintptr_t)&__cxa_guard_acquire);
