@@ -893,8 +893,8 @@ static DynLibFunction dynlib_functions[] = {
   // { "fgetc", (uintptr_t)&fgetc },
   // { "fgets", (uintptr_t)&fgets },
   { "fopen", (uintptr_t)&sceLibcBridge_fopen },
-  // { "fprintf", (uintptr_t)&fprintf },
-  // { "fputc", (uintptr_t)&fputc },
+  { "fprintf", (uintptr_t)&fprintf },
+  { "fputc", (uintptr_t)&fputc },
   // { "fputs", (uintptr_t)&fputs },
   // { "fputwc", (uintptr_t)&fputwc },
   { "fread", (uintptr_t)&sceLibcBridge_fread },
@@ -977,8 +977,8 @@ static DynLibFunction dynlib_functions[] = {
   { "glVertexAttribPointer", (uintptr_t)&glVertexAttribPointer },
   { "glViewport", (uintptr_t)&glViewport },
 
-  // { "longjmp", (uintptr_t)&longjmp },
-  // { "setjmp", (uintptr_t)&setjmp },
+  { "longjmp", (uintptr_t)&longjmp },
+  { "setjmp", (uintptr_t)&setjmp },
 
   { "memchr", (uintptr_t)&sceClibMemchr },
   { "memcmp", (uintptr_t)&sceClibMemcmp },

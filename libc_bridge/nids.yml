@@ -25,6 +25,10 @@ modules:
           sceLibcBridge_fseek: 0xC3A7CDE1
           sceLibcBridge_ftell: 0x41C2AF95
           sceLibcBridge_fwrite: 0x8BCDCC4E
+          sceLibcBridge_fprintf: 0xE0C79764
+          sceLibcBridge_fputc: 0x7E6A6108
+          sceLibcBridge_setjmp: 0x50B326CE
+          sceLibcBridge_longjmp: 0x2D81C8C8
       SceLibstdcxx:
         kernel: false
         nid: 0xF7629240
