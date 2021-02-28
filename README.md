@@ -104,7 +104,8 @@ You can launch the Configurator app by clicking on the `Configuration` button lo
   - Rename the files to `mainV1.scm` and `scriptv1.img` and copy them to both `ux0:data/gtasa/data/` and `ux0:data/gtasa/data/script/` replacing both original files in both directories each time.
   - To use the multiplayer functionality navigate to a corresponding marker (a list can be found here [Marker locations](https://gta.fandom.com/wiki/Multiplayer_in_GTA_San_Andreas) ). You will have to have another controller connected via Bluetooth and set up as controller number 2 (you can configure that via the qick menu, accessible by holding the PS-Button on that controller once connected).
   - On a PSVita (as opposed to on a PSTV) you will also need to use [MiniVitaTV](https://github.com/TheOfficialFloW/MiniVitaTV) to connect the controller in the first place.
-  
+- There is a bug which causes invisible peds when you load a save straight after launching. To avoid that issue, start a new game and *then* load your save.
+
 ## Build Instructions (For Developers)
 
 In order to build the loader, you'll need a [vitasdk](https://github.com/vitasdk) build fully compiled with softfp usage.  
