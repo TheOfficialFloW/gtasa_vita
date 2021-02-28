@@ -33,4 +33,10 @@ size_t sceLibcBridge_fwrite(const void *ptr, size_t size, size_t count, FILE *st
 int sceLibcBridge_ferror(FILE *stream);
 int sceLibcBridge_feof(FILE *stream);
 
+int sceLibcBridge_fprintf( FILE * stream, const char * format, ... );
+int sceLibcBridge_fputc(int ch, FILE *stream);
+
+int sceLibcBridge_setjmp(jmp_buf env);
+void sceLibcBridge_longjmp(jmp_buf env, int val);
+
 #endif
