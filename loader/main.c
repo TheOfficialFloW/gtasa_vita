@@ -627,7 +627,10 @@ void patch_game(void) {
   CHIDJoystickPS3__vtable = (void *)so_find_addr("_ZTV15CHIDJoystickPS3");
   CHIDJoystick__CHIDJoystick = (void *)so_find_addr("_ZN12CHIDJoystickC2EPKc");
   CHIDJoystick__AddMapping = (void *)so_find_addr("_ZN12CHIDJoystick10AddMappingEi10HIDMapping");
-  hook_thumb(so_find_addr("_ZN15CHIDJoystickPS3C2EPKc"), (uintptr_t)CHIDJoystickPS3__CHIDJoystickPS3);
+  if (mapping_count == 0)
+    hook_thumb(so_find_addr("_ZN15CHIDJoystickPS3C2EPKc"), (uintptr_t)so_find_addr("_ZN19CHIDJoystickXbox360C2EPKc"));
+  else
+    hook_thumb(so_find_addr("_ZN15CHIDJoystickPS3C2EPKc"), (uintptr_t)CHIDJoystickPS3__CHIDJoystickPS3);
 
   // support graceful exit
   hook_thumb(so_find_addr("_ZN14MainMenuScreen6OnExitEv"), (uintptr_t)MainMenuScreen__OnExit);
@@ -1099,7 +1102,7 @@ int main(int argc, char *argv[]) {
     fatal_error("Error could not initialize fios.");
 
   vglSetupRuntimeShaderCompiler(SHARK_OPT_UNSAFE, SHARK_ENABLE, SHARK_ENABLE, SHARK_ENABLE);
-  vglInitExtended(0, SCREEN_W, SCREEN_H, 24 * 1024 * 1024, config.aa_mode);
+  vglInitExtended(0, SCREEN_W, SCREEN_H, MEMORY_VITAGL_THRESHOLD_MB * 1024 * 1024, config.aa_mode);
   vglUseVram(GL_TRUE);
 
   jni_load();
