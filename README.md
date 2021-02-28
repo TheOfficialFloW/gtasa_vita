@@ -111,6 +111,16 @@ In order to build the loader, you'll need a [vitasdk](https://github.com/vitasdk
 You can find a precompiled version here: [Linux](https://github.com/vitasdk/buildscripts/suites/1824103476/artifacts/35161735) / [Windows](https://github.com/vitasdk/buildscripts/suites/1836262288/artifacts/35501612).  
 Additionally, you'll need these libraries to be compiled as well with `-mfloat-abi=softfp` added to their CFLAGS:
 
+- [mpg123](http://www.mpg123.de/download/mpg123-1.25.10.tar.bz2)
+
+  - Apply [mpg123.patch](https://github.com/vitasdk/packages/blob/master/mpg123/mpg123.patch) using `patch -Np0 -i mpg123.patch`.
+
+  - ```bash
+    autoreconf -fi
+    CFLAGS="-DPSP2 -mfloat-abi=softfp" ./configure --host=arm-vita-eabi --prefix=$VITASDK/arm-vita-eabi --disable-shared --enable-static --enable-fifo=no --enable-ipv6=no --enable-network=no --enable-int-quality=no --with-cpu=neon --with-default-audio=dummy --with-optimization=3
+    make install
+    ```
+
 - [openal-soft](https://github.com/isage/openal-soft/tree/vita-1.19.1)
 
   - ```bash

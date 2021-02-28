@@ -24,6 +24,7 @@ add_executable(GTASA
   loader/fios.c
   loader/so_util.c
   loader/jni_patch.c
+  loader/mpg123_patch.c
   loader/openal_patch.c
   loader/opengl_patch.c
   loader/gfx_patch.c
@@ -40,6 +41,7 @@ target_link_libraries(GTASA
   vitaGL
   vitashark
   mathneon
+  mpg123
   taihen_stub
   kubridge_stub
   SceAppMgr_stub

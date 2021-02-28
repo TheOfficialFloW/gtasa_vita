@@ -38,6 +38,7 @@
 #include "fios.h"
 #include "so_util.h"
 #include "jni_patch.h"
+#include "mpg123_patch.h"
 #include "openal_patch.h"
 #include "opengl_patch.h"
 #include "gfx_patch.h"
@@ -1089,6 +1090,7 @@ int main(int argc, char *argv[]) {
   so_relocate();
   so_resolve(dynlib_functions, sizeof(dynlib_functions) / sizeof(DynLibFunction), 1);
 
+  patch_mpg123();
   patch_openal();
   patch_opengl();
   patch_game();
