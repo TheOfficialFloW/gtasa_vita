@@ -14,6 +14,12 @@ The port works by loading the official Android ARMv7 executable in memory, resol
 
 ## Changelog
 
+### v1.4
+
+- Updated openal for better performance. Thanks to isage.
+- Fixed crash when selecting japanese/russian language. Thanks to adjutantt.
+- Improved control scheme. Thanks to XirXes and darthbellic.
+
 ### v1.3
 
 - Added ability to remap controls with `ux0:data/gtasa/controls.txt`. Thanks to PoisonPoisonPoison.
@@ -105,12 +111,11 @@ In order to build the loader, you'll need a [vitasdk](https://github.com/vitasdk
 You can find a precompiled version here: [Linux](https://github.com/vitasdk/buildscripts/suites/1824103476/artifacts/35161735) / [Windows](https://github.com/vitasdk/buildscripts/suites/1836262288/artifacts/35501612).  
 Additionally, you'll need these libraries to be compiled as well with `-mfloat-abi=softfp` added to their CFLAGS:
 
-- [openal-soft](https://github.com/Rinnegatamante/openal-soft)
-
-  - Remove `-ftree-vectorize` from `Makefile.vita`.
+- [openal-soft](https://github.com/isage/openal-soft/tree/vita-1.19.1)
 
   - ```bash
-    make -f Makefile.vita install
+    cd build
+    cmake -DCMAKE_TOOLCHAIN_FILE=${VITASDK}/share/vita.toolchain.cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS=-mfloat-abi=softfp .. && make install
     ```
 
 - [libmathneon](https://github.com/Rinnegatamante/math-neon)

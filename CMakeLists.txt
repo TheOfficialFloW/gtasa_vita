@@ -37,8 +37,6 @@ target_link_libraries(GTASA
   m
   stdc++
   openal
-  SDL2
-  vita2d
   vitaGL
   vitashark
   mathneon
@@ -54,7 +52,6 @@ target_link_libraries(GTASA
   SceFios2_stub
   SceGxm_stub
   SceLibcBridge_stub
-  SceHid_stub
   SceShaccCg_stub
   SceSysmodule_stub
   ScePower_stub
