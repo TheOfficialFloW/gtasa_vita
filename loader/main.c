@@ -1068,7 +1068,7 @@ int file_exists(const char *path) {
 }
 
 int main(int argc, char *argv[]) {
-  // Checking if we want to start the companion app
+  // Check if we want to start the companion app
   sceAppUtilInit(&(SceAppUtilInitParam){}, &(SceAppUtilBootParam){});
   SceAppUtilAppEventParam eventParam;
   sceClibMemset(&eventParam, 0, sizeof(SceAppUtilAppEventParam));
@@ -1125,6 +1125,10 @@ int main(int argc, char *argv[]) {
     fatal_error("Error could not initialize fios.");
 
   vglSetupRuntimeShaderCompiler(SHARK_OPT_UNSAFE, SHARK_ENABLE, SHARK_ENABLE, SHARK_ENABLE);
+  vglSetVDMBufferSize(512 * 1024); // default 128 * 1024
+  vglSetVertexBufferSize(8 * 1024 * 1024); // default 2 * 1024 * 1024
+  vglSetFragmentBufferSize(2 * 1024 * 1024); // default 512 * 1024
+  vglSetUSSEBufferSize(64 * 1024); // default 16 * 1024
   vglInitExtended(0, SCREEN_W, SCREEN_H, MEMORY_VITAGL_THRESHOLD_MB * 1024 * 1024, config.aa_mode);
   vglUseVram(GL_TRUE);
 

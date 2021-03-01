@@ -5,8 +5,6 @@
 
 #define CONFIG_FILE_PATH "ux0:data/gtasa/config.txt"
 
-int _newlib_heap_size_user = 192 * 1024 * 1024;
-
 #define SKYGFX_COLOR_FILTER_NUM 4
 enum SkyGfxColorFilter {
   SKYGFX_COLOR_FILTER_MOBILE,
