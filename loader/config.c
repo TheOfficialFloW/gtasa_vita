@@ -21,22 +21,23 @@ int read_config(const char *file) {
   memset(&config, 0, sizeof(Config));
   config.touch_x_margin = 100;
   config.front_touch_triggers = 0;
-  config.enable_bones_optimization = 0;
-  config.enable_mvp_optimization = 0;
-  config.ignore_mobile_stuff = 1;
   config.fix_heli_plane_camera = 1;
-  config.fix_skin_weights = 1;
-  config.fix_map_bottleneck = 1;
-  config.use_shader_cache = 1;
-  config.skygfx_ps2_shading = 1;
   config.skygfx_colorfilter = SKYGFX_COLOR_FILTER_PS2;
+  config.skygfx_ps2_shading = 1;
   config.skygfx_ps2_sun = 1;
+  config.aa_mode = SCE_GXM_MULTISAMPLE_2X;
   config.enable_high_detail_player = 0;
   config.disable_detail_textures = 1;
-  config.disable_ped_spec = 1;
   config.disable_tex_bias = 1;
   config.disable_mipmaps = 0;
-  config.aa_mode = SCE_GXM_MULTISAMPLE_2X;
+  config.fix_skin_weights = 1;
+  config.disable_ped_spec = 1;
+  config.ignore_mobile_stuff = 1;
+  config.allow_removed_tracks = 0;
+  config.enable_fuzzy_seek = 0;
+  config.use_shader_cache = 1;
+  config.enable_mvp_optimization = 0;
+  config.enable_bones_optimization = 0;
 
   FILE *f = fopen(file, "r");
   if (f == NULL)
@@ -54,22 +55,23 @@ int read_config(const char *file) {
     if (0) {}
     CONFIG_VAR(touch_x_margin)
     CONFIG_VAR(front_touch_triggers)
-    CONFIG_VAR(enable_bones_optimization)
-    CONFIG_VAR(enable_mvp_optimization)
-    CONFIG_VAR(ignore_mobile_stuff)
     CONFIG_VAR(fix_heli_plane_camera)
-    CONFIG_VAR(fix_skin_weights)
-    CONFIG_VAR(fix_map_bottleneck)
-    CONFIG_VAR(use_shader_cache)
-    CONFIG_VAR(skygfx_ps2_shading)
     CONFIG_VAR(skygfx_colorfilter)
+    CONFIG_VAR(skygfx_ps2_shading)
     CONFIG_VAR(skygfx_ps2_sun)
+    CONFIG_VAR(aa_mode)
     CONFIG_VAR(enable_high_detail_player)
     CONFIG_VAR(disable_detail_textures)
-    CONFIG_VAR(disable_ped_spec)
     CONFIG_VAR(disable_tex_bias)
     CONFIG_VAR(disable_mipmaps)
-    CONFIG_VAR(aa_mode)
+    CONFIG_VAR(fix_skin_weights)
+    CONFIG_VAR(disable_ped_spec)
+    CONFIG_VAR(ignore_mobile_stuff)
+    CONFIG_VAR(allow_removed_tracks)
+    CONFIG_VAR(enable_fuzzy_seek)
+    CONFIG_VAR(use_shader_cache)
+    CONFIG_VAR(enable_mvp_optimization)
+    CONFIG_VAR(enable_bones_optimization)
     #undef CONFIG_VAR
   }
 

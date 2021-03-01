@@ -520,6 +520,28 @@ void patch_game(void) {
   if (config.disable_detail_textures)
     *(int *)so_find_addr("gNoDetailTextures") = 1;
 
+  if (config.allow_removed_tracks) {
+    hook_thumb(so_find_addr("_Z14IsRemovedTracki"), (uintptr_t)ret0);
+
+    // QueueUpTracksForStation
+    hook_thumb((uintptr_t)text_base + 0x003A152A, (uintptr_t)text_base + 0x003A1602 + 0x1);
+
+    // ChooseMusicTrackIndex
+    hook_thumb((uintptr_t)text_base + 0x003A35F6, (uintptr_t)text_base + 0x003A369A + 0x1);
+
+    // ChooseIdentIndex
+    hook_thumb((uintptr_t)text_base + 0x003A37C2, (uintptr_t)text_base + 0x003A385E + 0x1);
+
+    // ChooseAdvertIndex
+    hook_thumb((uintptr_t)text_base + 0x003A3A1E, (uintptr_t)text_base + 0x003A3AA2 + 0x1);
+
+    // ChooseTalkRadioShow
+    hook_thumb((uintptr_t)text_base + 0x003A4374, (uintptr_t)text_base + 0x003A4416 + 0x1);
+
+    // ChooseDJBanterIndexFromList
+    hook_thumb((uintptr_t)text_base + 0x003A44D6, (uintptr_t)text_base + 0x003A4562 + 0x1);
+  }
+
   if (config.fix_heli_plane_camera) {
     // Dummy all FindPlayerVehicle calls so the right analog stick can be used as camera again
     uint32_t movs_r0_0 = 0xBF002000;
@@ -568,10 +590,6 @@ void patch_game(void) {
     hook_thumb(so_find_addr("_ZN9ES2Shader17SetMatrixConstantE24RQShaderMatrixConstantIDPKf"), (uintptr_t)ES2Shader__SetMatrixConstant);
   }
 
-  // Remove map highlight (explored regions) since it's rendered very inefficiently
-  if (config.fix_map_bottleneck)
-    hook_thumb((uintptr_t)(text_base + 0x002AADE0), (uintptr_t)(text_base + 0x002AAF9A + 0x1));
-
   // Ignore widgets and popups introduced in mobile
   if (config.ignore_mobile_stuff) {
     uint16_t nop16 = 0xbf00;
@@ -593,6 +611,9 @@ void patch_game(void) {
     kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x0029E50A), &nop32, sizeof(nop32));
     kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x0029E530), &nop32, sizeof(nop32));
   }
+
+  // Remove map highlight (explored zones) since alpha blending is very expensive
+  hook_thumb((uintptr_t)text_base + 0x002AADE0, (uintptr_t)text_base + 0x002AAF9A + 0x1);
 
   hook_thumb(so_find_addr("__cxa_guard_acquire"), (uintptr_t)&__cxa_guard_acquire);
   hook_thumb(so_find_addr("__cxa_guard_release"), (uintptr_t)&__cxa_guard_release);

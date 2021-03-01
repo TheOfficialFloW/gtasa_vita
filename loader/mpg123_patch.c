@@ -14,6 +14,12 @@
 #include "main.h"
 #include "so_util.h"
 
+int mpg123_param_hook(mpg123_handle *mh, enum mpg123_parms key, long val, double fval) {
+  if (config.enable_fuzzy_seek)
+    val |= MPG123_FUZZY | MPG123_SEEKBUFFER | MPG123_GAPLESS;
+  return mpg123_param(mh, key, val, fval);
+}
+
 void patch_mpg123(void) {
   hook_thumb(so_find_addr("mpg123_add_string"), (uintptr_t)mpg123_add_string);
   hook_thumb(so_find_addr("mpg123_add_substring"), (uintptr_t)mpg123_add_substring);
@@ -71,7 +77,7 @@ void patch_mpg123(void) {
   hook_thumb(so_find_addr("mpg123_open_handle"), (uintptr_t)mpg123_open_handle);
   hook_thumb(so_find_addr("mpg123_outblock"), (uintptr_t)mpg123_outblock);
   hook_thumb(so_find_addr("mpg123_par"), (uintptr_t)mpg123_par);
-  hook_thumb(so_find_addr("mpg123_param"), (uintptr_t)mpg123_param);
+  hook_thumb(so_find_addr("mpg123_param"), (uintptr_t)mpg123_param_hook);
   hook_thumb(so_find_addr("mpg123_parnew"), (uintptr_t)mpg123_parnew);
   hook_thumb(so_find_addr("mpg123_plain_strerror"), (uintptr_t)mpg123_plain_strerror);
   hook_thumb(so_find_addr("mpg123_position"), (uintptr_t)mpg123_position);
