@@ -111,7 +111,7 @@ You can launch the Configurator app by clicking on the `Configuration` button lo
   - With 56kbps and 22050hz mono highest quality convert them from `.ogg` to `.mp3` and make sure you uncheck the id3 settings so the tracks wouldn't have any id3 tags on them.
   - Then after the conversion compress the converted `.mp3` files into zip files compression set to store with 7z or rar.
   - After that rename the file extension from `.zip` to `.osw` for each one of them but leave their original name untouched.
-  - You need also saaf by nick7 build 239 [SAAT 1.10 by alcy](https://gta.nick7.com/programs/saaf/saaf_build_239.zip) to use it to open each `.osw` file, it'll create an `.osw.idx` file.
+  - You need also saaf by nick7 build 239 [SAAF by nick7 build 239](https://gta.nick7.com/programs/saaf/saaf_build_239.zip) to use it to open each `.osw` file, it'll create an `.osw.idx` file.
   - After creating the `.osw.idx` files for each one of them just copy all of the `.osw` with their `.osw.idx` files to the `STREAMS` folder on your vita in `ux0:data/gtasa/audio/STREAMS` and overwrite if asked.
   - And you should be able to enjoy the game with all the songs on the latest build.
 
