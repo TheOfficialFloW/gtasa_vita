@@ -21,22 +21,23 @@ int read_config(const char *file) {
   memset(&config, 0, sizeof(Config));
   config.touch_x_margin = 100;
   config.front_touch_triggers = 0;
-  config.enable_bones_optimization = 0;
-  config.enable_mvp_optimization = 0;
-  config.ignore_mobile_stuff = 1;
   config.fix_heli_plane_camera = 1;
-  config.fix_skin_weights = 1;
-  config.fix_map_bottleneck = 1;
-  config.use_shader_cache = 1;
-  config.skygfx_ps2_shading = 1;
   config.skygfx_colorfilter = SKYGFX_COLOR_FILTER_PS2;
+  config.skygfx_ps2_shading = 1;
   config.skygfx_ps2_sun = 1;
+  config.aa_mode = SCE_GXM_MULTISAMPLE_2X;
   config.enable_high_detail_player = 0;
   config.disable_detail_textures = 1;
-  config.disable_ped_spec = 1;
   config.disable_tex_bias = 1;
   config.disable_mipmaps = 0;
-  config.aa_mode = SCE_GXM_MULTISAMPLE_2X;
+  config.fix_skin_weights = 1;
+  config.disable_ped_spec = 1;
+  config.ignore_mobile_stuff = 1;
+  config.allow_removed_tracks = 0;
+  config.enable_fuzzy_seek = 0;
+  config.use_shader_cache = 1;
+  config.enable_mvp_optimization = 0;
+  config.enable_bones_optimization = 0;
 
   FILE *f = fopen(file, "r");
   if (f == NULL)
@@ -54,22 +55,23 @@ int read_config(const char *file) {
     if (0) {}
     CONFIG_VAR(touch_x_margin)
     CONFIG_VAR(front_touch_triggers)
-    CONFIG_VAR(enable_bones_optimization)
-    CONFIG_VAR(enable_mvp_optimization)
-    CONFIG_VAR(ignore_mobile_stuff)
     CONFIG_VAR(fix_heli_plane_camera)
-    CONFIG_VAR(fix_skin_weights)
-    CONFIG_VAR(fix_map_bottleneck)
-    CONFIG_VAR(use_shader_cache)
-    CONFIG_VAR(skygfx_ps2_shading)
     CONFIG_VAR(skygfx_colorfilter)
+    CONFIG_VAR(skygfx_ps2_shading)
     CONFIG_VAR(skygfx_ps2_sun)
+    CONFIG_VAR(aa_mode)
     CONFIG_VAR(enable_high_detail_player)
     CONFIG_VAR(disable_detail_textures)
-    CONFIG_VAR(disable_ped_spec)
     CONFIG_VAR(disable_tex_bias)
     CONFIG_VAR(disable_mipmaps)
-    CONFIG_VAR(aa_mode)
+    CONFIG_VAR(fix_skin_weights)
+    CONFIG_VAR(disable_ped_spec)
+    CONFIG_VAR(ignore_mobile_stuff)
+    CONFIG_VAR(allow_removed_tracks)
+    CONFIG_VAR(enable_fuzzy_seek)
+    CONFIG_VAR(use_shader_cache)
+    CONFIG_VAR(enable_mvp_optimization)
+    CONFIG_VAR(enable_bones_optimization)
     #undef CONFIG_VAR
   }
 
@@ -117,118 +119,12 @@ ButtonID GetButtonID(const char *name) {
   return -1;
 }
 
-void set_default_mapping(void) {
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_ATTACK, BUTTON_CIRCLE };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_SPRINT, BUTTON_CROSS };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_JUMP, BUTTON_SQUARE };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_CROUCH, DPAD_DOWN };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_ENTER_CAR, BUTTON_TRIANGLE };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_BRAKE, BUTTON_SQUARE };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_HANDBRAKE, BUTTON_R1 };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_ACCELERATE, BUTTON_CROSS };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_CAMERA_CLOSER, BUTTON_SELECT };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_CAMERA_FARTHER, BUTTON_SELECT };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_HORN, DPAD_RIGHT };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_RADIO_PREV_STATION, DPAD_UP };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_RADIO_NEXT_STATION, DPAD_DOWN };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_VITAL_STATS, DPAD_LEFT };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_NEXT_WEAPON, DPAD_LEFT };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_PREV_WEAPON, DPAD_RIGHT };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_RADAR, BUTTON_START };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_PED_LOOK_BACK, BUTTON_R3 };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_VEHICLE_LOOK_LEFT, BUTTON_L2 };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_VEHICLE_LOOK_RIGHT, BUTTON_R2 };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_MISSION_START_AND_CANCEL, BUTTON_L3 };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_MISSION_START_AND_CANCEL_VIGILANTE, BUTTON_L3 };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_VEHICLE_STEER_X, ANALOG_LEFT_X };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_VEHICLE_STEER_Y, ANALOG_LEFT_Y };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_LOOK_X, ANALOG_RIGHT_X };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_LOOK_Y, ANALOG_RIGHT_Y };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_PED_MOVE_X, ANALOG_LEFT_X };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_PED_MOVE_Y, ANALOG_LEFT_Y };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_AUTO_HYDRAULICS, BUTTON_CIRCLE };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_SWAP_WEAPONS_AND_PURCHASE, BUTTON_L1 };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_WEAPON_ZOOM_IN, BUTTON_SQUARE };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_WEAPON_ZOOM_OUT, BUTTON_CROSS };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_ENTER_AND_EXIT_TARGETING, BUTTON_R1 };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_VEHICLE_BOMB, DPAD_LEFT };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_TURRET_LEFT, BUTTON_L2 };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_TURRET_RIGHT, BUTTON_R2 };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_MAGNET, BUTTON_CIRCLE };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_SKIP_CUTSCENE, BUTTON_START };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_SKIP_CUTSCENE, BUTTON_CROSS };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_GANG_RECRUIT, DPAD_LEFT };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_GANG_IGNORE, DPAD_RIGHT };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_GANG_FOLLOW, DPAD_UP };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_GANG_HOLD_POSITION, DPAD_DOWN };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_RHYTHM_UP, DPAD_UP };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_RHYTHM_DOWN, DPAD_DOWN };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_RHYTHM_LEFT, DPAD_LEFT };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_RHYTHM_RIGHT, DPAD_RIGHT };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_DROP_CRANE, BUTTON_CIRCLE };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_DROP_ITEM, BUTTON_TRIANGLE };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_PHONE, BUTTON_L1 };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_NITRO, BUTTON_L1 };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_NITRO, BUTTON_CIRCLE };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_CRANE_UP, BUTTON_SQUARE };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_CRANE_DOWN, BUTTON_CROSS };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_ACCEPT, BUTTON_CROSS };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_CANCEL, BUTTON_TRIANGLE };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_GRAB, BUTTON_L1 };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_STINGER, BUTTON_CIRCLE };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_MENU_DOWN, DPAD_DOWN };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_MENU_UP, DPAD_UP };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_MENU_LEFT, DPAD_LEFT };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_MENU_RIGHT, DPAD_RIGHT };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_MENU_ACCEPT, BUTTON_START };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_MENU_ACCEPT, BUTTON_CROSS };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_MENU_BACK, BUTTON_CIRCLE };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_MENU_MAP, BUTTON_SELECT };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_ARCADE_BUTTON, BUTTON_CROSS };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_ARCADE_POWER_OFF, BUTTON_TRIANGLE };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_ARCADE_RESET, BUTTON_SELECT };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_ARCADE_JOYSTICK, ANALOG_LEFT_X };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_GYM_ACTION, BUTTON_CROSS };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_GYM_EASIER_LEVEL, DPAD_LEFT };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_GYM_HARDER_LEVEL, DPAD_RIGHT };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_BLACK_JACK_SPLIT, BUTTON_R1 };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_BLACK_JACK_DOUBLE, BUTTON_SQUARE };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_BLACK_JACK_HIT, BUTTON_CROSS };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_BLACK_JACK_STAND, BUTTON_CIRCLE };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_PLACE_BET, BUTTON_CIRCLE };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_REMOVE_BET, BUTTON_SQUARE };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_NEXT_TARGET, DPAD_RIGHT };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_PREV_TARGET, DPAD_LEFT };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_WAYPOINT_BLIP, BUTTON_CROSS };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_HELICOPTER_MAGNET_UP, DPAD_UP };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_HELICOPTER_MAGNET_DOWN, DPAD_DOWN };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_LOCK_HYDRAULICS, BUTTON_R3 };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_FLIGHT_PRIMARY_ATTACK, BUTTON_L1 };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_FLIGHT_SECONDARY_ATTACK, BUTTON_CIRCLE };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_BASKETBALL_SHOOT, BUTTON_CIRCLE };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_BUNNY_HOP, BUTTON_L1 };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_MAP_ZOOM_IN, BUTTON_L1 };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_MAP_ZOOM_OUT, BUTTON_R1 };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_ALT_ATTACK, BUTTON_TRIANGLE };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_BLOCK, BUTTON_SQUARE };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_TAKE_COVER_LEFT, BUTTON_L2 };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_TAKE_COVER_RIGHT, BUTTON_R2 };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_TOGGLE_LANDING_GEAR, DPAD_DOWN };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_KISS, BUTTON_L1 };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_DANCING_UP, DPAD_UP };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_DANCING_DOWN, DPAD_DOWN };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_DANCING_LEFT, DPAD_LEFT };
-  button_mapping[mapping_count++] = (ButtonMapping) { MAPPING_DANCING_RIGHT, DPAD_RIGHT };
-}
-
 int read_controller_config(const char *file) {
   mapping_count = 0;
 
   FILE *f = fopen(file, "r");
-  if (f == NULL) {
-    set_default_mapping();
+  if (f == NULL)
     return -1;
-  }
 
   char line[1024];
   char name[64];

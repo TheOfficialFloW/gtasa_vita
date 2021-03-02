@@ -14,6 +14,12 @@ The port works by loading the official Android ARMv7 executable in memory, resol
 
 ## Changelog
 
+### v1.4
+
+- Updated openal for better performance. Thanks to isage.
+- Fixed crash when selecting japanese/russian language. Thanks to adjutantt.
+- Improved control scheme. Thanks to XirXes and darthbellic.
+
 ### v1.3
 
 - Added ability to remap controls with `ux0:data/gtasa/controls.txt`. Thanks to PoisonPoisonPoison.
@@ -45,7 +51,7 @@ The port works by loading the official Android ARMv7 executable in memory, resol
 
 ## Setup Instructions (For End Users)
 
-(If you have already installed the game and want to update to a newer release, you can simply install [GTASA.vpk](https://github.com/TheOfficialFloW/gtasa_vita/releases/download/v1.3/GTASA.vpk) on your *PS Vita*).
+(If you have already installed the game and want to update to a newer release, you can simply install [GTASA.vpk](https://github.com/TheOfficialFloW/gtasa_vita/releases/download/v1.4/GTASA.vpk) on your *PS Vita*).
 
 In order to properly install the game, you'll have to follow these steps precisely:
 
@@ -66,9 +72,9 @@ In order to properly install the game, you'll have to follow these steps precise
 - Still in the apk, extract the file `libGTASA.so` from the `lib/armeabi-v7a` folder to `ux0:data/gtasa`. 
 - Open the `main.8.com.rockstargames.gtasa.obb` with your zip explorer (`.obb` files are zip files just like `.apk` files so just rename the `.obb` to `.zip`) and extract the contents to `ux0:data/gtasa`.
 - Same as before, open the `patch.8.com.rockstargames.gtasa.obb` with the zip explorer and extract the contents inside the zip to `ux0:data/gtasa`.
-- Download the [gamefiles.zip](https://github.com/TheOfficialFloW/gtasa_vita/releases/download/v1.3/gamefiles.zip) and extract the contents to `ux0:data/gtasa` (if it ask about overwriting files, say yes).
+- Download the [gamefiles.zip](https://github.com/TheOfficialFloW/gtasa_vita/releases/download/v1.4/gamefiles.zip) and extract the contents to `ux0:data/gtasa` (if it ask about overwriting files, say yes).
 - **Optional**: For a more authentic console experience, copy the file `ux0:data/gtasa/data/360Default1280x720.cfg` to `ux0:data/gtasa/` and rename it from `360Default1280x720.cfg` to `Adjustable.cfg`. This file is a leftover from the Xbox 360 version and provides you the console HUD (e.g. radar on bottom left).
-- Install [GTASA.vpk](https://github.com/TheOfficialFloW/gtasa_vita/releases/download/v1.3/GTASA.vpk) on your *PS Vita*.
+- Install [GTASA.vpk](https://github.com/TheOfficialFloW/gtasa_vita/releases/download/v1.4/GTASA.vpk) on your *PS Vita*.
 
 If you have followed the steps correctly, this is how your `ux0:data/gtasa` folder should look like.
 
@@ -98,19 +104,38 @@ You can launch the Configurator app by clicking on the `Configuration` button lo
   - Rename the files to `mainV1.scm` and `scriptv1.img` and copy them to both `ux0:data/gtasa/data/` and `ux0:data/gtasa/data/script/` replacing both original files in both directories each time.
   - To use the multiplayer functionality navigate to a corresponding marker (a list can be found here [Marker locations](https://gta.fandom.com/wiki/Multiplayer_in_GTA_San_Andreas) ). You will have to have another controller connected via Bluetooth and set up as controller number 2 (you can configure that via the qick menu, accessible by holding the PS-Button on that controller once connected).
   - On a PSVita (as opposed to on a PSTV) you will also need to use [MiniVitaTV](https://github.com/TheOfficialFloW/MiniVitaTV) to connect the controller in the first place.
-  
+- There is a bug which causes invisible peds when you load a save straight after launching. To avoid that issue, start a new game and *then* load your save.
+- To have the cut songs back you'll need to extract the `STREAMS` audio files with saat 1.10 by alci [SAAT 1.10 by alcy](https://web.archive.org/web/20070305050639/http://pdescobar.home.comcast.net:80/gta/saat/SAAT_release_1_10.zip) from your downgraded steam/rockstar launcher version or from the disc version that has the cut songs:
+  - Use the command prompt on the directory you extract saat 1.10 by alci to, for example: `cmd D/saat/` ,then use the command `saat_stream.exe -e <stream_file(s)> <target_dir>`, for example: `saat_stream.exe -e BEATS newfolder`.
+  - It'll export them as `track_001.ogg`, `track_002.ogg`...etc, you'll need to use a good audio editing/converter program that can convert `.ogg` to `.mp3` like sound forge 9.0 is what was used here to convert them or a better one if you have it.
+  - With 56kbps and 22050hz mono highest quality convert them from `.ogg` to `.mp3` and make sure you uncheck the id3 settings so the tracks wouldn't have any id3 tags on them.
+  - Then after the conversion compress the converted `.mp3` files into `.zip` files compression set to store with 7z or rar.
+  - After that rename the file extension from `.zip` to `.osw` for each one of them but leave their original name untouched.
+  - You need also saaf by nick7 build 239 [SAAF by nick7 build 239](https://gta.nick7.com/programs/saaf/saaf_build_239.zip) to use it to open each `.osw` file, it'll create an `.osw.idx` file.
+  - After creating the `.osw.idx` files for each one of them just copy all of the `.osw` with their `.osw.idx` files to the `STREAMS` folder on your vita in `ux0:data/gtasa/audio/STREAMS` and overwrite if asked.
+  - And you should be able to enjoy the game with all the songs on the latest build.
+
 ## Build Instructions (For Developers)
 
 In order to build the loader, you'll need a [vitasdk](https://github.com/vitasdk) build fully compiled with softfp usage.  
 You can find a precompiled version here: [Linux](https://github.com/vitasdk/buildscripts/suites/1824103476/artifacts/35161735) / [Windows](https://github.com/vitasdk/buildscripts/suites/1836262288/artifacts/35501612).  
 Additionally, you'll need these libraries to be compiled as well with `-mfloat-abi=softfp` added to their CFLAGS:
 
-- [openal-soft](https://github.com/Rinnegatamante/openal-soft)
+- [mpg123](http://www.mpg123.de/download/mpg123-1.25.10.tar.bz2)
 
-  - Remove `-ftree-vectorize` from `Makefile.vita`.
+  - Apply [mpg123.patch](https://github.com/vitasdk/packages/blob/master/mpg123/mpg123.patch) using `patch -Np0 -i mpg123.patch`.
 
   - ```bash
-    make -f Makefile.vita install
+    autoreconf -fi
+    CFLAGS="-DPSP2 -mfloat-abi=softfp" ./configure --host=arm-vita-eabi --prefix=$VITASDK/arm-vita-eabi --disable-shared --enable-static --enable-fifo=no --enable-ipv6=no --enable-network=no --enable-int-quality=no --with-cpu=neon --with-default-audio=dummy --with-optimization=3
+    make install
+    ```
+
+- [openal-soft](https://github.com/isage/openal-soft/tree/vita-1.19.1)
+
+  - ```bash
+    cd build
+    cmake -DCMAKE_TOOLCHAIN_FILE=${VITASDK}/share/vita.toolchain.cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS=-mfloat-abi=softfp .. && make install
     ```
 
 - [libmathneon](https://github.com/Rinnegatamante/math-neon)

@@ -5,8 +5,9 @@
 
 // #define LOAD_ADDRESS 0x98000000
 
-#define MEMORY_SCELIBC_MB 8
-#define MEMORY_NEWLIB_MB 232
+#define MEMORY_SCELIBC_MB 4
+#define MEMORY_NEWLIB_MB 192
+#define MEMORY_VITAGL_THRESHOLD_MB 24
 
 #define DATA_PATH "ux0:data/gtasa"
 #define SO_PATH DATA_PATH "/" "libGTASA.so"
@@ -171,22 +172,23 @@ typedef enum {
 typedef struct {
   int touch_x_margin;
   int front_touch_triggers;
-  int enable_bones_optimization;
-  int enable_mvp_optimization;
-  int ignore_mobile_stuff;
   int fix_heli_plane_camera;
-  int fix_skin_weights;
-  int fix_map_bottleneck;
-  int use_shader_cache;
-  int skygfx_ps2_shading; // lighting and vehicle reflections
   int skygfx_colorfilter;
+  int skygfx_ps2_shading; // lighting and vehicle reflections
   int skygfx_ps2_sun;
+  int aa_mode;
   int enable_high_detail_player;
   int disable_detail_textures;
-  int disable_ped_spec;
   int disable_tex_bias;
   int disable_mipmaps;
-  int aa_mode;
+  int fix_skin_weights;
+  int disable_ped_spec;
+  int ignore_mobile_stuff;
+  int allow_removed_tracks;
+  int enable_fuzzy_seek;
+  int use_shader_cache;
+  int enable_mvp_optimization;
+  int enable_bones_optimization;
 } Config;
 
 extern int mapping_count;
