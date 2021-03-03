@@ -90,30 +90,23 @@ You can launch the Configurator app by clicking on the `Configuration` button lo
 
 ## Tips and Tricks
 
-- In order to reduce occasional stutters in-game, delete both `ux0:data/gtasa/scache_small_low.txt` and `ux0:data/gtasa/scache_small.txt`, then create a copy of the `ux0:data/gtasa/scache.txt` file to have two version of it. (for example `scache(1).txt` so in the end you end up with both `scache.txt` and `scache(1).txt` inside the `ux0:data/gtasa/` folder), then rename `scache.txt` to `scache_small.txt` and `scache(1).txt` to `scache_small_low.txt` . This will however make the loading screen longer since it needs to compile more shaders ahead.
-  - If the folder `ux0:data/gtasa/cache` contains much more than 300 files, it's recommended to delete the folder and have it rebuilt.
-- You can input PC cheats by pressing L+SELECT to open the on-screen keyboard. See [CHEATS.md](CHEATS.md) for available and unavailable cheats (you can input cheat codes in lowercase as well as uppercase).
+### Gameplay
+
+- You can input PC cheats by pressing **L** + **SELECT** to open the on-screen keyboard. See [CHEATS.md](CHEATS.md) for available and unavailable cheats (you can input cheat codes in lowercase as well as uppercase).
 - The L2/R2 buttons are mapped to the rear touchpad on the top and the L3/R3 buttons are mapped to the front touchpad on the bottom. With v1.2 and higher, you can map L2/R2 to the front touchpad on the top.
 - You can open the map by holding START and then releasing.
+- There is a bug which causes invisible peds when you load a save straight after launching. To avoid that issue, start a new game and *then* load your save.
+- You can get local freeroam coop and rampages working by replacing the main scripts with those of the PS3 version. See [COOP.md](COOP.md).
+- Due to expired licensing, some songs were cut from the game. See [MUSIC.md](MUSIC.md) for a list of removed tracks and a guide on how to restore them.
+
+### Performance
+
+- In order to reduce occasional stutters in-game, delete both `ux0:data/gtasa/scache_small_low.txt` and `ux0:data/gtasa/scache_small.txt`, then create a copy of the `ux0:data/gtasa/scache.txt` file to have two version of it. (for example `scache(1).txt` so in the end you end up with both `scache.txt` and `scache(1).txt` inside the `ux0:data/gtasa/` folder), then rename `scache.txt` to `scache_small.txt` and `scache(1).txt` to `scache_small_low.txt` . This will however make the loading screen longer since it needs to compile more shaders ahead.
+  - If the folder `ux0:data/gtasa/cache` contains much more than 300 files, it's recommended to delete the folder and have it rebuilt.
+
 - In order to save storage on your Memory Card, you can safely delete all files in sub-folders of `ux0:data/gtasa/texdb` which end with:
   - `.dxt.dat`, `.dxt.tmb`, `dxt.toc`
   - `.etc.dat`, `.etc.tmb`, `etc.toc`
-- To get local freeroam coop and rampages working you will need to replace the main scripts with those of the PS3 version:
-  - Keep in mind that saves made with the old files will be incompatible with a game using the new files and vice-versa.
-  - Obtain `mainPS3.scm` and `scriptps3.img` from the `/PS3_GAME/USRDIR/PS3Data.obb -> /data/script` folder of a PS3 copy. In order to extract the `.obb` file rename it to `.zip` and use your favorite archive extractor.
-  - Rename the files to `mainV1.scm` and `scriptv1.img` and copy them to both `ux0:data/gtasa/data/` and `ux0:data/gtasa/data/script/` replacing both original files in both directories each time.
-  - To use the multiplayer functionality navigate to a corresponding marker (a list can be found here [Marker locations](https://gta.fandom.com/wiki/Multiplayer_in_GTA_San_Andreas) ). You will have to have another controller connected via Bluetooth and set up as controller number 2 (you can configure that via the qick menu, accessible by holding the PS-Button on that controller once connected).
-  - On a PSVita (as opposed to on a PSTV) you will also need to use [MiniVitaTV](https://github.com/TheOfficialFloW/MiniVitaTV) to connect the controller in the first place.
-- There is a bug which causes invisible peds when you load a save straight after launching. To avoid that issue, start a new game and *then* load your save.
-- To have the cut songs back you'll need to extract the `STREAMS` audio files with saat 1.10 by alci [SAAT 1.10 by alcy](https://web.archive.org/web/20070305050639/http://pdescobar.home.comcast.net:80/gta/saat/SAAT_release_1_10.zip) from your downgraded steam/rockstar launcher version or from the disc version that has the cut songs:
-  - Use the command prompt on the directory you extract saat 1.10 by alci to, for example: `cmd D/saat/` ,then use the command `saat_stream.exe -e <stream_file(s)> <target_dir>`, for example: `saat_stream.exe -e BEATS newfolder`.
-  - It'll export them as `track_001.ogg`, `track_002.ogg`...etc, you'll need to use a good audio editing/converter program that can convert `.ogg` to `.mp3` like sound forge 9.0 is what was used here to convert them or a better one if you have it.
-  - With 56kbps and 22050hz mono highest quality convert them from `.ogg` to `.mp3` and make sure you uncheck the id3 settings so the tracks wouldn't have any id3 tags on them.
-  - Then after the conversion compress the converted `.mp3` files into `.zip` files compression set to store with 7z or rar.
-  - After that rename the file extension from `.zip` to `.osw` for each one of them but leave their original name untouched.
-  - You need also saaf by nick7 build 239 [SAAF by nick7 build 239](https://gta.nick7.com/programs/saaf/saaf_build_239.zip) to use it to open each `.osw` file, it'll create an `.osw.idx` file.
-  - After creating the `.osw.idx` files for each one of them just copy all of the `.osw` with their `.osw.idx` files to the `STREAMS` folder on your vita in `ux0:data/gtasa/audio/STREAMS` and overwrite if asked.
-  - And you should be able to enjoy the game with all the songs on the latest build.
 
 ## Build Instructions (For Developers)
 
