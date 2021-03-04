@@ -1,4 +1,4 @@
-** Soon applicable to v1.5!**
+**Soon applicable to v1.5!**
 
 # GTA: SA Vita - Restoring The Cut Songs
 
