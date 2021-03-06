@@ -51,6 +51,14 @@ int _newlib_heap_size_user = MEMORY_NEWLIB_MB * 1024 * 1024;
 
 SceTouchPanelInfo panelInfoFront, panelInfoBack;
 
+void *memcpy(void *dest, const void *src, size_t n) {
+  return sceClibMemcpy(dest, src, n);
+}
+
+void *memset(void *s, int c, size_t n) {
+  return sceClibMemset(s, c, n);
+}
+
 int debugPrintf(char *text, ...) {
 #ifdef DEBUG
   va_list list;
