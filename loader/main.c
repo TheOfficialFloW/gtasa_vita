@@ -253,8 +253,8 @@ void *OS_ThreadSetValue(void *RenderQueue) {
 #define HARRIER_NOZZLE_ROTATERATE 25.0f
 
 static void *(* CPad__GetPad)(int pad);
-static float (* CPad__GetCarGunUpDown)(void *pad, int r1, int r2, float r3, int r4);
-static float (* CPad__GetSteeringLeftRight)(void *pad);
+static int (* CPad__GetCarGunUpDown)(void *pad, int r1, int r2, float r3, int r4);
+static int (* CPad__GetSteeringLeftRight)(void *pad);
 static int (* CPad__GetLookLeft)(void *pad);
 static int (* CPad__GetLookRight)(void *pad);
 
@@ -265,7 +265,7 @@ float CPlane__ProcessControlInputs_Rudder(void *this, int pad) {
 
   uint16_t modelIndex = *(uint16_t *)(this + 0x26);
   if (modelIndex == 539) {
-    val = (CPad__GetSteeringLeftRight(CPad__GetPad(pad)) / 128.0f - *(float *)(this + 0x99C));
+    val = (float)CPad__GetSteeringLeftRight(CPad__GetPad(pad)) / 128.0f - *(float *)(this + 0x99C);
   } else {
     if (CPad__GetLookLeft(CPad__GetPad(pad)))
       val = (-1.0f - *(float *)(this + 0x99C));
@@ -299,7 +299,7 @@ __attribute__((naked)) void CPlane__ProcessControlInputs_Rudder_stub(void) {
 void CPlane__ProcessControlInputs_Harrier(void *this, int pad) {
   uint16_t modelIndex = *(uint16_t *)(this + 0x26);
   if (modelIndex == 520) {
-    float rightStickY = CPad__GetCarGunUpDown(CPad__GetPad(pad), 0, 0, 2500.0f, 0);
+    float rightStickY = (float)CPad__GetCarGunUpDown(CPad__GetPad(pad), 0, 0, 2500.0f, 0);
     if (fabsf(rightStickY) > 10.0f) {
       *(int16_t *)(this + 0x882) = *(int16_t *)(this + 0x880);
       *(int16_t *)(this + 0x880) += (int16_t)(rightStickY / 128.0f * HARRIER_NOZZLE_ROTATERATE * *CTimer__ms_fTimeStep);
