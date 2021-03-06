@@ -545,7 +545,33 @@ void *CHIDJoystickPS3__CHIDJoystickPS3(void *this, const char *name) {
   return this;
 }
 
+static int (* CGenericGameStorage__CheckSlotDataValid)(int slot, int deleteRwObjects);
+static void (* C_PcSave__GenerateGameFilename)(void *this, int slot, char *filename);
+static uint64_t (* OS_FileGetDate)(int area, const char *path);
+static void *PcSaveHelper;
+static int *lastSaveForResume;
+
+int MainMenuScreen__HasCPSave(void) {
+  if (*lastSaveForResume == -1) {
+    uint64_t latestDate = 0;
+    for (int i = 0; i < 10; i++) {
+      char filename[256];
+      C_PcSave__GenerateGameFilename(&PcSaveHelper, i, filename);
+      uint64_t date = OS_FileGetDate(1, filename);
+      if (latestDate < date) {
+        latestDate = date;
+        *lastSaveForResume = i;
+      }
+    }
+  }
+
+  return CGenericGameStorage__CheckSlotDataValid(*lastSaveForResume, 1);
+}
+
+static int (* SaveGameForPause)(int type, char *cmd);
+
 int MainMenuScreen__OnExit(void) {
+  SaveGameForPause(3, NULL);
   return sceKernelExitProcess(0);
 }
 
@@ -694,7 +720,16 @@ void patch_game(void) {
   else
     hook_thumb(so_find_addr("_ZN15CHIDJoystickPS3C2EPKc"), (uintptr_t)CHIDJoystickPS3__CHIDJoystickPS3);
 
+  // make resume load the latest save
+  CGenericGameStorage__CheckSlotDataValid = (void *)so_find_addr("_ZN19CGenericGameStorage18CheckSlotDataValidEib");
+  C_PcSave__GenerateGameFilename = (void *)so_find_addr("_ZN8C_PcSave20GenerateGameFilenameEiPc");
+  OS_FileGetDate = (void *)so_find_addr("_Z14OS_FileGetDate14OSFileDataAreaPKc");
+  PcSaveHelper = (void *)so_find_addr("PcSaveHelper");
+  lastSaveForResume = (void *)so_find_addr("lastSaveForResume");
+  hook_thumb(so_find_addr("_ZN14MainMenuScreen9HasCPSaveEv"), (uintptr_t)MainMenuScreen__HasCPSave);
+
   // support graceful exit
+  SaveGameForPause = (void *)so_find_addr("_Z16SaveGameForPause10eSaveTypesPc");
   hook_thumb(so_find_addr("_ZN14MainMenuScreen6OnExitEv"), (uintptr_t)MainMenuScreen__OnExit);
 }
 
@@ -802,6 +837,14 @@ void *sceClibMemclr(void *dst, SceSize len) {
 
 void *sceClibMemset2(void *dst, SceSize len, int ch) {
   return sceClibMemset(dst, ch, len);
+}
+
+int stat_hook(const char *pathname, void *statbuf) {
+  struct stat st;
+  int res = stat(pathname, &st);
+  if (res == 0)
+    *(int *)(statbuf + 0x50) = st.st_mtime;
+  return res;
 }
 
 static int EnterGameFromSCFunc = 0;
@@ -1068,7 +1111,7 @@ static DynLibFunction dynlib_functions[] = {
   // { "read", (uintptr_t)&read },
   // { "readdir", (uintptr_t)&readdir },
   // { "remove", (uintptr_t)&remove },
-  { "stat", (uintptr_t)&stat },
+  { "stat", (uintptr_t)&stat_hook },
 
   { "stderr", (uintptr_t)&stderr_fake },
   { "strcasecmp", (uintptr_t)&strcasecmp },
