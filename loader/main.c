@@ -253,14 +253,53 @@ void *OS_ThreadSetValue(void *RenderQueue) {
 #define HARRIER_NOZZLE_ROTATERATE 25.0f
 
 static void *(* CPad__GetPad)(int pad);
-static int (* CPad__GetCarGunUpDown)(void *pad, int r1, int r2, float r3, int r4);
+static float (* CPad__GetCarGunUpDown)(void *pad, int r1, int r2, float r3, int r4);
+static float (* CPad__GetSteeringLeftRight)(void *pad);
+static int (* CPad__GetLookLeft)(void *pad);
+static int (* CPad__GetLookRight)(void *pad);
 
 static float *CTimer__ms_fTimeStep;
 
-void CPlane_ProcessControlInputs_Harrier(void *this, int pad) {
+float CPlane__ProcessControlInputs_Rudder(void *this, int pad) {
+  float val;
+
+  uint16_t modelIndex = *(uint16_t *)(this + 0x26);
+  if (modelIndex == 539) {
+    val = (CPad__GetSteeringLeftRight(CPad__GetPad(pad)) / 128.0f - *(float *)(this + 0x99C));
+  } else {
+    if (CPad__GetLookLeft(CPad__GetPad(pad)))
+      val = (-1.0f - *(float *)(this + 0x99C));
+    else if (CPad__GetLookRight(CPad__GetPad(pad)))
+      val = (1.0f - *(float *)(this + 0x99C));
+    else
+      val = (0.0f - *(float *)(this + 0x99C));
+  }
+
+  *(float *)(this + 0x99C) += val * 0.2f * *CTimer__ms_fTimeStep;
+  return *(float *)(this + 0x99C);
+}
+
+__attribute__((naked)) void CPlane__ProcessControlInputs_Rudder_stub(void) {
+  asm volatile(
+    "push {r0-r11}\n"
+    "mov r0, r4\n"
+    "mov r1, r8\n"
+    "bl CPlane__ProcessControlInputs_Rudder\n"
+    "vmov s0, r0\n"
+  );
+
+  register uintptr_t retAddr asm ("r12") = (uintptr_t)text_base + 0x0057611A + 0x1;
+
+  asm volatile(
+    "pop {r0-r11}\n"
+    "bx %0\n"
+  :: "r" (retAddr));
+}
+
+void CPlane__ProcessControlInputs_Harrier(void *this, int pad) {
   uint16_t modelIndex = *(uint16_t *)(this + 0x26);
   if (modelIndex == 520) {
-    float rightStickY = (float)CPad__GetCarGunUpDown(CPad__GetPad(pad), 0, 0, 2500.0f, 0);
+    float rightStickY = CPad__GetCarGunUpDown(CPad__GetPad(pad), 0, 0, 2500.0f, 0);
     if (fabsf(rightStickY) > 10.0f) {
       *(int16_t *)(this + 0x882) = *(int16_t *)(this + 0x880);
       *(int16_t *)(this + 0x880) += (int16_t)(rightStickY / 128.0f * HARRIER_NOZZLE_ROTATERATE * *CTimer__ms_fTimeStep);
@@ -272,12 +311,12 @@ void CPlane_ProcessControlInputs_Harrier(void *this, int pad) {
   }
 }
 
-__attribute__((naked)) void CPlane_ProcessControlInputs_Harrier_stub(void) {
+__attribute__((naked)) void CPlane__ProcessControlInputs_Harrier_stub(void) {
   asm volatile(
     "push {r0-r11}\n"
     "mov r0, r4\n"
     "mov r1, r8\n"
-    "bl CPlane_ProcessControlInputs_Harrier\n"
+    "bl CPlane__ProcessControlInputs_Harrier\n"
   );
 
   register uintptr_t retAddr asm ("r12") = (uintptr_t)text_base + 0x005765F0 + 0x1;
@@ -546,14 +585,11 @@ void patch_game(void) {
     // Dummy all FindPlayerVehicle calls so the right analog stick can be used as camera again
     uint32_t movs_r0_0 = 0xBF002000;
     kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x003C0866), &movs_r0_0, sizeof(movs_r0_0));
-    // kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x003C1652), &movs_r0_0, sizeof(movs_r0_0));
     kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x003C1518), &movs_r0_0, sizeof(movs_r0_0));
     kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x003C198A), &movs_r0_0, sizeof(movs_r0_0));
 
     kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x003FC462), &movs_r0_0, sizeof(movs_r0_0));
-    // kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x003FC482), &movs_r0_0, sizeof(movs_r0_0));
     kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x003FC754), &movs_r0_0, sizeof(movs_r0_0));
-    // kuKernelCpuUnrestrictedMemcpy((void *)(text_base + 0x003FC774), &movs_r0_0, sizeof(movs_r0_0));
 
     // Fix Harrier thruster control
     hook_thumb((uintptr_t)(text_base + 0x003C057C), (uintptr_t)CCam__Process_FollowCar_SA_camSetArrPos_stub);
@@ -561,8 +597,12 @@ void patch_game(void) {
 
     CPad__GetPad = (void *)so_find_addr("_ZN4CPad6GetPadEi");
     CPad__GetCarGunUpDown = (void *)so_find_addr("_ZN4CPad15GetCarGunUpDownEbP11CAutomobilefb");
+    CPad__GetSteeringLeftRight = (void *)so_find_addr("_ZN4CPad20GetSteeringLeftRightEv");
+    CPad__GetLookLeft = (void *)so_find_addr("_ZN4CPad11GetLookLeftEb");
+    CPad__GetLookRight = (void *)so_find_addr("_ZN4CPad12GetLookRightEb");
     CTimer__ms_fTimeStep = (float *)so_find_addr("_ZN6CTimer12ms_fTimeStepE");
-    hook_thumb((uintptr_t)(text_base + 0x00576432), (uintptr_t)CPlane_ProcessControlInputs_Harrier_stub);
+    hook_thumb((uintptr_t)(text_base + 0X005760BA), (uintptr_t)CPlane__ProcessControlInputs_Rudder_stub);
+    hook_thumb((uintptr_t)(text_base + 0x00576432), (uintptr_t)CPlane__ProcessControlInputs_Harrier_stub);
   }
 
   // Force using GL_UNSIGNED_SHORT
