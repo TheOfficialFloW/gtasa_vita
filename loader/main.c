@@ -1211,6 +1211,7 @@ int main(int argc, char *argv[]) {
   vglSetVertexBufferSize(8 * 1024 * 1024); // default 2 * 1024 * 1024
   vglSetFragmentBufferSize(2 * 1024 * 1024); // default 512 * 1024
   vglSetUSSEBufferSize(64 * 1024); // default 16 * 1024
+  vglSetVertexPoolSize(48 * 1024 * 1024);
   vglInitExtended(0, SCREEN_W, SCREEN_H, MEMORY_VITAGL_THRESHOLD_MB * 1024 * 1024, config.aa_mode);
   vglUseVram(GL_TRUE);
 
