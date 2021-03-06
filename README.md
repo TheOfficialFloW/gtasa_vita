@@ -21,7 +21,7 @@ The port works by loading the official Android ARMv7 executable in memory, resol
 - Added MP3 fuzzy seek option to improve loading speed.
 - Added custom codes to activate mobile cheats:
   - "THEFLOW" - Invincibility
-  - "RINNE" - Weapon set 4
+  - "RINNEGATAMANTE" - Weapon set 4
 - Fixed mixed cheat codes.
 - Fixed plane rudder controls.
 - Improved the "Resume" menu entry to load the latest save (manual and auto save).
