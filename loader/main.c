@@ -263,8 +263,8 @@ void *OS_ThreadSetValue(void *RenderQueue) {
 static void *(* CPad__GetPad)(int pad);
 static int (* CPad__GetCarGunUpDown)(void *pad, int r1, int r2, float r3, int r4);
 static int (* CPad__GetSteeringLeftRight)(void *pad);
-static int (* CPad__GetLookLeft)(void *pad);
-static int (* CPad__GetLookRight)(void *pad);
+static int (* CPad__GetTurretLeft)(void *pad);
+static int (* CPad__GetTurretRight)(void *pad);
 
 static float *CTimer__ms_fTimeStep;
 
@@ -275,9 +275,9 @@ float CPlane__ProcessControlInputs_Rudder(void *this, int pad) {
   if (modelIndex == 539) {
     val = (float)CPad__GetSteeringLeftRight(CPad__GetPad(pad)) / 128.0f - *(float *)(this + 0x99C);
   } else {
-    if (CPad__GetLookLeft(CPad__GetPad(pad)))
+    if (CPad__GetTurretLeft(CPad__GetPad(pad)))
       val = (-1.0f - *(float *)(this + 0x99C));
-    else if (CPad__GetLookRight(CPad__GetPad(pad)))
+    else if (CPad__GetTurretRight(CPad__GetPad(pad)))
       val = (1.0f - *(float *)(this + 0x99C));
     else
       val = (0.0f - *(float *)(this + 0x99C));
@@ -631,8 +631,8 @@ void patch_game(void) {
     CPad__GetPad = (void *)so_find_addr("_ZN4CPad6GetPadEi");
     CPad__GetCarGunUpDown = (void *)so_find_addr("_ZN4CPad15GetCarGunUpDownEbP11CAutomobilefb");
     CPad__GetSteeringLeftRight = (void *)so_find_addr("_ZN4CPad20GetSteeringLeftRightEv");
-    CPad__GetLookLeft = (void *)so_find_addr("_ZN4CPad11GetLookLeftEb");
-    CPad__GetLookRight = (void *)so_find_addr("_ZN4CPad12GetLookRightEb");
+    CPad__GetTurretLeft = (void *)so_find_addr("_ZN4CPad13GetTurretLeftEv");
+    CPad__GetTurretRight = (void *)so_find_addr("_ZN4CPad14GetTurretRightEv");
     CTimer__ms_fTimeStep = (float *)so_find_addr("_ZN6CTimer12ms_fTimeStepE");
     hook_thumb((uintptr_t)(text_base + 0X005760BA), (uintptr_t)CPlane__ProcessControlInputs_Rudder_stub);
     hook_thumb((uintptr_t)(text_base + 0x00576432), (uintptr_t)CPlane__ProcessControlInputs_Harrier_stub);
