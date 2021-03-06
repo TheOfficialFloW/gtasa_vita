@@ -25,7 +25,7 @@ The port works by loading the official Android ARMv7 executable in memory, resol
 - Fixed mixed cheat codes.
 - Fixed plane rudder controls.
 - Improved the "Resume" menu entry to load the latest save (manual and auto save).
-  - Selecting the "Quit Game" menu entry will now create a quick-save which can loaded via the "Resume" menu entry.
+  - Selecting the "Quit Game" menu entry will now create a quick-save which can be loaded via the "Resume" menu entry.
 - Improved performance by redirecting mpg123 to our own library.
 - Improved performance by using better algorithms in vitaGL.
 
