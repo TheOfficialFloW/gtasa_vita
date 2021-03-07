@@ -688,6 +688,9 @@ void patch_game(void) {
   // Remove map highlight (explored zones) since alpha blending is very expensive
   hook_thumb((uintptr_t)text_base + 0x002AADE0, (uintptr_t)text_base + 0x002AAF9A + 0x1);
 
+  // fix free aiming
+  hook_thumb((uintptr_t)text_base + 0x004C6D16, (uintptr_t)text_base + 0x004C6E28 + 0x1);
+
   hook_thumb(so_find_addr("__cxa_guard_acquire"), (uintptr_t)&__cxa_guard_acquire);
   hook_thumb(so_find_addr("__cxa_guard_release"), (uintptr_t)&__cxa_guard_release);
 
