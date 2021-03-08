@@ -6,6 +6,9 @@
  * of the MIT license.  See the LICENSE file for details.
  */
 
+#include <psp2/kernel/processmgr.h>
+#include <psp2/ctrl.h>
+#include <psp2/ime_dialog.h>
 #include <psp2/message_dialog.h>
 #include <vitaGL.h>
 

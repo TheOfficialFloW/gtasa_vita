@@ -8,7 +8,12 @@
 
 #include <psp2/io/dirent.h>
 #include <psp2/io/fcntl.h>
+#include <psp2/kernel/clib.h>
+#include <psp2/kernel/processmgr.h>
 #include <psp2/kernel/threadmgr.h>
+#include <psp2/appmgr.h>
+#include <psp2/apputil.h>
+#include <psp2/ctrl.h>
 #include <psp2/power.h>
 #include <psp2/touch.h>
 #include <taihen.h>

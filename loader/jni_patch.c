@@ -6,6 +6,7 @@
  * of the MIT license.  See the LICENSE file for details.
  */
 
+#include <psp2/io/fcntl.h>
 #include <psp2/ctrl.h>
 #include <psp2/touch.h>
 #include <vitaGL.h>
