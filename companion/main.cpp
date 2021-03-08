@@ -3,6 +3,20 @@
 #include <imgui_vita.h>
 #include <stdio.h>
 
+extern "C" {
+void *__wrap_memcpy(void *dest, const void *src, size_t n) {
+  return sceClibMemcpy(dest, src, n);
+}
+
+void *__wrap_memmove(void *dest, const void *src, size_t n) {
+  return sceClibMemmove(dest, src, n);
+}
+
+void *__wrap_memset(void *s, int c, size_t n) {
+  return sceClibMemset(s, c, n);
+}
+}
+
 #define CONFIG_FILE_PATH "ux0:data/gtasa/config.txt"
 
 #define SKYGFX_COLOR_FILTER_NUM 4
