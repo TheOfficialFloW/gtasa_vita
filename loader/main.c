@@ -700,6 +700,9 @@ void patch_game(void) {
   // fix free aiming
   hook_thumb((uintptr_t)text_base + 0x004C6D16, (uintptr_t)text_base + 0x004C6E28 + 0x1);
 
+  // Disable auto landing gear deployment/retraction
+  hook_thumb((uintptr_t)text_base + 0x0057629C, (uintptr_t)text_base + 0x005762BC + 0x1);
+
   hook_thumb(so_find_addr("__cxa_guard_acquire"), (uintptr_t)&__cxa_guard_acquire);
   hook_thumb(so_find_addr("__cxa_guard_release"), (uintptr_t)&__cxa_guard_release);
 
