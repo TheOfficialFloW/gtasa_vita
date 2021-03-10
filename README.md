@@ -14,6 +14,21 @@ The port works by loading the official Android ARMv7 executable in memory, resol
 
 ## Changelog
 
+### v1.5
+
+- Added option to allow cut radio songs to play.
+  - See [MUSIC.md](MUSIC.md) for how to restore removed songs.
+- Added MP3 fuzzy seek option to improve loading speed.
+- Added custom codes to activate mobile cheats:
+  - "THEFLOW" - Invincibility
+  - "RINNEGATAMANTE" - Weapon set 4
+- Fixed mixed cheat codes.
+- Fixed plane rudder controls.
+- Improved the "Resume" menu entry to load the latest save (manual and auto save).
+  - Selecting the "Quit Game" menu entry will now create a quick-save which can be loaded via the "Resume" menu entry.
+- Improved performance by redirecting mpg123 to our own library.
+- Improved performance by using better algorithms in vitaGL.
+
 ### v1.4
 
 - Updated openal for better performance. Thanks to isage.
@@ -51,7 +66,7 @@ The port works by loading the official Android ARMv7 executable in memory, resol
 
 ## Setup Instructions (For End Users)
 
-(If you have already installed the game and want to update to a newer release, you can simply install [GTASA.vpk](https://github.com/TheOfficialFloW/gtasa_vita/releases/download/v1.4/GTASA.vpk) on your *PS Vita*).
+(If you have already installed the game and want to update to a newer release, you can simply install [GTASA.vpk](https://github.com/TheOfficialFloW/gtasa_vita/releases/download/v1.5/GTASA.vpk) on your *PS Vita*).
 
 In order to properly install the game, you'll have to follow these steps precisely:
 
@@ -72,9 +87,9 @@ In order to properly install the game, you'll have to follow these steps precise
 - Still in the apk, extract the file `libGTASA.so` from the `lib/armeabi-v7a` folder to `ux0:data/gtasa`. 
 - Open the `main.8.com.rockstargames.gtasa.obb` with your zip explorer (`.obb` files are zip files just like `.apk` files so just rename the `.obb` to `.zip`) and extract the contents to `ux0:data/gtasa`.
 - Same as before, open the `patch.8.com.rockstargames.gtasa.obb` with the zip explorer and extract the contents inside the zip to `ux0:data/gtasa`.
-- Download the [gamefiles.zip](https://github.com/TheOfficialFloW/gtasa_vita/releases/download/v1.4/gamefiles.zip) and extract the contents to `ux0:data/gtasa` (if it ask about overwriting files, say yes).
+- Download the [gamefiles.zip](https://github.com/TheOfficialFloW/gtasa_vita/releases/download/v1.5/gamefiles.zip) and extract the contents to `ux0:data/gtasa` (if it ask about overwriting files, say yes).
 - **Optional**: For a more authentic console experience, copy the file `ux0:data/gtasa/data/360Default1280x720.cfg` to `ux0:data/gtasa/` and rename it from `360Default1280x720.cfg` to `Adjustable.cfg`. This file is a leftover from the Xbox 360 version and provides you the console HUD (e.g. radar on bottom left).
-- Install [GTASA.vpk](https://github.com/TheOfficialFloW/gtasa_vita/releases/download/v1.4/GTASA.vpk) on your *PS Vita*.
+- Install [GTASA.vpk](https://github.com/TheOfficialFloW/gtasa_vita/releases/download/v1.5/GTASA.vpk) on your *PS Vita*.
 
 If you have followed the steps correctly, this is how your `ux0:data/gtasa` folder should look like.
 
