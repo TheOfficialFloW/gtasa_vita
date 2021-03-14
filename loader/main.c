@@ -595,8 +595,8 @@ extern void *__cxa_guard_acquire;
 extern void *__cxa_guard_release;
 
 void patch_game(void) {
-  *(int *)so_find_addr("UseCloudSaves") = 0;
-  *(int *)so_find_addr("UseTouchSense") = 0;
+  *(uint8_t *)so_find_addr("UseCloudSaves") = 0;
+  *(uint8_t *)so_find_addr("UseTouchSense") = 0;
 
   if (config.disable_detail_textures)
     *(int *)so_find_addr("gNoDetailTextures") = 1;
@@ -805,6 +805,8 @@ void glShaderSourceHook(GLuint shader, GLsizei count, const GLchar **string, con
 
     shaderSize = *length;
     shaderBuf = shark_compile_shader_extended(*string, &shaderSize, sharkType, SHARK_OPT_UNSAFE, SHARK_ENABLE, SHARK_ENABLE, SHARK_ENABLE);
+    if (!shaderBuf)
+      debugPrintf("Compilation failed for:\n%s\n", *string);
     glShaderBinary(1, &shader, 0, shaderBuf, shaderSize);
 
     file = sceLibcBridge_fopen(path, "w");

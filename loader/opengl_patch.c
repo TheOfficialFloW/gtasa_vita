@@ -197,7 +197,7 @@ void BuildVertexSource(int flags) {
         else
           VTX_EMIT("float3 WorldNormal = mul(mul(float3x3(BoneToLocal), Normal), float3x3(ObjMatrix));");
       } else {
-        VTX_EMIT("float3 WorldNormal = (mul(float4(Normal, 0.0), ObjMatrix)).xyz;");
+        VTX_EMIT("float3 WorldNormal = mul(Normal, float3x3(ObjMatrix));");
       }
     }
   } else {
@@ -217,7 +217,7 @@ void BuildVertexSource(int flags) {
       tex = "TexCoord0";
 
     if (flags & FLAG_TEXMATRIX)
-      VTX_EMIT("Out_Tex0 = mul(float3(%s, 1.0), NormalMatrix).xy;", tex);
+      VTX_EMIT("Out_Tex0 = mul(%s, float2x2(NormalMatrix));", tex);
     else
       VTX_EMIT("Out_Tex0 = %s;", tex);
   }
@@ -387,7 +387,7 @@ void BuildPixelSource(int flags) {
 
   if (flags & FLAG_SPHERE_ENVMAP) {
     PXL_EMIT("half2 ReflPos = normalize(Out_Refl.xy) * (Out_Refl.z * 0.5 + 0.5);");
-    PXL_EMIT("ReflPos = (ReflPos * half2(0.5, 0.5)) + half2(0.5, 0.5);");
+    PXL_EMIT("ReflPos = (ReflPos * 0.5) + 0.5;");
     PXL_EMIT("half4 ReflTexture = tex2D(EnvMap, ReflPos);");
     PXL_EMIT("fcolor.xyz = lerp(fcolor.xyz, ReflTexture.xyz, EnvMapCoefficient);");
     PXL_EMIT("fcolor.w += ReflTexture.b * 0.125;");
@@ -473,8 +473,7 @@ half4 main(
   uniform half4 RedGrade
 ){
   half4 color = tex2D(Diffuse, Out_Tex0);
-  half4 gl_FragColor = half4(0, 0, 0, (1.0 - color.x) * RedGrade.a);
-  return gl_FragColor;
+  return half4(0.0, 0.0, 0.0, (1.0 - color.x) * RedGrade.a);
 }
 )";
 
@@ -507,15 +506,9 @@ half4 main(
 ){
   half4 color = tex2D(Diffuse, Out_Tex0) * 0.25;
   half2 dist = half2(0.001, 0.001) * Out_Z;
-  color += tex2D(Diffuse, Out_Tex0 + dist) * 0.175;
-  color += tex2D(Diffuse, Out_Tex0 - dist) * 0.175;
-  color += tex2D(Diffuse, Out_Tex0 + half2(dist.x, -dist.y)) * 0.2;
-  color += tex2D(Diffuse, Out_Tex0 + half2(-dist.x, dist.y)) * 0.2;
-  half4 gl_FragColor;
-  gl_FragColor.x = dot(color, RedGrade);
-  gl_FragColor.y = dot(color, GreenGrade);
-  gl_FragColor.z = dot(color, BlueGrade);
-  return gl_FragColor;
+  color += (tex2D(Diffuse, Out_Tex0 + dist) + tex2D(Diffuse, Out_Tex0 - dist)) * 0.175;
+  color += (tex2D(Diffuse, Out_Tex0 + half2(dist.x, -dist.y)) + tex2D(Diffuse, Out_Tex0 + half2(-dist.x, dist.y))) * 0.2;
+  return half4(dot(color, RedGrade), dot(color, GreenGrade), dot(color, BlueGrade), 0.0);
 }
 )";
 
@@ -541,11 +534,7 @@ half4 main(
   uniform half4 BlueGrade
 ){
   half4 color = tex2D(Diffuse, Out_Tex0);
-  half4 gl_FragColor;
-  gl_FragColor.x = dot(color, RedGrade);
-  gl_FragColor.y = dot(color, GreenGrade);
-  gl_FragColor.z = dot(color, BlueGrade);
-  return gl_FragColor;
+  return half4(dot(color, RedGrade), dot(color, GreenGrade), dot(color, BlueGrade), 0.0);
 }
 )";
 
@@ -565,9 +554,7 @@ half4 main(
   uniform half3 ContrastMult,
   uniform half3 ContrastAdd
 ){
-  half4 gl_FragColor = tex2D(Diffuse, Out_Tex0);
-  gl_FragColor.xyz = gl_FragColor.xyz * ContrastMult + ContrastAdd;
-  return gl_FragColor;
+  return half4(tex2D(Diffuse, Out_Tex0).xyz * ContrastMult + ContrastAdd, 0.0);
 }
 )";
 

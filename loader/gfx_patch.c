@@ -10,7 +10,6 @@
 #include "config.h"
 #include "opengl_patch.h"
 
-
 /*
  * RW
  */
@@ -120,7 +119,6 @@ struct RwFrame
 };
 RwFrame *(*RwFrameTransform)(RwFrame * frame, const RwMatrix * m, RwOpCombineType combine);
 
-
 typedef struct RwObjectHasFrame RwObjectHasFrame;
 typedef RwObjectHasFrame * (*RwObjectHasFrameSyncFunction)(RwObjectHasFrame *object);
 struct RwObjectHasFrame
@@ -147,7 +145,6 @@ struct RpLight
 };
 #define RpLightGetParent(light) ((RwFrame*)rwObjectGetParent(light))
 RpLight *(*RpLightSetColor)(RpLight *light, const RwRGBAReal *color);
-
 
 typedef struct RwTexture RwTexture;
 typedef struct RxPipeline RxPipeline;
@@ -286,7 +283,6 @@ _rwOpenGLLightsSetMaterialProperties(const RpMaterial *mat, RwUInt32 flags)
 	}
 #endif
 }
-
 
 /*
  * GTA
@@ -446,7 +442,6 @@ SetLightsWithTimeOfDayColour(void *world)
 	}
 }
 
-
 void ColorFilter(void *sp) {
 	// grading values (i.e. the color matrix)
 	RwRGBAReal *red = (RwRGBAReal *)(sp + 0x30);
@@ -515,7 +510,6 @@ __attribute__((naked)) void ColorFilter_stub(void) {
 	:: "r" (retAddr));
 }
 
-
 void
 patch_gfx(void)
 {
@@ -575,11 +569,9 @@ patch_gfx(void)
 	}
 }
 
-
 /*
  * Shader builder
  */
-
 
 void BuildVertexSource_SkyGfx(int flags) {
 	char tmp[512];
@@ -765,7 +757,7 @@ void BuildVertexSource_SkyGfx(int flags) {
 				else
 					VTX_EMIT("float3 WorldNormal = mul(mul(float3x3(BoneToLocal), Normal), float3x3(ObjMatrix));");
 			} else {
-				VTX_EMIT("float3 WorldNormal = (mul(float4(Normal, 0.0), ObjMatrix)).xyz;");
+				VTX_EMIT("float3 WorldNormal = mul(Normal, float3x3(ObjMatrix));");
 			}
 		}
 	} else {
@@ -785,7 +777,7 @@ void BuildVertexSource_SkyGfx(int flags) {
 			tex = "TexCoord0";
 
 		if (flags & FLAG_TEXMATRIX)
-			VTX_EMIT("Out_Tex0 = mul(float3(%s, 1.0), NormalMatrix).xy;", tex);
+			VTX_EMIT("Out_Tex0 = mul(%s, float2x2(NormalMatrix));", tex);
 		else
 			VTX_EMIT("Out_Tex0 = %s;", tex);
 	}
@@ -810,7 +802,7 @@ void BuildVertexSource_SkyGfx(int flags) {
 	if (flags & FLAG_LIGHTING) {
 		//VTX_EMIT("half3 Out_LightingColor;");
 
-		VTX_EMIT("half3 ambEmissLight = half3(0.0, 0.0, 0.0f);");
+		VTX_EMIT("half3 ambEmissLight = half3(0.0, 0.0, 0.0);");
 		VTX_EMIT("half3 diffColor = half3(0.0, 0.0, 0.0);");
 
 		// Ambient and Emissive Light
@@ -899,8 +891,8 @@ void BuildVertexSource_SkyGfx(int flags) {
 			// Low quality setting -- PS2 style
 
 			// ps2 specdot - reflect in view space
-			VTX_EMIT("half3 ViewNormal = (mul(float4(WorldNormal, 0.0), ViewMatrix)).xyz;");
-			VTX_EMIT("half3 ViewLight = (mul(float4(DirLightDirection, 0.0), ViewMatrix)).xyz;");
+			VTX_EMIT("half3 ViewNormal = mul(WorldNormal, float3x3(ViewMatrix));");
+			VTX_EMIT("half3 ViewLight = mul(DirLightDirection, float3x3(ViewMatrix));");
 			VTX_EMIT("half3 V = ViewLight - 2.0*ViewNormal*dot(ViewNormal, ViewLight);");
 			// find some nice specular value -- not the real thing unfortunately
 			VTX_EMIT("half specAmt = 1.0 * EnvMapCoefficient * DirLightDiffuseColor.x;");
@@ -941,8 +933,6 @@ void BuildVertexSource_SkyGfx(int flags) {
 
 	VTX_EMIT("}");
 }
-
-
 
 void BuildPixelSource_SkyGfx(int flags) {
 	char tmp[512];
@@ -1042,7 +1032,7 @@ void BuildPixelSource_SkyGfx(int flags) {
 				PXL_EMIT("fcolor.xyz += tex2D(EnvMap, Out_Tex1).xyz * Out_Spec.w;");
 			} else if (flags & FLAG_SPHERE_ENVMAP) {
 				PXL_EMIT("half2 ReflPos = normalize(Out_Refl.xy) * (Out_Refl.z * 0.5 + 0.5);");
-				PXL_EMIT("ReflPos = (ReflPos * half2(0.5, 0.5)) + half2(0.5, 0.5);");
+				PXL_EMIT("ReflPos = (ReflPos * 0.5) + 0.5;");
 				PXL_EMIT("half4 ReflTexture = tex2D(EnvMap, ReflPos);");
 				PXL_EMIT("fcolor.xyz = lerp(fcolor.xyz, ReflTexture.xyz, EnvMapCoefficient);");
 				PXL_EMIT("fcolor.w += ReflTexture.b * 0.125;");
@@ -1052,7 +1042,7 @@ void BuildPixelSource_SkyGfx(int flags) {
 			if(flags & FLAG_ENVMAP){
 				// PS2-style specdot
 				// We don't actually have the texture. so simulate it
-				PXL_EMIT("half2 unpack = (Out_Spec.xy-half2(0.5, 0.5))*2.0;");
+				PXL_EMIT("half2 unpack = (Out_Spec.xy-0.5)*2.0;");
 				PXL_EMIT("half3 specColor = half3(Out_Spec.z, Out_Spec.z, Out_Spec.z);");
 				PXL_EMIT("half dist = unpack.x*unpack.x + unpack.y*unpack.y;");
 				// outside the dot
