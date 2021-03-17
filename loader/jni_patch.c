@@ -194,7 +194,7 @@ float GetGamepadAxis(int port, int axis) {
                 if (touch_front.report[i].x >= config.touch_x_margin)
                   if (axis == 4) val = 1.0f;
               } else {
-                if (touch_back.report[i].x < (panelInfoFront.maxAaX - config.touch_x_margin))
+                if (touch_front.report[i].x < (panelInfoFront.maxAaX - config.touch_x_margin))
                   if (axis == 5) val = 1.0f;
               }
             }
