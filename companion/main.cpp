@@ -412,44 +412,44 @@ void saveConfig(void) {
 
 bool areButtonsLoaded = false;
 void loadButtons(void) {
-	char str[256], map[64], val[64];
-	int ctrl_idx = 0;
-	if (!areButtonsLoaded) {
-		FILE *config = fopen(CONTROLS_FILE_PATH, "r");
-		while (fgets(str, 256, config)) {
-			if (str[0] == ';' || str[0] == '\n') continue;
-			sscanf(str, "%s %s", map, val);
-			for (int i = 0; i < CONTROLS_MAPPINGS_NUM; i++) {
-				if (!strcmp(map, ControlsMapVar[i])) {
-					for (int j = 0; j < CONTROLS_NUM; j++) {
-						if (!strcmp(val, ControlsVar[j])) {
-							ctrl_idx = j;
-							break;
-						}
-					}
-					controls_map[i] = ctrl_idx;
-					break;
-				}
-			}
-		}
-		areButtonsLoaded = true;
-		fclose(config);
-	}
-	
-	sceClibMemcpy(backup_controls_map, controls_map, CONTROLS_MAPPINGS_NUM * sizeof(int));
+  char str[256], map[64], val[64];
+  int ctrl_idx = 0;
+  if (!areButtonsLoaded) {
+    FILE *config = fopen(CONTROLS_FILE_PATH, "r");
+    while (fgets(str, 256, config)) {
+      if (str[0] == ';' || str[0] == '\n') continue;
+      sscanf(str, "%s %s", map, val);
+      for (int i = 0; i < CONTROLS_MAPPINGS_NUM; i++) {
+        if (!strcmp(map, ControlsMapVar[i])) {
+          for (int j = 0; j < CONTROLS_NUM; j++) {
+            if (!strcmp(val, ControlsVar[j])) {
+              ctrl_idx = j;
+              break;
+            }
+          }
+          controls_map[i] = ctrl_idx;
+          break;
+        }
+      }
+    }
+    areButtonsLoaded = true;
+    fclose(config);
+  }
+  
+  sceClibMemcpy(backup_controls_map, controls_map, CONTROLS_MAPPINGS_NUM * sizeof(int));
 }
 
 void saveButtons(void) {
-	FILE *config = fopen(CONTROLS_FILE_PATH, "w+");
-	
-	fprintf(config, "%s\n", "; Vita-enhanced controls");
-	fprintf(config, "\n");
-	
-	for (int i = 0; i < CONTROLS_MAPPINGS_NUM; i++) {
-		fprintf(config, "%s %s\n", ControlsMapVar[i], ControlsVar[controls_map[i]]);
-	}
-	
-	fclose(config);
+  FILE *config = fopen(CONTROLS_FILE_PATH, "w+");
+  
+  fprintf(config, "%s\n", "; Vita-enhanced controls");
+  fprintf(config, "\n");
+  
+  for (int i = 0; i < CONTROLS_MAPPINGS_NUM; i++) {
+    fprintf(config, "%s %s\n", ControlsMapVar[i], ControlsVar[controls_map[i]]);
+  }
+  
+  fclose(config);
 }
 
 char *options_descs[] = {
@@ -545,11 +545,11 @@ int main(int argc, char *argv[]) {
     ImGui::Text("Flying Vehicles Camera Fix:"); ImGui::SameLine();
     ImGui::Checkbox("##check1", &fix_heli_plane_camera);
     SetDescription(OPT_FLYING_VEHICLES_FIX);
-	ImGui::PopStyleVar();
-	if (ImGui::Button("Configure Controls")) {
-		show_controls_window = !show_controls_window;
-		if (show_controls_window) loadButtons();
-	}
+    ImGui::PopStyleVar();
+    if (ImGui::Button("Configure Controls")) {
+      show_controls_window = !show_controls_window;
+      if (show_controls_window) loadButtons();
+    }
     ImGui::Separator();
 
     ImGui::TextColored(ImVec4(255, 255, 0, 255), "Skygfx");
@@ -654,50 +654,50 @@ int main(int argc, char *argv[]) {
       ImGui::Spacing();
       ImGui::TextWrapped(desc);
     }
-	ImGui::End();
-	
-	if (show_controls_window) {
-		ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiSetCond_Always);
-		ImGui::SetNextWindowSize(ImVec2(960, 544), ImGuiSetCond_Always);
-		ImGui::Begin("Controls Configuration", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse);
-		ImGui::SetCursorPosX(320);
-		ImGui::PushItemWidth(150);
-		if (ImGui::Button("Save Changes")) {
-			show_controls_window = !show_controls_window;
-			saveButtons();
-		}
-		ImGui::SameLine();
-		if (ImGui::Button("Discard Changes")) {
-			show_controls_window = !show_controls_window;
-			sceClibMemcpy(controls_map, backup_controls_map, CONTROLS_MAPPINGS_NUM * sizeof(int));
-		}
-		ImGui::PopItemWidth();
-		ImGui::Columns(2, nullptr, false);
-		ImGui::SetColumnWidth(0, 300);
-		for (int i = 0; i < CONTROLS_MAPPINGS_NUM; i++) {
-			std::string text = ControlsMapName[i];
-			ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ImGui::GetColumnWidth() - ImGui::CalcTextSize(text.c_str()).x - ImGui::GetScrollX() - 2 * ImGui::GetStyle().ItemSpacing.x);
-			ImGui::Text(ControlsMapName[i]);
-			ImGui::NextColumn();
-			char cname[16];
-			sprintf(cname, "##comboc%d", i);
-			if (ImGui::BeginCombo(cname, ControlsName[controls_map[i]])) {
-				for (int n = 0; n < CONTROLS_NUM; n++) {
-					bool is_selected = controls_map[i] == n;
-					if (ImGui::Selectable(ControlsName[n], is_selected))
-					controls_map[i] = n;
-					if (is_selected)
-						ImGui::SetItemDefaultFocus();
-				}
-				ImGui::EndCombo();
-			}
-			ImGui::NextColumn();
-			
-		}
-		ImGui::Columns(1);
-		ImGui::End();
-	}
-	
+    ImGui::End();
+  
+    if (show_controls_window) {
+      ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiSetCond_Always);
+      ImGui::SetNextWindowSize(ImVec2(960, 544), ImGuiSetCond_Always);
+      ImGui::Begin("Controls Configuration", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse);
+      ImGui::SetCursorPosX(320);
+      ImGui::PushItemWidth(150);
+      if (ImGui::Button("Save Changes")) {
+        show_controls_window = !show_controls_window;
+        saveButtons();
+      }
+      ImGui::SameLine();
+      if (ImGui::Button("Discard Changes")) {
+        show_controls_window = !show_controls_window;
+        sceClibMemcpy(controls_map, backup_controls_map, CONTROLS_MAPPINGS_NUM * sizeof(int));
+      }
+      ImGui::PopItemWidth();
+      ImGui::Columns(2, nullptr, false);
+      ImGui::SetColumnWidth(0, 300);
+      for (int i = 0; i < CONTROLS_MAPPINGS_NUM; i++) {
+        std::string text = ControlsMapName[i];
+        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ImGui::GetColumnWidth() - ImGui::CalcTextSize(text.c_str()).x - ImGui::GetScrollX() - 2 * ImGui::GetStyle().ItemSpacing.x);
+        ImGui::Text(ControlsMapName[i]);
+        ImGui::NextColumn();
+        char cname[16];
+        sprintf(cname, "##comboc%d", i);
+        if (ImGui::BeginCombo(cname, ControlsName[controls_map[i]])) {
+          for (int n = 0; n < CONTROLS_NUM; n++) {
+            bool is_selected = controls_map[i] == n;
+            if (ImGui::Selectable(ControlsName[n], is_selected))
+              controls_map[i] = n;
+            if (is_selected)
+              ImGui::SetItemDefaultFocus();
+          }
+          ImGui::EndCombo();
+        }
+        ImGui::NextColumn();
+        
+      }
+      ImGui::Columns(1);
+      ImGui::End();
+    }
+  
     glViewport(0, 0, static_cast<int>(ImGui::GetIO().DisplaySize.x), static_cast<int>(ImGui::GetIO().DisplaySize.y));
     ImGui::Render();
     ImGui_ImplVitaGL_RenderDrawData(ImGui::GetDrawData());
