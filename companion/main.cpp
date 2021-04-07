@@ -2,6 +2,7 @@
 #include <vitaGL.h>
 #include <imgui_vita.h>
 #include <stdio.h>
+#include <string>
 
 extern "C" {
 void *__wrap_memcpy(void *dest, const void *src, size_t n) {
@@ -18,6 +19,7 @@ void *__wrap_memset(void *s, int c, size_t n) {
 }
 
 #define CONFIG_FILE_PATH "ux0:data/gtasa/config.txt"
+#define CONTROLS_FILE_PATH "ux0:data/gtasa/controls.txt"
 
 #define SKYGFX_COLOR_FILTER_NUM 4
 enum SkyGfxColorFilter {
@@ -41,6 +43,281 @@ char *AntiAliasingName[ANTI_ALIASING_NUM] = {
   "MSAA 4x"
 };
 
+#define CONTROLS_NUM 21
+char *ControlsName[CONTROLS_NUM] = {
+  "Unused",
+  "Cross",
+  "Circle",
+  "Square",
+  "Triangle",
+  "L1",
+  "R1",
+  "L3",
+  "R3",
+  "L2",
+  "R2",
+  "Select",
+  "Start",
+  "Up",
+  "Down",
+  "Left",
+  "Right",
+  "Analog Left (X Axis)",
+  "Analog Left (Y Axis)",
+  "Analog Right (X Axis)",
+  "Analog Right (Y Axis)"
+};
+
+char *ControlsVar[CONTROLS_NUM] = {
+  "BUTTON_UNUSED",
+  "BUTTON_CROSS",
+  "BUTTON_CIRCLE",
+  "BUTTON_SQUARE",
+  "BUTTON_TRIANGLE",
+  "BUTTON_L1",
+  "BUTTON_R1",
+  "BUTTON_L3",
+  "BUTTON_R3",
+  "BUTTON_L2",
+  "BUTTON_R2",
+  "BUTTON_SELECT",
+  "BUTTON_START",
+  "DPAD_UP",
+  "DPAD_DOWN",
+  "DPAD_LEFT",
+  "DPAD_RIGHT",
+  "ANALOG_LEFT_X",
+  "ANALOG_LEFT_Y",
+  "ANALOG_RIGHT_X",
+  "ANALOG_RIGHT_Y"
+};
+
+#define CONTROLS_MAPPINGS_NUM 108
+char *ControlsMapName[CONTROLS_MAPPINGS_NUM] = {
+  "Attack:",
+  "Sprint:",
+  "Jump:",
+  "Crouch:",
+  "Enter Car:",
+  "Brake:",
+  "Handbrake:",
+  "Accelerate:",
+  "Camera Zoom In:",
+  "Camera Zoom Out:",
+  "Horn:",
+  "Previous Station (Radio):",
+  "Next Station (Radio):",
+  "Show Vital Stats:",
+  "Next Weapon:",
+  "Previous Weapon:",
+  "Radar:",
+  "Look Back (Walk):",
+  "Look Left (Vehicle):",
+  "Look Right (Vehicle):",
+  "Look Back (Vehicle):",
+  "Mission Start/Cancel:",
+  "Vigilante Start/Cancel:",
+  "Steer X:",
+  "Steer Y:",
+  "Steer Left:",
+  "Steer Right:",
+  "Look X:",
+  "Look Y:",
+  "Move X:",
+  "Move Y:",
+  "Auto Hydraulics:",
+  "Swap Weapon and Purchase:",
+  "Weapon Zoom In:",
+  "Weapon Zoom Out:",
+  "Enter/Exit Targeting:",
+  "Vehicle Bomb:",
+  "Turret Left:",
+  "Turret Right:",
+  "Magnet:",
+  "Skip Cutscene:",
+  "Gang Recruit:",
+  "Gang Ignore:",
+  "Gang Follow:",
+  "Gang Hold Position:",
+  "Rythm Up:",
+  "Rythm Down:",
+  "Rythm Left:",
+  "Rythm Right:",
+  "Drop Crane:",
+  "Drop Item:",
+  "Phone:",
+  "Nitro:",
+  "Crane Up:",
+  "Crane Down:",
+  "Accept:",
+  "Cancel:",
+  "Grab:",
+  "Stinger:",
+  "Menu Down:",
+  "Menu Up:",
+  "Menu Left:",
+  "Menu Right:",
+  "Menu Accept:",
+  "Menu Back:",
+  "Menu Map:",
+  "Arcade Button:",
+  "Arcade Power Off:",
+  "Arcade Reset:",
+  "Arcade Joystick:",
+  "Gym Action:",
+  "Gym Easier Level:",
+  "Gym Harder Level:",
+  "Blackjack Split:",
+  "Blackjack Double:",
+  "Blackjack Hit:",
+  "Blackjack Stand:",
+  "Place Bet:",
+  "Remove Bet:",
+  "Next Target:",
+  "Previous Target:",
+  "Waypoint Blip:",
+  "Helicopter Magnet Up:",
+  "Helicopter Magnet Down:",
+  "Lock Hydraulics:",
+  "Flight Ascend:",
+  "Flight Descend:",
+  "Flight Primary Attack:",
+  "Flight Secondary Attack:",
+  "Flight Left:",
+  "Flight Right:",
+  "Flight Up:",
+  "Flight Down:",
+  "Basketball Shoot:",
+  "Bunny Hop:",
+  "Map Zoom In:",
+  "Map Zoom Out:",
+  "Alt Attack:",
+  "Block:",
+  "Take Cover Left:",
+  "Take Cover Right:",
+  "Toggle Landing Gear:",
+  "Kiss:",
+  "Dancing Up:",
+  "Dancing Down:",
+  "Dancing Left:",
+  "Dancing Right:",
+  "Replay"
+};
+
+char *ControlsMapVar[CONTROLS_MAPPINGS_NUM] = {
+  "MAPPING_ATTACK",
+  "MAPPING_SPRINT",
+  "MAPPING_JUMP",
+  "MAPPING_CROUCH",
+  "MAPPING_ENTER_CAR",
+  "MAPPING_BRAKE",
+  "MAPPING_HANDBRAKE",
+  "MAPPING_ACCELERATE",
+  "MAPPING_CAMERA_CLOSER",
+  "MAPPING_CAMERA_FARTHER",
+  "MAPPING_HORN",
+  "MAPPING_RADIO_PREV_STATION",
+  "MAPPING_RADIO_NEXT_STATION",
+  "MAPPING_VITAL_STATS",
+  "MAPPING_NEXT_WEAPON",
+  "MAPPING_PREV_WEAPON",
+  "MAPPING_RADAR",
+  "MAPPING_PED_LOOK_BACK",
+  "MAPPING_VEHICLE_LOOK_LEFT",
+  "MAPPING_VEHICLE_LOOK_RIGHT",
+  "MAPPING_VEHICLE_LOOK_BACK",
+  "MAPPING_MISSION_START_AND_CANCEL",
+  "MAPPING_MISSION_START_AND_CANCEL_VIGILANTE",
+  "MAPPING_VEHICLE_STEER_X",
+  "MAPPING_VEHICLE_STEER_Y",
+  "MAPPING_VEHICLE_STEER_LEFT",
+  "MAPPING_VEHICLE_STEER_RIGHT",
+  "MAPPING_LOOK_X",
+  "MAPPING_LOOK_Y",
+  "MAPPING_PED_MOVE_X",
+  "MAPPING_PED_MOVE_Y",
+  "MAPPING_AUTO_HYDRAULICS",
+  "MAPPING_SWAP_WEAPONS_AND_PURCHASE",
+  "MAPPING_WEAPON_ZOOM_IN",
+  "MAPPING_WEAPON_ZOOM_OUT",
+  "MAPPING_ENTER_AND_EXIT_TARGETING",
+  "MAPPING_VEHICLE_BOMB",
+  "MAPPING_TURRET_LEFT",
+  "MAPPING_TURRET_RIGHT",
+  "MAPPING_MAGNET",
+  "MAPPING_SKIP_CUTSCENE",
+  "MAPPING_GANG_RECRUIT",
+  "MAPPING_GANG_IGNORE",
+  "MAPPING_GANG_FOLLOW",
+  "MAPPING_GANG_HOLD_POSITION",
+  "MAPPING_RHYTHM_UP",
+  "MAPPING_RHYTHM_DOWN",
+  "MAPPING_RHYTHM_LEFT",
+  "MAPPING_RHYTHM_RIGHT",
+  "MAPPING_DROP_CRANE",
+  "MAPPING_DROP_ITEM",
+  "MAPPING_PHONE",
+  "MAPPING_NITRO",
+  "MAPPING_CRANE_UP",
+  "MAPPING_CRANE_DOWN",
+  "MAPPING_ACCEPT",
+  "MAPPING_CANCEL",
+  "MAPPING_GRAB",
+  "MAPPING_STINGER",
+  "MAPPING_MENU_DOWN",
+  "MAPPING_MENU_UP",
+  "MAPPING_MENU_LEFT",
+  "MAPPING_MENU_RIGHT",
+  "MAPPING_MENU_ACCEPT",
+  "MAPPING_MENU_BACK",
+  "MAPPING_MENU_MAP",
+  "MAPPING_ARCADE_BUTTON",
+  "MAPPING_ARCADE_POWER_OFF",
+  "MAPPING_ARCADE_RESET",
+  "MAPPING_ARCADE_JOYSTICK",
+  "MAPPING_GYM_ACTION",
+  "MAPPING_GYM_EASIER_LEVEL",
+  "MAPPING_GYM_HARDER_LEVEL",
+  "MAPPING_BLACK_JACK_SPLIT",
+  "MAPPING_BLACK_JACK_DOUBLE",
+  "MAPPING_BLACK_JACK_HIT",
+  "MAPPING_BLACK_JACK_STAND",
+  "MAPPING_PLACE_BET",
+  "MAPPING_REMOVE_BET",
+  "MAPPING_NEXT_TARGET",
+  "MAPPING_PREV_TARGET",
+  "MAPPING_WAYPOINT_BLIP",
+  "MAPPING_HELICOPTER_MAGNET_UP",
+  "MAPPING_HELICOPTER_MAGNET_DOWN",
+  "MAPPING_LOCK_HYDRAULICS",
+  "MAPPING_FLIGHT_ASCEND",
+  "MAPPING_FLIGHT_DESCEND",
+  "MAPPING_FLIGHT_PRIMARY_ATTACK",
+  "MAPPING_FLIGHT_SECONDARY_ATTACK",
+  "MAPPING_FLIGHT_ALT_LEFT",
+  "MAPPING_FLIGHT_ALT_RIGHT",
+  "MAPPING_FLIGHT_ALT_UP",
+  "MAPPING_FLIGHT_ALT_DOWN",
+  "MAPPING_BASKETBALL_SHOOT",
+  "MAPPING_BUNNY_HOP",
+  "MAPPING_MAP_ZOOM_IN",
+  "MAPPING_MAP_ZOOM_OUT",
+  "MAPPING_ALT_ATTACK",
+  "MAPPING_BLOCK",
+  "MAPPING_TAKE_COVER_LEFT",
+  "MAPPING_TAKE_COVER_RIGHT",
+  "MAPPING_TOGGLE_LANDING_GEAR",
+  "MAPPING_KISS",
+  "MAPPING_DANCING_UP",
+  "MAPPING_DANCING_DOWN",
+  "MAPPING_DANCING_LEFT",
+  "MAPPING_DANCING_RIGHT",
+  "MAPPING_REPLAY"
+};
+
+int controls_map[CONTROLS_MAPPINGS_NUM];
+int backup_controls_map[CONTROLS_MAPPINGS_NUM];
+
 int touch_x_margin = 100;
 bool front_touch_triggers = false;
 bool fix_heli_plane_camera = true;
@@ -63,6 +340,8 @@ bool fuzzy_seek = false;
 bool use_shader_cache = true;
 bool enable_mvp_optimization = false;
 bool enable_bones_optimization = false;
+
+bool show_controls_window = false;
 
 void loadConfig(void) {
   char buffer[30];
@@ -129,6 +408,48 @@ void saveConfig(void) {
     fprintf(config, "%s %d\n", "enable_bones_optimization", (int)enable_bones_optimization);
     fclose(config);
   }
+}
+
+bool areButtonsLoaded = false;
+void loadButtons(void) {
+	char str[256], map[64], val[64];
+	int ctrl_idx = 0;
+	if (!areButtonsLoaded) {
+		FILE *config = fopen(CONTROLS_FILE_PATH, "r");
+		while (fgets(str, 256, config)) {
+			if (str[0] == ';' || str[0] == '\n') continue;
+			sscanf(str, "%s %s", map, val);
+			for (int i = 0; i < CONTROLS_MAPPINGS_NUM; i++) {
+				if (!strcmp(map, ControlsMapVar[i])) {
+					for (int j = 0; j < CONTROLS_NUM; j++) {
+						if (!strcmp(val, ControlsVar[j])) {
+							ctrl_idx = j;
+							break;
+						}
+					}
+					controls_map[i] = ctrl_idx;
+					break;
+				}
+			}
+		}
+		areButtonsLoaded = true;
+		fclose(config);
+	}
+	
+	sceClibMemcpy(backup_controls_map, controls_map, CONTROLS_MAPPINGS_NUM * sizeof(int));
+}
+
+void saveButtons(void) {
+	FILE *config = fopen(CONTROLS_FILE_PATH, "w+");
+	
+	fprintf(config, "%s\n", "; Vita-enhanced controls");
+	fprintf(config, "\n");
+	
+	for (int i = 0; i < CONTROLS_MAPPINGS_NUM; i++) {
+		fprintf(config, "%s %s\n", ControlsMapVar[i], ControlsVar[controls_map[i]]);
+	}
+	
+	fclose(config);
 }
 
 char *options_descs[] = {
@@ -210,7 +531,7 @@ int main(int argc, char *argv[]) {
 
     ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiSetCond_Always);
     ImGui::SetNextWindowSize(ImVec2(960, 544), ImGuiSetCond_Always);
-    ImGui::Begin("Grand Theft Auto: San Andreas - Config Manager", nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus);
+    ImGui::Begin("##main", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus);
 
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.0f, 0.0f));
 
@@ -224,8 +545,12 @@ int main(int argc, char *argv[]) {
     ImGui::Text("Flying Vehicles Camera Fix:"); ImGui::SameLine();
     ImGui::Checkbox("##check1", &fix_heli_plane_camera);
     SetDescription(OPT_FLYING_VEHICLES_FIX);
+	ImGui::PopStyleVar();
+	if (ImGui::Button("Configure Controls")) {
+		show_controls_window = !show_controls_window;
+		if (show_controls_window) loadButtons();
+	}
     ImGui::Separator();
-    ImGui::PopStyleVar();
 
     ImGui::TextColored(ImVec4(255, 255, 0, 255), "Skygfx");
     ImGui::Text("PostFX Colour Filter:"); ImGui::SameLine();
@@ -329,8 +654,50 @@ int main(int argc, char *argv[]) {
       ImGui::Spacing();
       ImGui::TextWrapped(desc);
     }
-
-    ImGui::End();
+	ImGui::End();
+	
+	if (show_controls_window) {
+		ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiSetCond_Always);
+		ImGui::SetNextWindowSize(ImVec2(960, 544), ImGuiSetCond_Always);
+		ImGui::Begin("Controls Configuration", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse);
+		ImGui::SetCursorPosX(320);
+		ImGui::PushItemWidth(150);
+		if (ImGui::Button("Save Changes")) {
+			show_controls_window = !show_controls_window;
+			saveButtons();
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Discard Changes")) {
+			show_controls_window = !show_controls_window;
+			sceClibMemcpy(controls_map, backup_controls_map, CONTROLS_MAPPINGS_NUM * sizeof(int));
+		}
+		ImGui::PopItemWidth();
+		ImGui::Columns(2, nullptr, false);
+		ImGui::SetColumnWidth(0, 300);
+		for (int i = 0; i < CONTROLS_MAPPINGS_NUM; i++) {
+			std::string text = ControlsMapName[i];
+			ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ImGui::GetColumnWidth() - ImGui::CalcTextSize(text.c_str()).x - ImGui::GetScrollX() - 2 * ImGui::GetStyle().ItemSpacing.x);
+			ImGui::Text(ControlsMapName[i]);
+			ImGui::NextColumn();
+			char cname[16];
+			sprintf(cname, "##comboc%d", i);
+			if (ImGui::BeginCombo(cname, ControlsName[controls_map[i]])) {
+				for (int n = 0; n < CONTROLS_NUM; n++) {
+					bool is_selected = controls_map[i] == n;
+					if (ImGui::Selectable(ControlsName[n], is_selected))
+					controls_map[i] = n;
+					if (is_selected)
+						ImGui::SetItemDefaultFocus();
+				}
+				ImGui::EndCombo();
+			}
+			ImGui::NextColumn();
+			
+		}
+		ImGui::Columns(1);
+		ImGui::End();
+	}
+	
     glViewport(0, 0, static_cast<int>(ImGui::GetIO().DisplaySize.x), static_cast<int>(ImGui::GetIO().DisplaySize.y));
     ImGui::Render();
     ImGui_ImplVitaGL_RenderDrawData(ImGui::GetDrawData());
