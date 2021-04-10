@@ -316,7 +316,9 @@ char *ControlsMapVar[CONTROLS_MAPPINGS_NUM] = {
 };
 
 int controls_map[CONTROLS_MAPPINGS_NUM];
+int secondary_controls_map[CONTROLS_MAPPINGS_NUM];
 int backup_controls_map[CONTROLS_MAPPINGS_NUM];
+int backup_secondary_controls_map[CONTROLS_MAPPINGS_NUM];
 
 int touch_x_margin = 100;
 bool front_touch_triggers = false;
@@ -412,6 +414,8 @@ void saveConfig(void) {
 
 bool areButtonsLoaded = false;
 void loadButtons(void) {
+  sceClibMemset(controls_map, 0, CONTROLS_MAPPINGS_NUM * sizeof(int));
+  sceClibMemset(secondary_controls_map, 0, CONTROLS_MAPPINGS_NUM * sizeof(int));
   char str[256], map[64], val[64];
   int ctrl_idx = 0;
   if (!areButtonsLoaded) {
@@ -427,7 +431,10 @@ void loadButtons(void) {
               break;
             }
           }
-          controls_map[i] = ctrl_idx;
+          if (controls_map[i] && controls_map[i] != ctrl_idx)
+              secondary_controls_map[i] = ctrl_idx;
+          else
+              controls_map[i] = ctrl_idx;
           break;
         }
       }
@@ -437,6 +444,7 @@ void loadButtons(void) {
   }
   
   sceClibMemcpy(backup_controls_map, controls_map, CONTROLS_MAPPINGS_NUM * sizeof(int));
+  sceClibMemcpy(backup_secondary_controls_map, secondary_controls_map, CONTROLS_MAPPINGS_NUM * sizeof(int));
 }
 
 void saveButtons(void) {
@@ -447,6 +455,8 @@ void saveButtons(void) {
   
   for (int i = 0; i < CONTROLS_MAPPINGS_NUM; i++) {
     fprintf(config, "%s %s\n", ControlsMapVar[i], ControlsVar[controls_map[i]]);
+    if (secondary_controls_map[i] && secondary_controls_map[i] != controls_map[i])
+      fprintf(config, "%s %s\n", ControlsMapVar[i], ControlsVar[secondary_controls_map[i]]);	
   }
   
   fclose(config);
@@ -670,6 +680,7 @@ int main(int argc, char *argv[]) {
       if (ImGui::Button("Discard Changes")) {
         show_controls_window = !show_controls_window;
         sceClibMemcpy(controls_map, backup_controls_map, CONTROLS_MAPPINGS_NUM * sizeof(int));
+        sceClibMemcpy(secondary_controls_map, backup_secondary_controls_map, CONTROLS_MAPPINGS_NUM * sizeof(int));
       }
       ImGui::PopItemWidth();
       ImGui::Columns(2, nullptr, false);
@@ -681,6 +692,7 @@ int main(int argc, char *argv[]) {
         ImGui::NextColumn();
         char cname[16];
         sprintf(cname, "##comboc%d", i);
+        ImGui::PushItemWidth(ImGui::CalcTextSize("Analog Right (X Axis)").x + ImGui::GetStyle().FramePadding.x * 2.0f + 30);
         if (ImGui::BeginCombo(cname, ControlsName[controls_map[i]])) {
           for (int n = 0; n < CONTROLS_NUM; n++) {
             bool is_selected = controls_map[i] == n;
@@ -691,6 +703,19 @@ int main(int argc, char *argv[]) {
           }
           ImGui::EndCombo();
         }
+        ImGui::SameLine();
+        sprintf(cname, "##combosc%d", i);
+        if (ImGui::BeginCombo(cname, ControlsName[secondary_controls_map[i]])) {
+          for (int n = 0; n < CONTROLS_NUM; n++) {
+            bool is_selected = secondary_controls_map[i] == n;
+            if (ImGui::Selectable(ControlsName[n], is_selected))
+              secondary_controls_map[i] = n;
+            if (is_selected)
+              ImGui::SetItemDefaultFocus();
+          }
+          ImGui::EndCombo();
+        }
+        ImGui::PopItemWidth();
         ImGui::NextColumn();
         
       }
