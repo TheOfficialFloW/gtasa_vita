@@ -14,6 +14,10 @@ The port works by loading the official Android ARMv7 executable in memory, resol
 
 ## Changelog
 
+### v1.8
+
+- Updated to latest vitaGL which fixed a lot of bugs found during Bully development.
+
 ### v1.7
 
 - Added controls mapping configuration through the companion app. Thanks to Rinnegatamante.
@@ -78,7 +82,7 @@ The port works by loading the official Android ARMv7 executable in memory, resol
 
 ## Setup Instructions (For End Users)
 
-(If you have already installed the game and want to update to a newer release, you can simply install [GTASA.vpk](https://github.com/TheOfficialFloW/gtasa_vita/releases/download/v1.7/GTASA.vpk) on your *PS Vita*).
+(If you have already installed the game and want to update to a newer release, you can simply install [GTASA.vpk](https://github.com/TheOfficialFloW/gtasa_vita/releases/download/v1.8/GTASA.vpk) on your *PS Vita*).
 
 In order to properly install the game, you'll have to follow these steps precisely:
 
@@ -99,9 +103,9 @@ In order to properly install the game, you'll have to follow these steps precise
 - Still in the apk, extract the file `libGTASA.so` from the `lib/armeabi-v7a` folder to `ux0:data/gtasa`. 
 - Open the `main.8.com.rockstargames.gtasa.obb` with your zip explorer (`.obb` files are zip files just like `.apk` files so just rename the `.obb` to `.zip`) and extract the contents to `ux0:data/gtasa`.
 - Same as before, open the `patch.8.com.rockstargames.gtasa.obb` with the zip explorer and extract the contents inside the zip to `ux0:data/gtasa`.
-- Download the [gamefiles.zip](https://github.com/TheOfficialFloW/gtasa_vita/releases/download/v1.7/gamefiles.zip) and extract the contents to `ux0:data/gtasa` (if it ask about overwriting files, say yes).
+- Download the [gamefiles.zip](https://github.com/TheOfficialFloW/gtasa_vita/releases/download/v1.8/gamefiles.zip) and extract the contents to `ux0:data/gtasa` (if it ask about overwriting files, say yes).
 - **Optional**: For a more authentic console experience, copy the file `ux0:data/gtasa/data/360Default1280x720.cfg` to `ux0:data/gtasa/` and rename it from `360Default1280x720.cfg` to `Adjustable.cfg`. This file is a leftover from the Xbox 360 version and provides you the console HUD (e.g. radar on bottom left).
-- Install [GTASA.vpk](https://github.com/TheOfficialFloW/gtasa_vita/releases/download/v1.7/GTASA.vpk) on your *PS Vita*.
+- Install [GTASA.vpk](https://github.com/TheOfficialFloW/gtasa_vita/releases/download/v1.8/GTASA.vpk) on your *PS Vita*.
 
 If you have followed the steps correctly, this is how your `ux0:data/gtasa` folder should look like.
 
@@ -186,7 +190,7 @@ Additionally, you'll need these libraries to be compiled as well with `-mfloat-a
 - [vitaGL](https://github.com/Rinnegatamante/vitaGL)
 
   - ````bash
-    make HAVE_SBRK=1 SOFTFP_ABI=1 SHARED_RENDERTARGETS=1 NO_DEBUG=1 install
+    make SOFTFP_ABI=1 SHARED_RENDERTARGETS=1 NO_DEBUG=1 install
     ````
 
 Finally, in the folder of `gtasa_vita`, install SceLibc stubs using:
