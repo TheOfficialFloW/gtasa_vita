@@ -1208,7 +1208,7 @@ int main(int argc, char *argv[]) {
   if (check_kubridge() < 0)
     fatal_error("Error kubridge.skprx is not installed.");
 
-  if (!file_exists("ur0:/data/libshacccg.suprx"))
+  if (!file_exists("ur0:/data/libshacccg.suprx") && !file_exists("ur0:/data/external/libshacccg.suprx"))
     fatal_error("Error libshacccg.suprx is not installed.");
 
   if (so_load(SO_PATH) < 0)
