@@ -33,7 +33,6 @@ int read_config(const char *file) {
   config.fix_skin_weights = 1;
   config.disable_ped_spec = 1;
   config.ignore_mobile_stuff = 1;
-  config.allow_removed_tracks = 0;
   config.enable_fuzzy_seek = 0;
   config.use_shader_cache = 1;
   config.enable_mvp_optimization = 0;
@@ -67,7 +66,6 @@ int read_config(const char *file) {
     CONFIG_VAR(fix_skin_weights)
     CONFIG_VAR(disable_ped_spec)
     CONFIG_VAR(ignore_mobile_stuff)
-    CONFIG_VAR(allow_removed_tracks)
     CONFIG_VAR(enable_fuzzy_seek)
     CONFIG_VAR(use_shader_cache)
     CONFIG_VAR(enable_mvp_optimization)

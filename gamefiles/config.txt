@@ -12,7 +12,6 @@ disable_mipmaps 0
 fix_skin_weights 1
 disable_ped_spec 1
 ignore_mobile_stuff 1
-allow_removed_tracks 0
 enable_fuzzy_seek 0
 use_shader_cache 1
 enable_mvp_optimization 0

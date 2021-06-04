@@ -337,7 +337,6 @@ bool fix_skin_weights = true;
 bool ped_spec = false;
 bool mobile_stuff = false;
 
-bool allow_removed_tracks = false;
 bool fuzzy_seek = false;
 bool use_shader_cache = true;
 bool enable_mvp_optimization = false;
@@ -370,8 +369,6 @@ void loadConfig(void) {
       else if (strcmp("disable_ped_spec", buffer) == 0) ped_spec = value ? false : true;
       else if (strcmp("ignore_mobile_stuff", buffer) == 0) mobile_stuff = value ? false : true;
 
-      else if (strcmp("allow_removed_tracks", buffer) == 0) allow_removed_tracks = (bool)value;
-
       else if (strcmp("enable_fuzzy_seek", buffer) == 0) fuzzy_seek = (bool)value;
       else if (strcmp("use_shader_cache", buffer) == 0) use_shader_cache = (bool)value;
       else if (strcmp("enable_mvp_optimization", buffer) == 0) enable_mvp_optimization = (bool)value;
@@ -401,8 +398,6 @@ void saveConfig(void) {
     fprintf(config, "%s %d\n", "fix_skin_weights", (int)fix_skin_weights);
     fprintf(config, "%s %d\n", "disable_ped_spec", ped_spec ? false : true);
     fprintf(config, "%s %d\n", "ignore_mobile_stuff", mobile_stuff ? false : true);
-
-    fprintf(config, "%s %d\n", "allow_removed_tracks", (int)allow_removed_tracks);
 
     fprintf(config, "%s %d\n", "enable_fuzzy_seek", (int)fuzzy_seek);
     fprintf(config, "%s %d\n", "use_shader_cache", (int)use_shader_cache);
@@ -480,8 +475,6 @@ char *options_descs[] = {
   "When enabled, peds will have specular lighting reflections applied to their models.\nThe default value is: Disabled.", // disable_ped_spec
   "When enabled, Mobile build widgets and windows will be shown (eg. App rating window, cutscene skip widgets, etc...)\nThe default value is: Disabled.", // ignore_mobile_stuff
 
-  "Allows the game to play removed tracks when using modded audio files.\nThe default value is: Disabled.", // allow_removed_tracks
-
   "When enabled, MP3 audio loading may be faster but less accurate.\nThe default value is: Disabled.", // enable_fuzzy_seek
   "Makes compiled shaders be cached on storage for subsequent usage. When enabled, the game will stutter on very first time a shader is compiled but will make the game have more fluid gameplay later.\nThe default value is: Enabled.", // use_shader_cache
   "Moves MVP calculation from GPU to CPU. May improve performances.\nThe default value is: Disabled.", // enable_mvp_optimization
@@ -505,8 +498,6 @@ enum {
   OPT_SKINNING_FIX,
   OPT_PED_SPEC,
   OPT_MOBILE_STUFF,
-
-  OPT_ALLOW_REMOVED_TRACKS,
 
   OPT_FUZZY_SEEK,
   OPT_SHADER_CACHE,
@@ -622,12 +613,6 @@ int main(int argc, char *argv[]) {
     ImGui::Text("Mobile Widgets:"); ImGui::SameLine();
     ImGui::Checkbox("##check11", &mobile_stuff);
     SetDescription(OPT_MOBILE_STUFF);
-    ImGui::Separator();
-
-    ImGui::TextColored(ImVec4(255, 255, 0, 255), "Audio");
-    ImGui::Text("Allow removed tracks:"); ImGui::SameLine();
-    ImGui::Checkbox("##check17", &allow_removed_tracks);
-    SetDescription(OPT_ALLOW_REMOVED_TRACKS);
     ImGui::Separator();
 
     ImGui::TextColored(ImVec4(255, 255, 0, 255), "Optimizations");

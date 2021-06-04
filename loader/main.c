@@ -54,6 +54,9 @@
 int sceLibcHeapSize = MEMORY_SCELIBC_MB * 1024 * 1024;
 int _newlib_heap_size_user = MEMORY_NEWLIB_MB * 1024 * 1024;
 
+unsigned int _oal_thread_priority = 64;
+unsigned int _oal_thread_affinity = 0x40000;
+
 SceTouchPanelInfo panelInfoFront, panelInfoBack;
 
 void *__wrap_memcpy(void *dest, const void *src, size_t n) {
@@ -205,16 +208,16 @@ void *OS_ThreadLaunch(int (* func)(), void *arg, int cpu, char *name, int unused
 
   switch (priority) {
     case 0:
-      vita_priority = 68;
-      break;
-    case 1:
       vita_priority = 67;
       break;
-    case 2:
+    case 1:
       vita_priority = 66;
       break;
-    case 3:
+    case 2:
       vita_priority = 65;
+      break;
+    case 3:
+      vita_priority = 64;
       break;
     default:
       vita_priority = 0x10000100;
@@ -254,11 +257,6 @@ void *OS_ThreadLaunch(int (* func)(), void *arg, int cpu, char *name, int unused
   }
 
   return NULL;
-}
-
-void OS_ThreadWait(void *thread) {
-  if (thread)
-    sceKernelWaitThreadEnd(*(int *)(thread + 0x24), NULL, NULL);
 }
 
 void *OS_ThreadSetValue(void *RenderQueue) {
@@ -601,27 +599,25 @@ void patch_game(void) {
   if (config.disable_detail_textures)
     *(int *)so_find_addr("gNoDetailTextures") = 1;
 
-  if (config.allow_removed_tracks) {
-    hook_thumb(so_find_addr("_Z14IsRemovedTracki"), (uintptr_t)ret0);
+  hook_thumb(so_find_addr("_Z14IsRemovedTracki"), (uintptr_t)ret0);
 
-    // QueueUpTracksForStation
-    hook_thumb((uintptr_t)text_base + 0x003A152A, (uintptr_t)text_base + 0x003A1602 + 0x1);
+  // QueueUpTracksForStation
+  hook_thumb((uintptr_t)text_base + 0x003A152A, (uintptr_t)text_base + 0x003A1602 + 0x1);
 
-    // ChooseMusicTrackIndex
-    hook_thumb((uintptr_t)text_base + 0x003A35F6, (uintptr_t)text_base + 0x003A369A + 0x1);
+  // ChooseMusicTrackIndex
+  hook_thumb((uintptr_t)text_base + 0x003A35F6, (uintptr_t)text_base + 0x003A369A + 0x1);
 
-    // ChooseIdentIndex
-    hook_thumb((uintptr_t)text_base + 0x003A37C2, (uintptr_t)text_base + 0x003A385E + 0x1);
+  // ChooseIdentIndex
+  hook_thumb((uintptr_t)text_base + 0x003A37C2, (uintptr_t)text_base + 0x003A385E + 0x1);
 
-    // ChooseAdvertIndex
-    hook_thumb((uintptr_t)text_base + 0x003A3A1E, (uintptr_t)text_base + 0x003A3AA2 + 0x1);
+  // ChooseAdvertIndex
+  hook_thumb((uintptr_t)text_base + 0x003A3A1E, (uintptr_t)text_base + 0x003A3AA2 + 0x1);
 
-    // ChooseTalkRadioShow
-    hook_thumb((uintptr_t)text_base + 0x003A4374, (uintptr_t)text_base + 0x003A4416 + 0x1);
+  // ChooseTalkRadioShow
+  hook_thumb((uintptr_t)text_base + 0x003A4374, (uintptr_t)text_base + 0x003A4416 + 0x1);
 
-    // ChooseDJBanterIndexFromList
-    hook_thumb((uintptr_t)text_base + 0x003A44D6, (uintptr_t)text_base + 0x003A4562 + 0x1);
-  }
+  // ChooseDJBanterIndexFromList
+  hook_thumb((uintptr_t)text_base + 0x003A44D6, (uintptr_t)text_base + 0x003A4562 + 0x1);
 
   if (config.fix_heli_plane_camera) {
     // Dummy all FindPlayerVehicle calls so the right analog stick can be used as camera again
@@ -710,7 +706,6 @@ void patch_game(void) {
 
   // do not use pthread
   hook_thumb(so_find_addr("_Z15OS_ThreadLaunchPFjPvES_jPKci16OSThreadPriority"), (uintptr_t)OS_ThreadLaunch);
-  hook_thumb(so_find_addr("_Z13OS_ThreadWaitPv"), (uintptr_t)OS_ThreadWait);
 
   // do not use mutex for RenderQueue
   hook_thumb(so_find_addr("_Z17OS_ThreadSetValuePv"), (uintptr_t)OS_ThreadSetValue);
@@ -1237,8 +1232,9 @@ int main(int argc, char *argv[]) {
   vglSetFragmentBufferSize(2 * 1024 * 1024); // default 512 * 1024
   vglSetUSSEBufferSize(64 * 1024); // default 16 * 1024
   vglSetVertexPoolSize(48 * 1024 * 1024);
-  vglInitExtended(0, SCREEN_W, SCREEN_H, MEMORY_VITAGL_THRESHOLD_MB * 1024 * 1024, config.aa_mode);
+  vglSetupGarbageCollector(127, 0x20000);
   vglUseVram(GL_TRUE);
+  vglInitExtended(0, SCREEN_W, SCREEN_H, MEMORY_VITAGL_THRESHOLD_MB * 1024 * 1024, config.aa_mode);
 
   jni_load();
 

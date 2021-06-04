@@ -184,7 +184,6 @@ typedef struct {
   int fix_skin_weights;
   int disable_ped_spec;
   int ignore_mobile_stuff;
-  int allow_removed_tracks;
   int enable_fuzzy_seek;
   int use_shader_cache;
   int enable_mvp_optimization;
