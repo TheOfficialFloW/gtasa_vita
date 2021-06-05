@@ -18,7 +18,7 @@
 - Download [SAAT 1.10 by alcy](https://web.archive.org/web/20070305050639/http://pdescobar.home.comcast.net:80/gta/saat/SAAT_release_1_10.zip) and extract it.
 - Download [SAAF by nick7 build 239](https://gta.nick7.com/programs/saaf/saaf_build_239.zip) and extract it.
 - Download [FFMPEG release essentials](https://www.gyan.dev/ffmpeg/builds/) and extract in your SAAT target directory.
-- Download [ffmpeg_convert_gtasa.bat](https://drive.google.com/file/d/1R6PecDWBUpk9CfR5xcIaVuF76fQnlOuq/view?usp=sharing) and copy it to your SAAT target directory.
+- Download [ffmpeg_convert_gtasa.bat](https://raw.githubusercontent.com/TheOfficialFloW/gtasa_vita/master/scripts/ffmpeg_convert_gtasa.bat) (rightclick -> Save as) and copy it to your SAAT target directory.
 
 - Once you have an older version of the game, copy the `STREAMS` audio folder to the saat folder you extracted.
 - Use the command prompt on the directory you extracted the files to. Hold Shift and right click the saat directory, and choose CMD or Powershell. Then use the command `.\saat_stream.exe -e .\STREAMS\* .\input ` in the oppened console.
