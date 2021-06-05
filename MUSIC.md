@@ -29,6 +29,3 @@
 - Rename the file extension from `.zip` to `.osw` for each one of them but leave their original name untouched. For example: `DS.osw`, `CH.osw`, etc.
 - Use *SAAF by nick7* to open each `.osw` file, it'll create an `.osw.idx` file.
 - Finally, After creating the `.osw.idx` files for each one of them, just copy all of the `.osw` with their `.osw.idx` files to the `STREAMS` folder on your vita in `ux0:data/gtasa/audio/STREAMS` and overwrite if asked.
-- Enable "Allow removed tracks" in the configuration app and you should be able to enjoy the game with all the songs on the latest build.
-
-## Credits
