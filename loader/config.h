@@ -14,6 +14,8 @@
 #define SHADER_CACHE_PATH DATA_PATH "/" "cache"
 #define CONFIG_PATH DATA_PATH "/" "config.txt"
 #define CONTROLLER_CONFIG_PATH DATA_PATH "/" "controls.txt"
+#define SCRIPT_SCM_PATH DATA_PATH "/data/script/mainV1.scm"
+#define SCRIPT_IMG_PATH DATA_PATH "/data/script/scriptv1.img"
 
 #define SCREEN_W 960
 #define SCREEN_H 544
