@@ -41,7 +41,7 @@ void patch_scripts(void) {
   SceUID img = sceIoOpen(SCRIPT_IMG_PATH, SCE_O_RDWR, 0);
   if (img < 0)
     fatal_error("Error could not load script %s.", SCRIPT_IMG_PATH);
-  patch_script(scm, orig_opcode_00E1, patch_0A90_nop, 6, 0x0004C0FF);
-  patch_script(scm, orig_opcode_80E1, patch_8A90_nop, 6, 0x0004C131);
+  patch_script(img, orig_opcode_00E1, patch_0A90_nop, 6, 0x0004C0FF);
+  patch_script(img, orig_opcode_80E1, patch_8A90_nop, 6, 0x0004C131);
   sceIoClose(img);
 }
