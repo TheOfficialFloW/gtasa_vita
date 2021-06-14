@@ -16,7 +16,6 @@
 #include <psp2/ctrl.h>
 #include <psp2/power.h>
 #include <psp2/touch.h>
-#include <taihen.h>
 #include <kubridge.h>
 #include <vitashark.h>
 #include <vitaGL.h>

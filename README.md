@@ -14,6 +14,11 @@ The port works by loading the official Android ARMv7 executable in memory, resol
 
 ## Changelog
 
+### v2.0
+
+- Fixed original bug where ITB and the gym treadmill could not be used. Thanks to adjutantt.
+- Added version to bubble.
+
 ### v1.9
 
 - Fixed issue where some peds were invisible.
