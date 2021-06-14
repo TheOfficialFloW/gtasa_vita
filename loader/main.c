@@ -47,6 +47,7 @@
 #include "openal_patch.h"
 #include "opengl_patch.h"
 #include "gfx_patch.h"
+#include "scripts_patch.h"
 #include "sha1.h"
 
 #include "libc_bridge.h"
@@ -1218,6 +1219,7 @@ int main(int argc, char *argv[]) {
   patch_opengl();
   patch_game();
   patch_gfx();
+  patch_scripts();
   so_flush_caches();
 
   so_execute_init_array();

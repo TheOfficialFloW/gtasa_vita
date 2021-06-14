@@ -28,6 +28,7 @@ add_executable(GTASA
   loader/openal_patch.c
   loader/opengl_patch.c
   loader/gfx_patch.c
+  loader/scripts_patch.c
   loader/sha1.c
 )
 

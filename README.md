@@ -109,7 +109,6 @@ In order to properly install the game, you'll have to follow these steps precise
 - Open the `main.8.com.rockstargames.gtasa.obb` with your zip explorer (`.obb` files are zip files just like `.apk` files so just rename the `.obb` to `.zip`) and extract the contents to `ux0:data/gtasa`.
 - Same as before, open the `patch.8.com.rockstargames.gtasa.obb` with the zip explorer and extract the contents inside the zip to `ux0:data/gtasa`.
 - Download the [gamefiles.zip](https://github.com/TheOfficialFloW/gtasa_vita/releases/download/v1.9/gamefiles.zip) and extract the contents to `ux0:data/gtasa` (overwrite if asked).
-- **Optional**: Some scripts like the Inside Track Betting are broken and require patching. See [SCRIPTS.md](SCRIPTS.md).
 - **Optional**: For a more authentic console experience, copy the file `ux0:data/gtasa/data/360Default1280x720.cfg` to `ux0:data/gtasa/` and rename it from `360Default1280x720.cfg` to `Adjustable.cfg`. This file is a leftover from the Xbox 360 version and provides you the console HUD (e.g. radar on bottom left).
 - Install [GTASA.vpk](https://github.com/TheOfficialFloW/gtasa_vita/releases/download/v1.9/GTASA.vpk) on your *PS Vita*.
 
