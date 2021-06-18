@@ -163,6 +163,8 @@ int so_load(so_module *mod, const char *filename) {
     } else if (strcmp(sh_name, ".init_array") == 0) {
       mod->init_array = (void *)sh_addr;
       mod->num_init_array = sh_size / sizeof(void *);
+    } else if (strcmp(sh_name, ".hash") == 0) {
+      mod->hash = (void *)sh_addr;
     }
   }
 
@@ -274,10 +276,32 @@ void so_initialize(so_module *mod) {
   }
 }
 
+uint32_t so_hash(const uint8_t *name) {
+  uint64_t h = 0, g;
+  while (*name) {
+    h = (h << 4) + *name++;
+    if ((g = (h & 0xf0000000)) != 0)
+      h ^= g >> 24;
+    h &= 0x0fffffff;
+  }
+  return h;
+}
+
 uintptr_t so_symbol(so_module *mod, const char *symbol) {
-  for (int i = 0; i < mod->num_dynsym; i++) {
-    if (strcmp(mod->dynstr + mod->dynsym[i].st_name, symbol) == 0)
-      return mod->text_base + mod->dynsym[i].st_value;
+  if (mod->hash) {
+    uint32_t hash = so_hash((const uint8_t *)symbol);
+    uint32_t nbucket = mod->hash[0];
+    uint32_t *bucket = &mod->hash[2];
+    uint32_t *chain = &bucket[nbucket];
+    for (int i = bucket[hash % nbucket]; i; i = chain[i]) {
+      if (strcmp(mod->dynstr + mod->dynsym[i].st_name, symbol) == 0)
+        return mod->text_base + mod->dynsym[i].st_value;
+    }
+  } else {
+    for (int i = 0; i < mod->num_dynsym; i++) {
+      if (strcmp(mod->dynstr + mod->dynsym[i].st_name, symbol) == 0)
+        return mod->text_base + mod->dynsym[i].st_value;
+    }
   }
 
   fatal_error("Error could not find symbol %s\n", symbol);

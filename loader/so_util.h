@@ -20,6 +20,7 @@ typedef struct {
   Elf32_Rel *relplt;
 
   int (** init_array)(void);
+  uint32_t *hash;
 
   int num_dynamic;
   int num_dynsym;
