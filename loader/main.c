@@ -595,13 +595,13 @@ extern void *__cxa_guard_acquire;
 extern void *__cxa_guard_release;
 
 void patch_game(void) {
-  *(uint8_t *)so_find_addr(&gtasa_mod, "UseCloudSaves") = 0;
-  *(uint8_t *)so_find_addr(&gtasa_mod, "UseTouchSense") = 0;
+  *(uint8_t *)so_symbol(&gtasa_mod, "UseCloudSaves") = 0;
+  *(uint8_t *)so_symbol(&gtasa_mod, "UseTouchSense") = 0;
 
   if (config.disable_detail_textures)
-    *(int *)so_find_addr(&gtasa_mod, "gNoDetailTextures") = 1;
+    *(int *)so_symbol(&gtasa_mod, "gNoDetailTextures") = 1;
 
-  hook_thumb(so_find_addr(&gtasa_mod, "_Z14IsRemovedTracki"), (uintptr_t)ret0);
+  hook_thumb(so_symbol(&gtasa_mod, "_Z14IsRemovedTracki"), (uintptr_t)ret0);
 
   // QueueUpTracksForStation
   hook_thumb((uintptr_t)gtasa_mod.text_base + 0x003A152A, (uintptr_t)gtasa_mod.text_base + 0x003A1602 + 0x1);
@@ -635,12 +635,12 @@ void patch_game(void) {
     hook_thumb((uintptr_t)(gtasa_mod.text_base + 0x003C057C), (uintptr_t)CCam__Process_FollowCar_SA_camSetArrPos_stub);
     hook_thumb((uintptr_t)(gtasa_mod.text_base + 0x003C12F4), (uintptr_t)CCam__Process_FollowCar_SA_yMovement_stub);
 
-    CPad__GetPad = (void *)so_find_addr(&gtasa_mod, "_ZN4CPad6GetPadEi");
-    CPad__GetCarGunUpDown = (void *)so_find_addr(&gtasa_mod, "_ZN4CPad15GetCarGunUpDownEbP11CAutomobilefb");
-    CPad__GetSteeringLeftRight = (void *)so_find_addr(&gtasa_mod, "_ZN4CPad20GetSteeringLeftRightEv");
-    CPad__GetTurretLeft = (void *)so_find_addr(&gtasa_mod, "_ZN4CPad13GetTurretLeftEv");
-    CPad__GetTurretRight = (void *)so_find_addr(&gtasa_mod, "_ZN4CPad14GetTurretRightEv");
-    CTimer__ms_fTimeStep = (float *)so_find_addr(&gtasa_mod, "_ZN6CTimer12ms_fTimeStepE");
+    CPad__GetPad = (void *)so_symbol(&gtasa_mod, "_ZN4CPad6GetPadEi");
+    CPad__GetCarGunUpDown = (void *)so_symbol(&gtasa_mod, "_ZN4CPad15GetCarGunUpDownEbP11CAutomobilefb");
+    CPad__GetSteeringLeftRight = (void *)so_symbol(&gtasa_mod, "_ZN4CPad20GetSteeringLeftRightEv");
+    CPad__GetTurretLeft = (void *)so_symbol(&gtasa_mod, "_ZN4CPad13GetTurretLeftEv");
+    CPad__GetTurretRight = (void *)so_symbol(&gtasa_mod, "_ZN4CPad14GetTurretRightEv");
+    CTimer__ms_fTimeStep = (float *)so_symbol(&gtasa_mod, "_ZN6CTimer12ms_fTimeStepE");
     hook_thumb((uintptr_t)(gtasa_mod.text_base + 0X005760BA), (uintptr_t)CPlane__ProcessControlInputs_Rudder_stub);
     hook_thumb((uintptr_t)(gtasa_mod.text_base + 0x00576432), (uintptr_t)CPlane__ProcessControlInputs_Harrier_stub);
   }
@@ -653,21 +653,21 @@ void patch_game(void) {
   }
 
   if (config.enable_high_detail_player)
-    hook_thumb(so_find_addr(&gtasa_mod, "_Z17UseHiDetailPlayerv"), (uintptr_t)ret1);
+    hook_thumb(so_symbol(&gtasa_mod, "_Z17UseHiDetailPlayerv"), (uintptr_t)ret1);
 
   if (config.enable_bones_optimization) {
-    skin_map = (float *)so_find_addr(&gtasa_mod, "skin_map");
-    skin_dirty = (int *)so_find_addr(&gtasa_mod, "skin_dirty");
-    skin_num = (int *)so_find_addr(&gtasa_mod, "skin_num");
-    hook_thumb(so_find_addr(&gtasa_mod, "_Z30emu_InternalSkinGetVectorCountv"), (uintptr_t)emu_InternalSkinGetVectorCount);
+    skin_map = (float *)so_symbol(&gtasa_mod, "skin_map");
+    skin_dirty = (int *)so_symbol(&gtasa_mod, "skin_dirty");
+    skin_num = (int *)so_symbol(&gtasa_mod, "skin_num");
+    hook_thumb(so_symbol(&gtasa_mod, "_Z30emu_InternalSkinGetVectorCountv"), (uintptr_t)emu_InternalSkinGetVectorCount);
     hook_thumb((uintptr_t)gtasa_mod.text_base + 0x001C8670, (uintptr_t)SkinSetMatrices);
   }
 
   if (config.enable_mvp_optimization) {
-    GetCurrentProjectionMatrix = (void *)so_find_addr(&gtasa_mod, "_Z26GetCurrentProjectionMatrixv");
-    GetCurrentViewMatrix = (void *)so_find_addr(&gtasa_mod, "_Z20GetCurrentViewMatrixv");
-    GetCurrentObjectMatrix = (void *)so_find_addr(&gtasa_mod, "_Z22GetCurrentObjectMatrixv");
-    hook_thumb(so_find_addr(&gtasa_mod, "_ZN9ES2Shader17SetMatrixConstantE24RQShaderMatrixConstantIDPKf"), (uintptr_t)ES2Shader__SetMatrixConstant);
+    GetCurrentProjectionMatrix = (void *)so_symbol(&gtasa_mod, "_Z26GetCurrentProjectionMatrixv");
+    GetCurrentViewMatrix = (void *)so_symbol(&gtasa_mod, "_Z20GetCurrentViewMatrixv");
+    GetCurrentObjectMatrix = (void *)so_symbol(&gtasa_mod, "_Z22GetCurrentObjectMatrixv");
+    hook_thumb(so_symbol(&gtasa_mod, "_ZN9ES2Shader17SetMatrixConstantE24RQShaderMatrixConstantIDPKf"), (uintptr_t)ES2Shader__SetMatrixConstant);
   }
 
   // Ignore widgets and popups introduced in mobile
@@ -683,7 +683,7 @@ void patch_game(void) {
     kuKernelCpuUnrestrictedMemcpy((void *)(gtasa_mod.text_base + 0x003F91B6), &nop16, sizeof(nop16));
 
     // Ignore app rating popup
-    hook_thumb(so_find_addr(&gtasa_mod, "_Z12Menu_ShowNagv"), (uintptr_t)ret0);
+    hook_thumb(so_symbol(&gtasa_mod, "_Z12Menu_ShowNagv"), (uintptr_t)ret0);
 
     // Ignore items in the controls menu
     kuKernelCpuUnrestrictedMemcpy((void *)(gtasa_mod.text_base + 0x0029E4AE), &nop32, sizeof(nop32));
@@ -701,55 +701,55 @@ void patch_game(void) {
   // Disable auto landing gear deployment/retraction
   hook_thumb((uintptr_t)gtasa_mod.text_base + 0x0057629C, (uintptr_t)gtasa_mod.text_base + 0x005762BC + 0x1);
 
-  hook_thumb(so_find_addr(&gtasa_mod, "__cxa_guard_acquire"), (uintptr_t)&__cxa_guard_acquire);
-  hook_thumb(so_find_addr(&gtasa_mod, "__cxa_guard_release"), (uintptr_t)&__cxa_guard_release);
+  hook_thumb(so_symbol(&gtasa_mod, "__cxa_guard_acquire"), (uintptr_t)&__cxa_guard_acquire);
+  hook_thumb(so_symbol(&gtasa_mod, "__cxa_guard_release"), (uintptr_t)&__cxa_guard_release);
 
-  hook_thumb(so_find_addr(&gtasa_mod, "_Z24NVThreadGetCurrentJNIEnvv"), (uintptr_t)NVThreadGetCurrentJNIEnv);
+  hook_thumb(so_symbol(&gtasa_mod, "_Z24NVThreadGetCurrentJNIEnvv"), (uintptr_t)NVThreadGetCurrentJNIEnv);
 
   // do not use pthread
-  hook_thumb(so_find_addr(&gtasa_mod, "_Z15OS_ThreadLaunchPFjPvES_jPKci16OSThreadPriority"), (uintptr_t)OS_ThreadLaunch);
+  hook_thumb(so_symbol(&gtasa_mod, "_Z15OS_ThreadLaunchPFjPvES_jPKci16OSThreadPriority"), (uintptr_t)OS_ThreadLaunch);
 
   // do not use mutex for RenderQueue
-  hook_thumb(so_find_addr(&gtasa_mod, "_Z17OS_ThreadSetValuePv"), (uintptr_t)OS_ThreadSetValue);
+  hook_thumb(so_symbol(&gtasa_mod, "_Z17OS_ThreadSetValuePv"), (uintptr_t)OS_ThreadSetValue);
 
-  hook_thumb(so_find_addr(&gtasa_mod, "_Z17OS_ScreenGetWidthv"), (uintptr_t)OS_ScreenGetWidth);
-  hook_thumb(so_find_addr(&gtasa_mod, "_Z18OS_ScreenGetHeightv"), (uintptr_t)OS_ScreenGetHeight);
+  hook_thumb(so_symbol(&gtasa_mod, "_Z17OS_ScreenGetWidthv"), (uintptr_t)OS_ScreenGetWidth);
+  hook_thumb(so_symbol(&gtasa_mod, "_Z18OS_ScreenGetHeightv"), (uintptr_t)OS_ScreenGetHeight);
 
   // TODO: set deviceChip, definedDevice
-  hook_thumb(so_find_addr(&gtasa_mod, "_Z20AND_SystemInitializev"), (uintptr_t)ret0);
+  hook_thumb(so_symbol(&gtasa_mod, "_Z20AND_SystemInitializev"), (uintptr_t)ret0);
 
   // TODO: implement touch here
-  hook_thumb(so_find_addr(&gtasa_mod, "_Z13ProcessEventsb"), (uintptr_t)ProcessEvents);
+  hook_thumb(so_symbol(&gtasa_mod, "_Z13ProcessEventsb"), (uintptr_t)ProcessEvents);
 
   // no adjustable
-  hook_thumb(so_find_addr(&gtasa_mod, "_ZN14CAdjustableHUD10SaveToDiskEv"), (uintptr_t)ret0);
-  hook_thumb(so_find_addr(&gtasa_mod, "_ZN15CTouchInterface27RepositionAdjustableWidgetsEv"), (uintptr_t)ret0);
+  hook_thumb(so_symbol(&gtasa_mod, "_ZN14CAdjustableHUD10SaveToDiskEv"), (uintptr_t)ret0);
+  hook_thumb(so_symbol(&gtasa_mod, "_ZN15CTouchInterface27RepositionAdjustableWidgetsEv"), (uintptr_t)ret0);
 
   // cheats support
-  CCheat__AddToCheatString = (void *)so_find_addr(&gtasa_mod, "_ZN6CCheat16AddToCheatStringEc");
-  kuKernelCpuUnrestrictedMemcpy((void *)so_find_addr(&gtasa_mod, "_ZN6CCheat16m_aCheatHashKeysE"), CCheat__m_aCheatHashKeys, sizeof(CCheat__m_aCheatHashKeys));
-  hook_thumb(so_find_addr(&gtasa_mod, "_ZN6CCheat8DoCheatsEv"), (uintptr_t)CCheat__DoCheats);
+  CCheat__AddToCheatString = (void *)so_symbol(&gtasa_mod, "_ZN6CCheat16AddToCheatStringEc");
+  kuKernelCpuUnrestrictedMemcpy((void *)so_symbol(&gtasa_mod, "_ZN6CCheat16m_aCheatHashKeysE"), CCheat__m_aCheatHashKeys, sizeof(CCheat__m_aCheatHashKeys));
+  hook_thumb(so_symbol(&gtasa_mod, "_ZN6CCheat8DoCheatsEv"), (uintptr_t)CCheat__DoCheats);
 
   // hook buttons mapping
-  CHIDJoystickPS3__vtable = (void *)so_find_addr(&gtasa_mod, "_ZTV15CHIDJoystickPS3");
-  CHIDJoystick__CHIDJoystick = (void *)so_find_addr(&gtasa_mod, "_ZN12CHIDJoystickC2EPKc");
-  CHIDJoystick__AddMapping = (void *)so_find_addr(&gtasa_mod, "_ZN12CHIDJoystick10AddMappingEi10HIDMapping");
+  CHIDJoystickPS3__vtable = (void *)so_symbol(&gtasa_mod, "_ZTV15CHIDJoystickPS3");
+  CHIDJoystick__CHIDJoystick = (void *)so_symbol(&gtasa_mod, "_ZN12CHIDJoystickC2EPKc");
+  CHIDJoystick__AddMapping = (void *)so_symbol(&gtasa_mod, "_ZN12CHIDJoystick10AddMappingEi10HIDMapping");
   if (mapping_count == 0)
-    hook_thumb(so_find_addr(&gtasa_mod, "_ZN15CHIDJoystickPS3C2EPKc"), (uintptr_t)so_find_addr(&gtasa_mod, "_ZN19CHIDJoystickXbox360C2EPKc"));
+    hook_thumb(so_symbol(&gtasa_mod, "_ZN15CHIDJoystickPS3C2EPKc"), (uintptr_t)so_symbol(&gtasa_mod, "_ZN19CHIDJoystickXbox360C2EPKc"));
   else
-    hook_thumb(so_find_addr(&gtasa_mod, "_ZN15CHIDJoystickPS3C2EPKc"), (uintptr_t)CHIDJoystickPS3__CHIDJoystickPS3);
+    hook_thumb(so_symbol(&gtasa_mod, "_ZN15CHIDJoystickPS3C2EPKc"), (uintptr_t)CHIDJoystickPS3__CHIDJoystickPS3);
 
   // make resume load the latest save
-  CGenericGameStorage__CheckSlotDataValid = (void *)so_find_addr(&gtasa_mod, "_ZN19CGenericGameStorage18CheckSlotDataValidEib");
-  C_PcSave__GenerateGameFilename = (void *)so_find_addr(&gtasa_mod, "_ZN8C_PcSave20GenerateGameFilenameEiPc");
-  OS_FileGetDate = (void *)so_find_addr(&gtasa_mod, "_Z14OS_FileGetDate14OSFileDataAreaPKc");
-  PcSaveHelper = (void *)so_find_addr(&gtasa_mod, "PcSaveHelper");
-  lastSaveForResume = (void *)so_find_addr(&gtasa_mod, "lastSaveForResume");
-  hook_thumb(so_find_addr(&gtasa_mod, "_ZN14MainMenuScreen9HasCPSaveEv"), (uintptr_t)MainMenuScreen__HasCPSave);
+  CGenericGameStorage__CheckSlotDataValid = (void *)so_symbol(&gtasa_mod, "_ZN19CGenericGameStorage18CheckSlotDataValidEib");
+  C_PcSave__GenerateGameFilename = (void *)so_symbol(&gtasa_mod, "_ZN8C_PcSave20GenerateGameFilenameEiPc");
+  OS_FileGetDate = (void *)so_symbol(&gtasa_mod, "_Z14OS_FileGetDate14OSFileDataAreaPKc");
+  PcSaveHelper = (void *)so_symbol(&gtasa_mod, "PcSaveHelper");
+  lastSaveForResume = (void *)so_symbol(&gtasa_mod, "lastSaveForResume");
+  hook_thumb(so_symbol(&gtasa_mod, "_ZN14MainMenuScreen9HasCPSaveEv"), (uintptr_t)MainMenuScreen__HasCPSave);
 
   // support graceful exit
-  SaveGameForPause = (void *)so_find_addr(&gtasa_mod, "_Z16SaveGameForPause10eSaveTypesPc");
-  hook_thumb(so_find_addr(&gtasa_mod, "_ZN14MainMenuScreen6OnExitEv"), (uintptr_t)MainMenuScreen__OnExit);
+  SaveGameForPause = (void *)so_symbol(&gtasa_mod, "_Z16SaveGameForPause10eSaveTypesPc");
+  hook_thumb(so_symbol(&gtasa_mod, "_ZN14MainMenuScreen6OnExitEv"), (uintptr_t)MainMenuScreen__OnExit);
 }
 
 void glTexImage2DHook(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const void * data) {
@@ -1223,8 +1223,7 @@ int main(int argc, char *argv[]) {
   patch_scripts();
   so_flush_caches(&gtasa_mod);
 
-  so_execute_init_array(&gtasa_mod);
-  so_free_temp(&gtasa_mod);
+  so_initialize(&gtasa_mod);
 
   if (fios_init() < 0)
     fatal_error("Error could not initialize fios.");

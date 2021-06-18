@@ -47,13 +47,10 @@ void so_flush_caches(so_module *mod) {
   kuKernelFlushCaches((void *)mod->text_base, mod->text_size);
 }
 
-int so_free_temp(so_module *mod) {
-  return sceKernelFreeMemBlock(mod->temp_blockid);
-}
-
 int so_load(so_module *mod, const char *filename) {
   int res = 0;
-  void *data_addr = NULL;
+  uintptr_t data_addr = 0;
+  SceUID so_blockid;
   void *so_data;
   size_t so_size;
 
@@ -66,11 +63,11 @@ int so_load(so_module *mod, const char *filename) {
   so_size = sceIoLseek(fd, 0, SCE_SEEK_END);
   sceIoLseek(fd, 0, SCE_SEEK_SET);
 
-  mod->temp_blockid = sceKernelAllocMemBlock("file", SCE_KERNEL_MEMBLOCK_TYPE_USER_RW, (so_size + 0xfff) & ~0xfff, NULL);
-  if (mod->temp_blockid < 0)
-    return mod->temp_blockid;
+  so_blockid = sceKernelAllocMemBlock("file", SCE_KERNEL_MEMBLOCK_TYPE_USER_RW, (so_size + 0xfff) & ~0xfff, NULL);
+  if (so_blockid < 0)
+    return so_blockid;
 
-  sceKernelGetMemBlockBase(mod->temp_blockid, &so_data);
+  sceKernelGetMemBlockBase(so_blockid, &so_data);
 
   sceIoRead(fd, so_data, so_size);
   sceIoClose(fd);
@@ -80,18 +77,20 @@ int so_load(so_module *mod, const char *filename) {
     goto err_free_so;
   }
 
-  mod->elf_hdr = (Elf32_Ehdr *)so_data;
-  mod->prog_hdr = (Elf32_Phdr *)((uintptr_t)so_data + mod->elf_hdr->e_phoff);
-  mod->sec_hdr = (Elf32_Shdr *)((uintptr_t)so_data + mod->elf_hdr->e_shoff);
+  mod->ehdr = (Elf32_Ehdr *)so_data;
+  mod->phdr = (Elf32_Phdr *)((uintptr_t)so_data + mod->ehdr->e_phoff);
+  mod->shdr = (Elf32_Shdr *)((uintptr_t)so_data + mod->ehdr->e_shoff);
 
-  mod->shstr = (char *)((uintptr_t)so_data + mod->sec_hdr[mod->elf_hdr->e_shstrndx].sh_offset);
+  mod->shstr = (char *)((uintptr_t)so_data + mod->shdr[mod->ehdr->e_shstrndx].sh_offset);
 
-  for (int i = 0; i < mod->elf_hdr->e_phnum; i++) {
-    if (mod->prog_hdr[i].p_type == PT_LOAD) {
-      size_t prog_size = ALIGN_MEM(mod->prog_hdr[i].p_memsz, mod->prog_hdr[i].p_align);
+  for (int i = 0; i < mod->ehdr->e_phnum; i++) {
+    if (mod->phdr[i].p_type == PT_LOAD) {
       void *prog_data;
+      size_t prog_size;
 
-      if ((mod->prog_hdr[i].p_flags & PF_X) == PF_X) {
+      if ((mod->phdr[i].p_flags & PF_X) == PF_X) {
+        prog_size = ALIGN_MEM(mod->phdr[i].p_memsz, mod->phdr[i].p_align);
+
         SceKernelAllocMemBlockKernelOpt opt;
         memset(&opt, 0, sizeof(SceKernelAllocMemBlockKernelOpt));
         opt.size = sizeof(SceKernelAllocMemBlockKernelOpt);
@@ -105,15 +104,17 @@ int so_load(so_module *mod, const char *filename) {
 
         sceKernelGetMemBlockBase(mod->text_blockid, &prog_data);
 
-        mod->prog_hdr[i].p_vaddr += (Elf32_Addr)prog_data;
+        mod->phdr[i].p_vaddr += (Elf32_Addr)prog_data;
 
-        mod->text_base = mod->prog_hdr[i].p_vaddr;
-        mod->text_size = mod->prog_hdr[i].p_memsz;
+        mod->text_base = mod->phdr[i].p_vaddr;
+        mod->text_size = mod->phdr[i].p_memsz;
 
-        data_addr = prog_data + prog_size;
+        data_addr = (uintptr_t)prog_data + prog_size;
       } else {
-        if (data_addr == NULL)
+        if (data_addr == 0)
           goto err_free_so;
+
+        prog_size = ALIGN_MEM(mod->phdr[i].p_memsz + mod->phdr[i].p_vaddr - (data_addr - mod->text_base), mod->phdr[i].p_align);
 
         SceKernelAllocMemBlockKernelOpt opt;
         memset(&opt, 0, sizeof(SceKernelAllocMemBlockKernelOpt));
@@ -126,10 +127,10 @@ int so_load(so_module *mod, const char *filename) {
 
         sceKernelGetMemBlockBase(mod->data_blockid, &prog_data);
 
-        mod->prog_hdr[i].p_vaddr += (Elf32_Addr)mod->text_base;
+        mod->phdr[i].p_vaddr += (Elf32_Addr)mod->text_base;
 
-        mod->data_base = mod->prog_hdr[i].p_vaddr;
-        mod->data_size = mod->prog_hdr[i].p_memsz;
+        mod->data_base = mod->phdr[i].p_vaddr;
+        mod->data_size = mod->phdr[i].p_memsz;
       }
 
       char *zero = malloc(prog_size);
@@ -137,14 +138,14 @@ int so_load(so_module *mod, const char *filename) {
       kuKernelCpuUnrestrictedMemcpy(prog_data, zero, prog_size);
       free(zero);
 
-      kuKernelCpuUnrestrictedMemcpy((void *)mod->prog_hdr[i].p_vaddr, (void *)((uintptr_t)so_data + mod->prog_hdr[i].p_offset), mod->prog_hdr[i].p_filesz);
+      kuKernelCpuUnrestrictedMemcpy((void *)mod->phdr[i].p_vaddr, (void *)((uintptr_t)so_data + mod->phdr[i].p_offset), mod->phdr[i].p_filesz);
     }
   }
 
-  for (int i = 0; i < mod->elf_hdr->e_shnum; i++) {
-    char *sh_name = mod->shstr + mod->sec_hdr[i].sh_name;
-    uintptr_t sh_addr = mod->text_base + mod->sec_hdr[i].sh_addr;
-    size_t sh_size = mod->sec_hdr[i].sh_size;
+  for (int i = 0; i < mod->ehdr->e_shnum; i++) {
+    char *sh_name = mod->shstr + mod->shdr[i].sh_name;
+    uintptr_t sh_addr = mod->text_base + mod->shdr[i].sh_addr;
+    size_t sh_size = mod->shdr[i].sh_size;
     if (strcmp(sh_name, ".dynamic") == 0) {
       mod->dynamic = (Elf32_Dyn *)sh_addr;
       mod->num_dynamic = sh_size / sizeof(Elf32_Dyn);
@@ -153,27 +154,38 @@ int so_load(so_module *mod, const char *filename) {
     } else if (strcmp(sh_name, ".dynsym") == 0) {
       mod->dynsym = (Elf32_Sym *)sh_addr;
       mod->num_dynsym = sh_size / sizeof(Elf32_Sym);
-    } else if (strcmp(sh_name, ".init_array") == 0) {
-      mod->init_array = (void *)sh_addr;
-      mod->num_init_array = sh_size / sizeof(void *);
     } else if (strcmp(sh_name, ".rel.dyn") == 0) {
       mod->reldyn = (Elf32_Rel *)sh_addr;
       mod->num_reldyn = sh_size / sizeof(Elf32_Rel);
     } else if (strcmp(sh_name, ".rel.plt") == 0) {
       mod->relplt = (Elf32_Rel *)sh_addr;
       mod->num_relplt = sh_size / sizeof(Elf32_Rel);
+    } else if (strcmp(sh_name, ".init_array") == 0) {
+      mod->init_array = (void *)sh_addr;
+      mod->num_init_array = sh_size / sizeof(void *);
+    }
+  }
+
+  for (int i = 0; i < mod->num_dynamic; i++) {
+    switch (mod->dynamic[i].d_tag) {
+      case DT_SONAME:
+        mod->soname = mod->dynstr + mod->dynamic[i].d_un.d_ptr;
+        break;
+      default:
+        break;
     }
   }
 
   if (mod->dynamic == NULL ||
       mod->dynstr == NULL ||
       mod->dynsym == NULL ||
-      mod->init_array == NULL ||
       mod->reldyn == NULL ||
       mod->relplt == NULL) {
     res = -2;
     goto err_free_data;
   }
+
+  sceKernelFreeMemBlock(so_blockid);
 
   return 0;
 
@@ -182,7 +194,7 @@ err_free_data:
 err_free_text:
   sceKernelFreeMemBlock(mod->text_blockid);
 err_free_so:
-  sceKernelFreeMemBlock(mod->temp_blockid);
+  sceKernelFreeMemBlock(so_blockid);
 
   return res;
 }
@@ -236,9 +248,8 @@ int so_resolve(so_module *mod, DynLibFunction *funcs, int num_funcs, int taint_m
           if (taint_missing_imports)
             *ptr = rel->r_offset;
 
-          char *name = mod->dynstr + sym->st_name;
           for (int j = 0; j < num_funcs; j++) {
-            if (strcmp(name, funcs[j].symbol) == 0) {
+            if (strcmp(mod->dynstr + sym->st_name, funcs[j].symbol) == 0) {
               *ptr = funcs[j].func;
               break;
             }
@@ -256,17 +267,16 @@ int so_resolve(so_module *mod, DynLibFunction *funcs, int num_funcs, int taint_m
   return 0;
 }
 
-void so_execute_init_array(so_module *mod) {
+void so_initialize(so_module *mod) {
   for (int i = 0; i < mod->num_init_array; i++) {
     if (mod->init_array[i])
       mod->init_array[i]();
   }
 }
 
-uintptr_t so_find_addr(so_module *mod, const char *symbol) {
+uintptr_t so_symbol(so_module *mod, const char *symbol) {
   for (int i = 0; i < mod->num_dynsym; i++) {
-    char *name = mod->dynstr + mod->dynsym[i].st_name;
-    if (strcmp(name, symbol) == 0)
+    if (strcmp(mod->dynstr + mod->dynsym[i].st_name, symbol) == 0)
       return mod->text_base + mod->dynsym[i].st_value;
   }
 
