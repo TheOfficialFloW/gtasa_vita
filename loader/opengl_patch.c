@@ -583,15 +583,15 @@ void main(
 )";
 
 void patch_opengl(void) {
-  *(char **)so_find_addr("shadowResolvePShader") = shadowResolvePShader;
-  *(char **)so_find_addr("blurPShader") = blurPShader;
-  *(char **)so_find_addr("gradingPShader") = gradingPShader;
-  *(char **)so_find_addr("contrastPShader") = contrastPShader;
-  *(char **)so_find_addr("contrastVShader") = contrastVShader;
+  *(char **)so_find_addr(&gtasa_mod, "shadowResolvePShader") = shadowResolvePShader;
+  *(char **)so_find_addr(&gtasa_mod, "blurPShader") = blurPShader;
+  *(char **)so_find_addr(&gtasa_mod, "gradingPShader") = gradingPShader;
+  *(char **)so_find_addr(&gtasa_mod, "contrastPShader") = contrastPShader;
+  *(char **)so_find_addr(&gtasa_mod, "contrastVShader") = contrastVShader;
 
-  GetMobileEffectSetting = (void *)so_find_addr("_Z22GetMobileEffectSettingv");
+  GetMobileEffectSetting = (void *)so_find_addr(&gtasa_mod, "_Z22GetMobileEffectSettingv");
 
-  RQCaps = (RQCapabilities *)so_find_addr("RQCaps");
-  RQMaxBones = (int *)so_find_addr("RQMaxBones");
-  hook_thumb(so_find_addr("_ZN8RQShader11BuildSourceEjPPKcS2_"), (uintptr_t)RQShader__BuildSource);
+  RQCaps = (RQCapabilities *)so_find_addr(&gtasa_mod, "RQCaps");
+  RQMaxBones = (int *)so_find_addr(&gtasa_mod, "RQMaxBones");
+  hook_thumb(so_find_addr(&gtasa_mod, "_ZN8RQShader11BuildSourceEjPPKcS2_"), (uintptr_t)RQShader__BuildSource);
 }

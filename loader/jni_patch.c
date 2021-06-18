@@ -388,13 +388,13 @@ int GetEnv(void *vm, void **env, int r2) {
 }
 
 void jni_load(void) {
-  *(int *)so_find_addr("IsAndroidPaused") = 0; // it's 1 by default
+  *(int *)so_find_addr(&gtasa_mod, "IsAndroidPaused") = 0; // it's 1 by default
 
   memset(fake_vm, 'A', sizeof(fake_vm));
   *(uintptr_t *)(fake_vm + 0x00) = (uintptr_t)fake_vm; // just point to itself...
   *(uintptr_t *)(fake_vm + 0x18) = (uintptr_t)GetEnv;
 
-  int (* JNI_OnLoad)(void *vm, void *reserved) = (void *)so_find_addr("JNI_OnLoad");
+  int (* JNI_OnLoad)(void *vm, void *reserved) = (void *)so_find_addr(&gtasa_mod, "JNI_OnLoad");
   JNI_OnLoad(fake_vm, NULL);
 
   int (* init)(void *env, int r1, int init_graphics) = *(void **)(natives + 8);
