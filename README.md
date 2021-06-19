@@ -138,6 +138,7 @@ You can launch the Configurator app by clicking on the `Configuration` button lo
 - You can open the map by holding START and then releasing.
 - You can get local freeroam coop and rampages working by replacing the main scripts with those of the PS3 version. See [COOP.md](COOP.md).
 - Due to expired licensing, some songs were cut from the game. See [MUSIC.md](MUSIC.md) for a list of removed tracks and a guide on how to restore them.
+- To properly take off during *Learning to Fly* mission, retract your landing gear by pressing **RIGHT**.
 
 ### Performance
 
