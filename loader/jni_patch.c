@@ -110,15 +110,6 @@ int GetGamepadButtons(int port) {
 
   int mask = 0;
 
-  if (pad.buttons & SCE_CTRL_SELECT)
-    mask |= 0x20;
-  if (pad.buttons & SCE_CTRL_L1)
-    mask |= 0x40;
-
-  // Do not pan camera when entering cheat dialog
-  if ((mask & 0x20) && (mask & 0x40))
-    return 0;
-
   if (pad.buttons & SCE_CTRL_CROSS)
     mask |= 0x1;
   if (pad.buttons & SCE_CTRL_CIRCLE)
@@ -129,6 +120,10 @@ int GetGamepadButtons(int port) {
     mask |= 0x8;
   if (pad.buttons & SCE_CTRL_START)
     mask |= 0x10;
+  if (pad.buttons & SCE_CTRL_SELECT)
+    mask |= 0x20;
+  if (pad.buttons & SCE_CTRL_L1)
+    mask |= 0x40;
   if (pad.buttons & SCE_CTRL_R1)
     mask |= 0x80;
   if (pad.buttons & SCE_CTRL_UP)
@@ -143,6 +138,10 @@ int GetGamepadButtons(int port) {
     mask |= 0x1000;
   if (pad.buttons & SCE_CTRL_R3)
     mask |= 0x2000;
+
+  // Do not pan camera when entering cheat dialog
+  if ((mask & 0x20) && (mask & 0x40))
+    mask &= ~(0x20 | 0x40);
 
   if (port == 0) {
     for (int i = 0; i < touch_front.reportNum; i++) {
