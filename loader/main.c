@@ -698,8 +698,16 @@ void patch_game(void) {
   // fix free aiming
   hook_thumb((uintptr_t)gtasa_mod.text_base + 0x004C6D16, (uintptr_t)gtasa_mod.text_base + 0x004C6E28 + 0x1);
 
+  // Fix target switching firing twice
+  hook_thumb((uintptr_t)gtasa_mod.text_base + 0x003C73F8, (uintptr_t)gtasa_mod.text_base + 0x003C7424 + 0x1);
+
   // Disable auto landing gear deployment/retraction
   hook_thumb((uintptr_t)gtasa_mod.text_base + 0x0057629C, (uintptr_t)gtasa_mod.text_base + 0x005762BC + 0x1);
+
+  // Nuke telemetry
+  hook_thumb(so_symbol(&gtasa_mod, "_Z13SaveTelemetryv"), (uintptr_t)ret0);
+  hook_thumb(so_symbol(&gtasa_mod, "_Z13LoadTelemetryv"), (uintptr_t)ret0);
+  hook_thumb(so_symbol(&gtasa_mod, "_Z11updateUsageb"), (uintptr_t)ret0);
 
   hook_thumb(so_symbol(&gtasa_mod, "__cxa_guard_acquire"), (uintptr_t)&__cxa_guard_acquire);
   hook_thumb(so_symbol(&gtasa_mod, "__cxa_guard_release"), (uintptr_t)&__cxa_guard_release);

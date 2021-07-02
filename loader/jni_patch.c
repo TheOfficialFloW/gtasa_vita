@@ -139,6 +139,10 @@ int GetGamepadButtons(int port) {
   if (pad.buttons & SCE_CTRL_R3)
     mask |= 0x2000;
 
+  // Do not pan camera when entering cheat dialog
+  if ((mask & 0x20) && (mask & 0x40))
+    mask &= ~(0x20 | 0x40);
+
   if (port == 0) {
     for (int i = 0; i < touch_front.reportNum; i++) {
       if (touch_front.report[i].y >= (panelInfoFront.minAaY + panelInfoFront.maxAaY) / 2) {
