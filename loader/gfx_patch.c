@@ -542,9 +542,9 @@ patch_gfx(void)
 		const uint16_t nop = 0xbf00;
 		kuKernelCpuUnrestrictedMemcpy((void *)(gtasa_mod.text_base + 0x1C1382), &nop, sizeof(nop));
 		kuKernelCpuUnrestrictedMemcpy((void *)(gtasa_mod.text_base + 0x1C13BA), &nop, sizeof(nop));
-		hook_thumb(so_symbol(&gtasa_mod, "_Z36_rwOpenGLLightsSetMaterialPropertiesPK10RpMaterialj"), (uintptr_t)_rwOpenGLLightsSetMaterialProperties);
+		hook_addr(so_symbol(&gtasa_mod, "_Z36_rwOpenGLLightsSetMaterialPropertiesPK10RpMaterialj"), (uintptr_t)_rwOpenGLLightsSetMaterialProperties);
 
-		hook_thumb(so_symbol(&gtasa_mod, "_Z28SetLightsWithTimeOfDayColourP7RpWorld"), (uintptr_t)SetLightsWithTimeOfDayColour);
+		hook_addr(so_symbol(&gtasa_mod, "_Z28SetLightsWithTimeOfDayColourP7RpWorld"), (uintptr_t)SetLightsWithTimeOfDayColour);
 	}
 
 	// Enable PS2-like color filter
@@ -557,7 +557,7 @@ patch_gfx(void)
 		// .text:005B6440                 VSTR            S4, [SP,#0x24]
 		// .text:005B6444                 VSTR            S6, [SP,#0x18]
 		// .text:005B6448                 BEQ             loc_5B64EC
-		hook_thumb((uintptr_t)gtasa_mod.text_base + 0x005B643C, (uintptr_t)ColorFilter_stub);
+		hook_addr((uintptr_t)gtasa_mod.text_base + 0x005B643C, (uintptr_t)ColorFilter_stub);
 		kuKernelCpuUnrestrictedMemcpy((void *)(gtasa_mod.text_base + 0x005B6444), (void *)(gtasa_mod.text_base + 0x005B63DC), sizeof(uint16_t));
 		kuKernelCpuUnrestrictedMemcpy((void *)(gtasa_mod.text_base + 0x005B6446), (void *)(gtasa_mod.text_base + 0x005B63EA), sizeof(uint16_t));
 	}

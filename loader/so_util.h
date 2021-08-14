@@ -5,7 +5,9 @@
 
 #define ALIGN_MEM(x, align) (((x) + ((align) - 1)) & ~((align) - 1))
 
-typedef struct {
+typedef struct so_module {
+  struct so_module *next;
+
   SceUID text_blockid, data_blockid;
   uintptr_t text_base, data_base;
   size_t text_size, data_size;
@@ -36,15 +38,16 @@ typedef struct {
 typedef struct {
   char *symbol;
   uintptr_t func;
-} DynLibFunction;
+} so_default_dynlib;
 
 void hook_thumb(uintptr_t addr, uintptr_t dst);
 void hook_arm(uintptr_t addr, uintptr_t dst);
+void hook_addr(uintptr_t addr, uintptr_t dst);
 
 void so_flush_caches(so_module *mod);
-int so_load(so_module *mod, const char *filename);
+int so_load(so_module *mod, const char *filename, uintptr_t load_addr);
 int so_relocate(so_module *mod);
-int so_resolve(so_module *mod, DynLibFunction *funcs, int num_funcs, int taint_missing_imports);
+int so_resolve(so_module *mod, so_default_dynlib *default_dynlib, int size_default_dynlib, int default_dynlib_only);
 void so_initialize(so_module *mod);
 uintptr_t so_symbol(so_module *mod, const char *symbol);
 

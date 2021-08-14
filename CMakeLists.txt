@@ -15,7 +15,7 @@ set(VITA_TITLEID  "GTASA0000")
 set(VITA_VERSION  "02.00")
 set(VITA_MKSFOEX_FLAGS "-d ATTRIBUTE2=12")
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -Wl,-q,--wrap,memcpy,--wrap,memmove,--wrap,memset -Wall -O3 -mfloat-abi=softfp")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -Wl,-q,--wrap,memcpy,--wrap,memmove,--wrap,memset -D_GNU_SOURCE -Wall -O3 -mfloat-abi=softfp")
 set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=c++11 -Wno-write-strings")
 
 add_executable(GTASA
@@ -52,6 +52,7 @@ target_link_libraries(GTASA
   SceCtrl_stub
   SceCommonDialog_stub
   SceDisplay_stub
+  SceKernelDmacMgr_stub
   SceFios2_stub
   SceGxm_stub
   SceLibcBridge_stub
@@ -76,6 +77,7 @@ target_link_libraries(companion
   SceCtrl_stub
   SceCommonDialog_stub
   SceDisplay_stub
+  SceKernelDmacMgr_stub
   SceGxm_stub
   SceShaccCg_stub
   SceSysmodule_stub

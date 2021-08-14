@@ -593,5 +593,5 @@ void patch_opengl(void) {
 
   RQCaps = (RQCapabilities *)so_symbol(&gtasa_mod, "RQCaps");
   RQMaxBones = (int *)so_symbol(&gtasa_mod, "RQMaxBones");
-  hook_thumb(so_symbol(&gtasa_mod, "_ZN8RQShader11BuildSourceEjPPKcS2_"), (uintptr_t)RQShader__BuildSource);
+  hook_addr(so_symbol(&gtasa_mod, "_ZN8RQShader11BuildSourceEjPPKcS2_"), (uintptr_t)RQShader__BuildSource);
 }

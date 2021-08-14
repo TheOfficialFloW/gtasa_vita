@@ -152,7 +152,7 @@ You can launch the Configurator app by clicking on the `Configuration` button lo
 ## Build Instructions (For Developers)
 
 In order to build the loader, you'll need a [vitasdk](https://github.com/vitasdk) build fully compiled with softfp usage.  
-You can find a precompiled version here: [Linux](https://github.com/vitasdk/buildscripts/suites/2943994805/artifacts/66184169) / [Windows](https://github.com/vitasdk/buildscripts/suites/2943994805/artifacts/66184170).  
+You can find a precompiled version here: https://github.com/vitasdk/buildscripts/actions/runs/1102643776.  
 Additionally, you'll need these libraries to be compiled as well with `-mfloat-abi=softfp` added to their CFLAGS:
 
 - [mpg123](http://www.mpg123.de/download/mpg123-1.25.10.tar.bz2)

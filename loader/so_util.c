@@ -19,6 +19,8 @@
 #include "dialog.h"
 #include "so_util.h"
 
+static so_module *head = NULL, *tail = NULL;
+
 void hook_thumb(uintptr_t addr, uintptr_t dst) {
   if (addr == 0)
     return;
@@ -43,11 +45,20 @@ void hook_arm(uintptr_t addr, uintptr_t dst) {
   kuKernelCpuUnrestrictedMemcpy((void *)addr, hook, sizeof(hook));
 }
 
+void hook_addr(uintptr_t addr, uintptr_t dst) {
+  if (addr == 0)
+    return;
+  if (addr & 1)
+    hook_thumb(addr, dst);
+  else
+    hook_arm(addr, dst);
+}
+
 void so_flush_caches(so_module *mod) {
   kuKernelFlushCaches((void *)mod->text_base, mod->text_size);
 }
 
-int so_load(so_module *mod, const char *filename) {
+int so_load(so_module *mod, const char *filename, uintptr_t load_addr) {
   int res = 0;
   uintptr_t data_addr = 0;
   SceUID so_blockid;
@@ -94,10 +105,8 @@ int so_load(so_module *mod, const char *filename) {
         SceKernelAllocMemBlockKernelOpt opt;
         memset(&opt, 0, sizeof(SceKernelAllocMemBlockKernelOpt));
         opt.size = sizeof(SceKernelAllocMemBlockKernelOpt);
-#ifdef LOAD_ADDRESS
         opt.attr = 0x1;
-        opt.field_C = (SceUInt32)LOAD_ADDRESS;
-#endif
+        opt.field_C = (SceUInt32)load_addr;
         res = mod->text_blockid = kuKernelAllocMemBlock("rx_block", SCE_KERNEL_MEMBLOCK_TYPE_USER_RX, prog_size, &opt);
         if (res < 0)
           goto err_free_so;
@@ -168,6 +177,15 @@ int so_load(so_module *mod, const char *filename) {
     }
   }
 
+  if (mod->dynamic == NULL ||
+      mod->dynstr == NULL ||
+      mod->dynsym == NULL ||
+      mod->reldyn == NULL ||
+      mod->relplt == NULL) {
+    res = -2;
+    goto err_free_data;
+  }
+
   for (int i = 0; i < mod->num_dynamic; i++) {
     switch (mod->dynamic[i].d_tag) {
       case DT_SONAME:
@@ -178,16 +196,15 @@ int so_load(so_module *mod, const char *filename) {
     }
   }
 
-  if (mod->dynamic == NULL ||
-      mod->dynstr == NULL ||
-      mod->dynsym == NULL ||
-      mod->reldyn == NULL ||
-      mod->relplt == NULL) {
-    res = -2;
-    goto err_free_data;
-  }
-
   sceKernelFreeMemBlock(so_blockid);
+
+  if (!head && !tail) {
+    head = mod;
+    tail = mod;
+  } else {
+    tail->next = mod;
+    tail = mod;
+  }
 
   return 0;
 
@@ -210,7 +227,10 @@ int so_relocate(so_module *mod) {
     int type = ELF32_R_TYPE(rel->r_info);
     switch (type) {
       case R_ARM_ABS32:
-        *ptr += mod->text_base + sym->st_value;
+        if (sym->st_shndx != SHN_UNDEF)
+          *ptr += mod->text_base + sym->st_value;
+        else
+          *ptr = mod->text_base + rel->r_offset; // make it crash for debugging
         break;
 
       case R_ARM_RELATIVE:
@@ -222,6 +242,8 @@ int so_relocate(so_module *mod) {
       {
         if (sym->st_shndx != SHN_UNDEF)
           *ptr = mod->text_base + sym->st_value;
+        else
+          *ptr = mod->text_base + rel->r_offset; // make it crash for debugging
         break;
       }
 
@@ -234,7 +256,32 @@ int so_relocate(so_module *mod) {
   return 0;
 }
 
-int so_resolve(so_module *mod, DynLibFunction *funcs, int num_funcs, int taint_missing_imports) {
+uintptr_t so_resolve_link(so_module *mod, const char *symbol) {
+  for (int i = 0; i < mod->num_dynamic; i++) {
+    switch (mod->dynamic[i].d_tag) {
+      case DT_NEEDED:
+      {
+        so_module *curr = head;
+        while (curr) {
+          if (curr != mod && strcmp(curr->soname, mod->dynstr + mod->dynamic[i].d_un.d_ptr) == 0) {
+            uintptr_t link = so_symbol(curr, symbol);
+            if (link)
+              return link;
+          }
+          curr = curr->next;
+        }
+
+        break;
+      }
+      default:
+        break;
+    }
+  }
+
+  return 0;
+}
+
+int so_resolve(so_module *mod, so_default_dynlib *default_dynlib, int size_default_dynlib, int default_dynlib_only) {
   for (int i = 0; i < mod->num_reldyn + mod->num_relplt; i++) {
     Elf32_Rel *rel = i < mod->num_reldyn ? &mod->reldyn[i] : &mod->relplt[i - mod->num_reldyn];
     Elf32_Sym *sym = &mod->dynsym[ELF32_R_SYM(rel->r_info)];
@@ -242,19 +289,36 @@ int so_resolve(so_module *mod, DynLibFunction *funcs, int num_funcs, int taint_m
 
     int type = ELF32_R_TYPE(rel->r_info);
     switch (type) {
+      case R_ARM_ABS32:
       case R_ARM_GLOB_DAT:
       case R_ARM_JUMP_SLOT:
       {
         if (sym->st_shndx == SHN_UNDEF) {
-          // make it crash for debugging
-          if (taint_missing_imports)
-            *ptr = rel->r_offset;
+          int resolved = 0;
+          if (!default_dynlib_only) {
+            uintptr_t link = so_resolve_link(mod, mod->dynstr + sym->st_name);
+            if (link) {
+              // debugPrintf("Resolved from dependencies: %s\n", mod->dynstr + sym->st_name);
+              *ptr = link;
+              resolved = 1;
+            }
+          }
 
-          for (int j = 0; j < num_funcs; j++) {
-            if (strcmp(mod->dynstr + sym->st_name, funcs[j].symbol) == 0) {
-              *ptr = funcs[j].func;
+          for (int j = 0; j < size_default_dynlib / sizeof(so_default_dynlib); j++) {
+            if (strcmp(mod->dynstr + sym->st_name, default_dynlib[j].symbol) == 0) {
+              if (resolved) {
+                // debugPrintf("Overriden: %s\n", mod->dynstr + sym->st_name);
+              } else {
+                // debugPrintf("Resolved manually: %s\n", mod->dynstr + sym->st_name);
+              }
+              *ptr = default_dynlib[j].func;
+              resolved = 1;
               break;
             }
+          }
+
+          if (!resolved) {
+            // debugPrintf("Missing: %s\n", mod->dynstr + sym->st_name);
           }
         }
 
@@ -294,16 +358,19 @@ uintptr_t so_symbol(so_module *mod, const char *symbol) {
     uint32_t *bucket = &mod->hash[2];
     uint32_t *chain = &bucket[nbucket];
     for (int i = bucket[hash % nbucket]; i; i = chain[i]) {
-      if (strcmp(mod->dynstr + mod->dynsym[i].st_name, symbol) == 0)
-        return mod->text_base + mod->dynsym[i].st_value;
-    }
-  } else {
-    for (int i = 0; i < mod->num_dynsym; i++) {
-      if (strcmp(mod->dynstr + mod->dynsym[i].st_name, symbol) == 0)
+      if (mod->dynsym[i].st_shndx == SHN_UNDEF)
+        continue;
+      if (mod->dynsym[i].st_info != SHN_UNDEF && strcmp(mod->dynstr + mod->dynsym[i].st_name, symbol) == 0)
         return mod->text_base + mod->dynsym[i].st_value;
     }
   }
 
-  fatal_error("Error could not find symbol %s\n", symbol);
+  for (int i = 0; i < mod->num_dynsym; i++) {
+    if (mod->dynsym[i].st_shndx == SHN_UNDEF)
+      continue;
+    if (mod->dynsym[i].st_info != SHN_UNDEF && strcmp(mod->dynstr + mod->dynsym[i].st_name, symbol) == 0)
+      return mod->text_base + mod->dynsym[i].st_value;
+  }
+
   return 0;
 }
