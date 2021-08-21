@@ -557,7 +557,7 @@ patch_gfx(void)
 		// .text:005B6440                 VSTR            S4, [SP,#0x24]
 		// .text:005B6444                 VSTR            S6, [SP,#0x18]
 		// .text:005B6448                 BEQ             loc_5B64EC
-		hook_addr((uintptr_t)gtasa_mod.text_base + 0x005B643C, (uintptr_t)ColorFilter_stub);
+		hook_addr((uintptr_t)gtasa_mod.text_base + 0x005B643C + 0x1, (uintptr_t)ColorFilter_stub);
 		kuKernelCpuUnrestrictedMemcpy((void *)(gtasa_mod.text_base + 0x005B6444), (void *)(gtasa_mod.text_base + 0x005B63DC), sizeof(uint16_t));
 		kuKernelCpuUnrestrictedMemcpy((void *)(gtasa_mod.text_base + 0x005B6446), (void *)(gtasa_mod.text_base + 0x005B63EA), sizeof(uint16_t));
 	}

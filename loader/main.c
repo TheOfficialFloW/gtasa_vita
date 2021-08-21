@@ -598,22 +598,22 @@ void patch_game(void) {
   hook_addr(so_symbol(&gtasa_mod, "_Z14IsRemovedTracki"), (uintptr_t)ret0);
 
   // QueueUpTracksForStation
-  hook_addr((uintptr_t)gtasa_mod.text_base + 0x003A152A, (uintptr_t)gtasa_mod.text_base + 0x003A1602 + 0x1);
+  hook_addr((uintptr_t)gtasa_mod.text_base + 0x003A152A + 0x1, (uintptr_t)gtasa_mod.text_base + 0x003A1602 + 0x1);
 
   // ChooseMusicTrackIndex
-  hook_addr((uintptr_t)gtasa_mod.text_base + 0x003A35F6, (uintptr_t)gtasa_mod.text_base + 0x003A369A + 0x1);
+  hook_addr((uintptr_t)gtasa_mod.text_base + 0x003A35F6 + 0x1, (uintptr_t)gtasa_mod.text_base + 0x003A369A + 0x1);
 
   // ChooseIdentIndex
-  hook_addr((uintptr_t)gtasa_mod.text_base + 0x003A37C2, (uintptr_t)gtasa_mod.text_base + 0x003A385E + 0x1);
+  hook_addr((uintptr_t)gtasa_mod.text_base + 0x003A37C2 + 0x1, (uintptr_t)gtasa_mod.text_base + 0x003A385E + 0x1);
 
   // ChooseAdvertIndex
-  hook_addr((uintptr_t)gtasa_mod.text_base + 0x003A3A1E, (uintptr_t)gtasa_mod.text_base + 0x003A3AA2 + 0x1);
+  hook_addr((uintptr_t)gtasa_mod.text_base + 0x003A3A1E + 0x1, (uintptr_t)gtasa_mod.text_base + 0x003A3AA2 + 0x1);
 
   // ChooseTalkRadioShow
-  hook_addr((uintptr_t)gtasa_mod.text_base + 0x003A4374, (uintptr_t)gtasa_mod.text_base + 0x003A4416 + 0x1);
+  hook_addr((uintptr_t)gtasa_mod.text_base + 0x003A4374 + 0x1, (uintptr_t)gtasa_mod.text_base + 0x003A4416 + 0x1);
 
   // ChooseDJBanterIndexFromList
-  hook_addr((uintptr_t)gtasa_mod.text_base + 0x003A44D6, (uintptr_t)gtasa_mod.text_base + 0x003A4562 + 0x1);
+  hook_addr((uintptr_t)gtasa_mod.text_base + 0x003A44D6 + 0x1, (uintptr_t)gtasa_mod.text_base + 0x003A4562 + 0x1);
 
   if (config.fix_heli_plane_camera) {
     // Dummy all FindPlayerVehicle calls so the right analog stick can be used as camera again
@@ -626,8 +626,8 @@ void patch_game(void) {
     kuKernelCpuUnrestrictedMemcpy((void *)(gtasa_mod.text_base + 0x003FC754), &movs_r0_0, sizeof(movs_r0_0));
 
     // Fix Harrier thruster control
-    hook_addr((uintptr_t)(gtasa_mod.text_base + 0x003C057C), (uintptr_t)CCam__Process_FollowCar_SA_camSetArrPos_stub);
-    hook_addr((uintptr_t)(gtasa_mod.text_base + 0x003C12F4), (uintptr_t)CCam__Process_FollowCar_SA_yMovement_stub);
+    hook_addr((uintptr_t)(gtasa_mod.text_base + 0x003C057C + 0x1), (uintptr_t)CCam__Process_FollowCar_SA_camSetArrPos_stub);
+    hook_addr((uintptr_t)(gtasa_mod.text_base + 0x003C12F4 + 0x1), (uintptr_t)CCam__Process_FollowCar_SA_yMovement_stub);
 
     CPad__GetPad = (void *)so_symbol(&gtasa_mod, "_ZN4CPad6GetPadEi");
     CPad__GetCarGunUpDown = (void *)so_symbol(&gtasa_mod, "_ZN4CPad15GetCarGunUpDownEbP11CAutomobilefb");
@@ -635,8 +635,8 @@ void patch_game(void) {
     CPad__GetTurretLeft = (void *)so_symbol(&gtasa_mod, "_ZN4CPad13GetTurretLeftEv");
     CPad__GetTurretRight = (void *)so_symbol(&gtasa_mod, "_ZN4CPad14GetTurretRightEv");
     CTimer__ms_fTimeStep = (float *)so_symbol(&gtasa_mod, "_ZN6CTimer12ms_fTimeStepE");
-    hook_addr((uintptr_t)(gtasa_mod.text_base + 0X005760BA), (uintptr_t)CPlane__ProcessControlInputs_Rudder_stub);
-    hook_addr((uintptr_t)(gtasa_mod.text_base + 0x00576432), (uintptr_t)CPlane__ProcessControlInputs_Harrier_stub);
+    hook_addr((uintptr_t)(gtasa_mod.text_base + 0X005760BA + 0x1), (uintptr_t)CPlane__ProcessControlInputs_Rudder_stub);
+    hook_addr((uintptr_t)(gtasa_mod.text_base + 0x00576432 + 0x1), (uintptr_t)CPlane__ProcessControlInputs_Harrier_stub);
   }
 
   // Force using GL_UNSIGNED_SHORT
@@ -654,7 +654,7 @@ void patch_game(void) {
     skin_dirty = (int *)so_symbol(&gtasa_mod, "skin_dirty");
     skin_num = (int *)so_symbol(&gtasa_mod, "skin_num");
     hook_addr(so_symbol(&gtasa_mod, "_Z30emu_InternalSkinGetVectorCountv"), (uintptr_t)emu_InternalSkinGetVectorCount);
-    hook_addr((uintptr_t)gtasa_mod.text_base + 0x001C8670, (uintptr_t)SkinSetMatrices);
+    hook_addr((uintptr_t)gtasa_mod.text_base + 0x001C8670 + 0x1, (uintptr_t)SkinSetMatrices);
   }
 
   if (config.enable_mvp_optimization) {
@@ -687,16 +687,16 @@ void patch_game(void) {
   }
 
   // Remove map highlight (explored zones) since alpha blending is very expensive
-  hook_addr((uintptr_t)gtasa_mod.text_base + 0x002AADE0, (uintptr_t)gtasa_mod.text_base + 0x002AAF9A + 0x1);
+  hook_addr((uintptr_t)gtasa_mod.text_base + 0x002AADE0 + 0x1, (uintptr_t)gtasa_mod.text_base + 0x002AAF9A + 0x1);
 
   // fix free aiming
-  hook_addr((uintptr_t)gtasa_mod.text_base + 0x004C6D16, (uintptr_t)gtasa_mod.text_base + 0x004C6E28 + 0x1);
+  hook_addr((uintptr_t)gtasa_mod.text_base + 0x004C6D16 + 0x1, (uintptr_t)gtasa_mod.text_base + 0x004C6E28 + 0x1);
 
   // Fix target switching firing twice
-  hook_addr((uintptr_t)gtasa_mod.text_base + 0x003C73F8, (uintptr_t)gtasa_mod.text_base + 0x003C7424 + 0x1);
+  hook_addr((uintptr_t)gtasa_mod.text_base + 0x003C73F8 + 0x1, (uintptr_t)gtasa_mod.text_base + 0x003C7424 + 0x1);
 
   // Disable auto landing gear deployment/retraction
-  hook_addr((uintptr_t)gtasa_mod.text_base + 0x0057629C, (uintptr_t)gtasa_mod.text_base + 0x005762BC + 0x1);
+  hook_addr((uintptr_t)gtasa_mod.text_base + 0x0057629C + 0x1, (uintptr_t)gtasa_mod.text_base + 0x005762BC + 0x1);
 
   // Nuke telemetry
   hook_addr(so_symbol(&gtasa_mod, "_Z13SaveTelemetryv"), (uintptr_t)ret0);
