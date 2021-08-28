@@ -12,7 +12,7 @@ project(GTASA C CXX)
 include("${VITASDK}/share/vita.cmake" REQUIRED)
 set(VITA_APP_NAME "GTA: SA")
 set(VITA_TITLEID  "GTASA0000")
-set(VITA_VERSION  "02.00")
+set(VITA_VERSION  "02.10")
 set(VITA_MKSFOEX_FLAGS "-d ATTRIBUTE2=12")
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -Wl,-q,--wrap,memcpy,--wrap,memmove,--wrap,memset -D_GNU_SOURCE -Wall -O3 -mfloat-abi=softfp")
