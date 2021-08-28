@@ -133,7 +133,7 @@ int pthread_create_fake(int r0, int r1, int r2, void *arg) {
 
 int pthread_mutex_init_fake(SceKernelLwMutexWork **work) {
   *work = (SceKernelLwMutexWork *)memalign(8, sizeof(SceKernelLwMutexWork));
-  if (sceKernelCreateLwMutex(*work, "mutex", SCE_KERNEL_MUTEX_ATTR_RECURSIVE, 0, NULL) < 0)
+  if (sceKernelCreateLwMutex(*work, "mutex", 0x2000 | SCE_KERNEL_MUTEX_ATTR_RECURSIVE, 0, NULL) < 0)
     return -1;
   return 0;
 }
@@ -555,6 +555,28 @@ void *CHIDJoystickPS3__CHIDJoystickPS3(void *this, const char *name) {
   return this;
 }
 
+static int (* CHID__IsJustPressed)(HIDMapping mapping);
+static int (* CHID__IsReleased)(HIDMapping mapping);
+
+int CHID__IsReleased_Hook(HIDMapping mapping) {
+  switch (mapping) {
+    case MAPPING_JUMP:
+    case MAPPING_CROUCH:
+    case MAPPING_ENTER_CAR:
+    case MAPPING_CAMERA_CLOSER:
+    case MAPPING_CAMERA_FARTHER:
+    case MAPPING_MENU_DOWN:
+    case MAPPING_MENU_UP:
+    case MAPPING_MENU_LEFT:
+    case MAPPING_MENU_RIGHT:
+    case MAPPING_MENU_ACCEPT:
+    case MAPPING_MENU_BACK:
+      return CHID__IsJustPressed(mapping);
+    default:
+      return CHID__IsReleased(mapping);
+  }
+}
+
 static int (* CGenericGameStorage__CheckSlotDataValid)(int slot, int deleteRwObjects);
 static void (* C_PcSave__GenerateGameFilename)(void *this, int slot, char *filename);
 static uint64_t (* OS_FileGetDate)(int area, const char *path);
@@ -740,6 +762,11 @@ void patch_game(void) {
     hook_addr(so_symbol(&gtasa_mod, "_ZN15CHIDJoystickPS3C2EPKc"), (uintptr_t)so_symbol(&gtasa_mod, "_ZN19CHIDJoystickXbox360C2EPKc"));
   else
     hook_addr(so_symbol(&gtasa_mod, "_ZN15CHIDJoystickPS3C2EPKc"), (uintptr_t)CHIDJoystickPS3__CHIDJoystickPS3);
+
+  // Change IsReleased to IsJustPressed for some mappings
+  CHID__IsJustPressed = (void *)so_symbol(&gtasa_mod, "_ZN4CHID13IsJustPressedE10HIDMapping");
+  CHID__IsReleased = (void *)so_symbol(&gtasa_mod, "_ZN4CHID10IsReleasedE10HIDMapping");
+  hook_addr((uintptr_t)gtasa_mod.text_base + 0x0018DFC4, (uintptr_t)CHID__IsReleased_Hook);
 
   // make resume load the latest save
   CGenericGameStorage__CheckSlotDataValid = (void *)so_symbol(&gtasa_mod, "_ZN19CGenericGameStorage18CheckSlotDataValidEib");
