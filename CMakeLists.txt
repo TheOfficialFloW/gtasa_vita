@@ -82,6 +82,7 @@ target_link_libraries(companion
   SceShaccCg_stub
   SceSysmodule_stub
   SceTouch_stub
+  SceVshBridge_stub
 )
 
 vita_create_self(companion.bin companion UNSAFE)
