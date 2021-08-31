@@ -54,6 +54,9 @@
 int sceLibcHeapSize = MEMORY_SCELIBC_MB * 1024 * 1024;
 int _newlib_heap_size_user = MEMORY_NEWLIB_MB * 1024 * 1024;
 
+int SCREEN_W = DEF_SCREEN_W;
+int SCREEN_H = DEF_SCREEN_H;
+
 unsigned int _oal_thread_priority = 64;
 unsigned int _oal_thread_affinity = 0x40000;
 
@@ -1263,7 +1266,11 @@ int main(int argc, char *argv[]) {
   vglSetUSSEBufferSize(64 * 1024); // default 16 * 1024
   vglSetVertexPoolSize(48 * 1024 * 1024);
   vglSetupGarbageCollector(127, 0x20000);
-  vglInitExtended(0, SCREEN_W, SCREEN_H, MEMORY_VITAGL_THRESHOLD_MB * 1024 * 1024, config.aa_mode);
+  int has_low_res = vglInitExtended(0, SCREEN_W, SCREEN_H, MEMORY_VITAGL_THRESHOLD_MB * 1024 * 1024, config.aa_mode);
+  if (has_low_res) {
+    SCREEN_W = DEF_SCREEN_W;
+    SCREEN_H = DEF_SCREEN_H;
+  }
 
   jni_load();
 
