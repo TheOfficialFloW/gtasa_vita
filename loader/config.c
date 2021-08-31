@@ -25,6 +25,7 @@ int read_config(const char *file) {
   config.skygfx_colorfilter = SKYGFX_COLOR_FILTER_PS2;
   config.skygfx_ps2_shading = 1;
   config.skygfx_ps2_sun = 1;
+  config.resolution = 0;
   config.aa_mode = SCE_GXM_MULTISAMPLE_2X;
   config.enable_high_detail_player = 0;
   config.disable_detail_textures = 1;
@@ -58,6 +59,7 @@ int read_config(const char *file) {
     CONFIG_VAR(skygfx_colorfilter)
     CONFIG_VAR(skygfx_ps2_shading)
     CONFIG_VAR(skygfx_ps2_sun)
+    CONFIG_VAR(resolution)
     CONFIG_VAR(aa_mode)
     CONFIG_VAR(enable_high_detail_player)
     CONFIG_VAR(disable_detail_textures)
@@ -74,6 +76,21 @@ int read_config(const char *file) {
   }
 
   fclose(f);
+  
+  switch (config.resolution) {
+  case 0:
+    SCREEN_W = 960;
+    SCREEN_H = 544;
+    break;
+  case 1:
+    SCREEN_W = 1280;
+    SCREEN_H = 725;
+    break;
+  case 2:
+    SCREEN_W = 1920;
+    SCREEN_H = 1088;
+    break;
+  }
 
   return 0;
 }

@@ -17,8 +17,11 @@
 #define SCRIPT_SCM_PATH DATA_PATH "/data/script/mainV1.scm"
 #define SCRIPT_IMG_PATH DATA_PATH "/data/script/scriptv1.img"
 
-#define SCREEN_W 960
-#define SCREEN_H 544
+#define DEF_SCREEN_W 960
+#define DEF_SCREEN_H 544
+
+extern int SCREEN_W;
+extern int SCREEN_H;
 
 typedef enum {
   MAPPING_UNKNOWN = 0,
@@ -178,6 +181,7 @@ typedef struct {
   int skygfx_colorfilter;
   int skygfx_ps2_shading; // lighting and vehicle reflections
   int skygfx_ps2_sun;
+  int resolution;
   int aa_mode;
   int enable_high_detail_player;
   int disable_detail_textures;

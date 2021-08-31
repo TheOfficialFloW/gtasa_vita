@@ -36,6 +36,13 @@ char *SkyGfxColorFilterName[SKYGFX_COLOR_FILTER_NUM] = {
   "PC"
 };
 
+#define RESOLUTION_NUM 3
+const char *ResolutionName[RESOLUTION_NUM] = {
+  "544p",
+  "720p",
+  "1080i"
+};
+
 #define ANTI_ALIASING_NUM 3
 char *AntiAliasingName[ANTI_ALIASING_NUM] = {
   "Disabled",
@@ -328,6 +335,7 @@ int skygfx_colorfilter = SKYGFX_COLOR_FILTER_PS2;
 bool skygfx_ps2_shading = true;
 bool skygfx_ps2_sun = true;
 
+int resolution = 0;
 int aa_mode = SCE_GXM_MULTISAMPLE_2X;
 bool high_detail_player = false;
 bool detail_textures = false;
@@ -360,6 +368,7 @@ void loadConfig(void) {
       else if (strcmp("skygfx_ps2_shading", buffer) == 0) skygfx_ps2_shading = (bool)value;
       else if (strcmp("skygfx_ps2_sun", buffer) == 0) skygfx_ps2_sun = (bool)value;
 
+      else if (strcmp("resolution", buffer) == 0) resolution = value;
       else if (strcmp("aa_mode", buffer) == 0) aa_mode = value;
       else if (strcmp("enable_high_detail_player", buffer) == 0) high_detail_player = (bool)value;
       else if (strcmp("disable_detail_textures", buffer) == 0) detail_textures = value ? false : true;
@@ -390,6 +399,7 @@ void saveConfig(void) {
     fprintf(config, "%s %d\n", "skygfx_ps2_shading", (int)skygfx_ps2_shading);
     fprintf(config, "%s %d\n", "skygfx_ps2_sun", (int)skygfx_ps2_sun);
 
+    fprintf(config, "%s %d\n", "resolution", resolution);
     fprintf(config, "%s %d\n", "aa_mode", aa_mode);
     fprintf(config, "%s %d\n", "enable_high_detail_player", (int)high_detail_player);
     fprintf(config, "%s %d\n", "disable_detail_textures", detail_textures ? false : true);
@@ -465,7 +475,8 @@ char *options_descs[] = {
   "Select the desired post processing effect filter to apply to the 3D rendering.\nThe default value is: PS2.", // skygfx_colorfilter
   "Enables shading effects that resamble the PS2 build.\nThe default value is: Enabled.", // skygfx_ps2_shading
   "Enables corona sun effect that resambles the PS2 build.\nThe default value is: Enabled.", // skygfx_ps2_sun
-
+  
+  "Internal resolution to use. When a resolution higher than 544p is used on a PSVita, Sharpscale plugin is required.\nThe default value is: 544p.", // resolution
   "Anti-Aliasing is a technique used to reduce graphical artifacts surrounding 3D models. Greatly improves graphics quality at the cost of some GPU power.\nThe default value is: MSAA 2x.", // aa_mode
   "When enabled, high detail player textures are used.\nThe default value is: Disabled.", // enable_high_detail_player
   "When enabled, detail textures will be rendered.\nThe default value is: Disabled.", // disable_detail_textures
@@ -490,6 +501,7 @@ enum {
   OPT_PS2_SHADING,
   OPT_PS2_SUN,
 
+  OPT_RESOLUTION,
   OPT_ANTIALIASING,
   OPT_HI_DETAIL_PLAYER,
   OPT_DETAIL_TEX,
@@ -578,6 +590,19 @@ int main(int argc, char *argv[]) {
     ImGui::PopStyleVar();
 
     ImGui::TextColored(ImVec4(255, 255, 0, 255), "Graphics");
+    ImGui::Text("Resolution:"); ImGui::SameLine();
+    if (ImGui::BeginCombo("##combor", ResolutionName[resolution])) {
+      for (int n = 0; n < RESOLUTION_NUM; n++) {
+        bool is_selected = resolution == n;
+        if (ImGui::Selectable(ResolutionName[n], is_selected))
+          resolution = n;
+        SetDescription(OPT_RESOLUTION);
+        if (is_selected)
+          ImGui::SetItemDefaultFocus();
+      }
+      ImGui::EndCombo();
+    }
+    SetDescription(OPT_RESOLUTION);
     ImGui::Text("Anti-Aliasing:"); ImGui::SameLine();
     if (ImGui::BeginCombo("##combo2", AntiAliasingName[aa_mode])) {
       for (int n = 0; n < ANTI_ALIASING_NUM; n++) {
