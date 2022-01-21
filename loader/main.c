@@ -581,6 +581,37 @@ int CHID__IsReleased_Hook(HIDMapping mapping) {
   }
 }
 
+typedef struct CVector {
+  float x;
+  float y;
+  float z;
+} CVector;
+
+static int (* CPed__IsPlayer)(void *this);
+static void (* CPhysical__ApplyMoveForce)(void *this, CVector force);
+static void (* CPhysical__ApplyTurnForce)(void *this, CVector force, CVector point);
+
+static void CAutomobile__BoostJumpControl(void *this) {
+  if ((*(void **)(this + 0x464) != NULL) && (CPed__IsPlayer(*(void **)(this + 0x464)) == 1)) {
+    int pressed = CHID__IsJustPressed(MAPPING_TAXI_BOOST_JUMP);
+    if (pressed && (*(float *)(this + 0x7E8) < 1.0f)) {
+      CVector vector = { 0.0f, 0.0f, *(float *)(this + 0x90) * 0.15f };
+      CPhysical__ApplyMoveForce((void*)this, vector);
+      CVector force = {
+        *(float *)((this + 0x14) + 0x94) * 0.01f * *(float *)(this + 0x20),
+        *(float *)((this + 0x14) + 0x94) * 0.01f * *(float *)(this + 0x24),
+        *(float *)((this + 0x14) + 0x94) * 0.01f * *(float *)(this + 0x28)
+      };
+      CVector point = {
+        *(float *)((this + 0x14) + 0x10),
+        *(float *)((this + 0x14) + 0x14),
+        *(float *)((this + 0x14) + 0x18)
+      };
+      CPhysical__ApplyTurnForce((void*)this, force, point);
+    }
+  }
+}
+
 static int (* CGenericGameStorage__CheckSlotDataValid)(int slot, int deleteRwObjects);
 static void (* C_PcSave__GenerateGameFilename)(void *this, int slot, char *filename);
 static uint64_t (* OS_FileGetDate)(int area, const char *path);
@@ -771,6 +802,12 @@ void patch_game(void) {
   CHID__IsJustPressed = (void *)so_symbol(&gtasa_mod, "_ZN4CHID13IsJustPressedE10HIDMapping");
   CHID__IsReleased = (void *)so_symbol(&gtasa_mod, "_ZN4CHID10IsReleasedE10HIDMapping");
   hook_addr((uintptr_t)gtasa_mod.text_base + 0x0018DFC4, (uintptr_t)CHID__IsReleased_Hook);
+
+  // Redirect taxi boost jump to custom binding
+  CPed__IsPlayer = (void*)so_symbol(&gtasa_mod, "_ZNK4CPed8IsPlayerEv");
+  CPhysical__ApplyMoveForce = (void *)so_symbol(&gtasa_mod, "_ZN9CPhysical14ApplyMoveForceE7CVector");
+  CPhysical__ApplyTurnForce = (void *)so_symbol(&gtasa_mod, "_ZN9CPhysical14ApplyTurnForceE7CVectorS0_");
+  hook_addr(so_symbol(&gtasa_mod, "_ZN11CAutomobile16BoostJumpControlEv"), (uintptr_t)CAutomobile__BoostJumpControl);
 
   // make resume load the latest save
   CGenericGameStorage__CheckSlotDataValid = (void *)so_symbol(&gtasa_mod, "_ZN19CGenericGameStorage18CheckSlotDataValidEib");
