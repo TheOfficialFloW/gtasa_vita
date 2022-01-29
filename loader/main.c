@@ -476,29 +476,6 @@ void SkinSetMatrices(void *skin, float *matrix) {
   *skin_num = num;
 }
 
-static float *CDraw__ms_fFOV;
-static float *CDraw__ms_fAspectRatio;
-static float fake_fov;
-
-float CDraw__SetFOV(float fov) {
-  *CDraw__ms_fFOV = (((*CDraw__ms_fAspectRatio - 1.3333f) * 11.0f) / 0.44444f) + fov;
-  fake_fov = (((1.0f / *CDraw__ms_fAspectRatio - 1.3333f) * 11.0f) / 0.44444f) + fov;
-  return fake_fov;
-}
-
-__attribute__((naked)) void CCamera__Process_fov_stub(void) {
-  asm volatile(
-    "mov r0, %0\n"
-    "vldr s2, [r0]\n"
-  :: "r" (&fake_fov));
-
-  register uintptr_t retAddr asm ("r12") = (uintptr_t)gtasa_mod.text_base + 0x003DD888 + 0x1;
-
-  asm volatile(
-    "bx %0\n"
-  :: "r" (retAddr));
-}
-
 static uint32_t CCheat__m_aCheatHashKeys[] = {
   0xDE4B237D, 0xB22A28D1, 0x5A783FAE,
   // WEAPON4, TIMETRAVEL, SCRIPTBYPASS, SHOWMAPPINGS
@@ -745,12 +722,6 @@ void patch_game(void) {
 
   // Disable auto landing gear deployment/retraction
   hook_addr((uintptr_t)gtasa_mod.text_base + 0x0057629C + 0x1, (uintptr_t)gtasa_mod.text_base + 0x005762BC + 0x1);
-
-  // Fix emergency vehicles
-  CDraw__ms_fFOV = (void *)so_symbol(&gtasa_mod, "_ZN5CDraw7ms_fFOVE");
-  CDraw__ms_fAspectRatio = (void *)so_symbol(&gtasa_mod, "_ZN5CDraw15ms_fAspectRatioE");
-  hook_thumb(so_symbol(&gtasa_mod, "_ZN5CDraw6SetFOVEfb"), (uintptr_t)CDraw__SetFOV);
-  hook_thumb((uintptr_t)(gtasa_mod.text_base + 0x003DD880), (uintptr_t)CCamera__Process_fov_stub);
 
   // Nuke telemetry
   hook_addr(so_symbol(&gtasa_mod, "_Z13SaveTelemetryv"), (uintptr_t)ret0);
