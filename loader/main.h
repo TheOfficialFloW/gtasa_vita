@@ -14,8 +14,6 @@ int OS_SystemChip();
 
 int sceKernelChangeThreadCpuAffinityMask(SceUID thid, int cpuAffinityMask);
 
-SceUID _vshKernelSearchModuleByName(const char *, int *);
-
 extern int input_cheat;
 
 extern SceTouchPanelInfo panelInfoFront, panelInfoBack;
