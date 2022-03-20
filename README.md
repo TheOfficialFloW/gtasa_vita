@@ -17,12 +17,12 @@ The port works by loading the official Android ARMv7 executable in memory, resol
 ### v2.1
 
 - Changed some button actions to on press (e.g. jump).
-- Made minor improvements. Thanks to adjutantt.
+- Made minor improvements. Thanks to psykana.
 - Updated to latest vitaGL.
 
 ### v2.0
 
-- Fixed original bug where ITB and the gym treadmill could not be used. Thanks to adjutantt.
+- Fixed original bug where ITB and the gym treadmill could not be used. Thanks to psykana.
 - Added version to bubble.
 
 ### v1.9
@@ -43,7 +43,7 @@ The port works by loading the official Android ARMv7 executable in memory, resol
 
 - Added a few optimizations.
 - Fixed free aim option.
-- Disabled auto landing gear deployment/retraction. Thanks to adjutantt.
+- Disabled auto landing gear deployment/retraction. Thanks to psykana.
 - Moved plane rudder control to GetTurret. Thanks to XirXes.
 
 ### v1.5
@@ -64,7 +64,7 @@ The port works by loading the official Android ARMv7 executable in memory, resol
 ### v1.4
 
 - Updated openal for better performance. Thanks to isage.
-- Fixed crash when selecting japanese/russian language. Thanks to adjutantt.
+- Fixed crash when selecting japanese/russian language. Thanks to psykana.
 - Improved control scheme. Thanks to XirXes and darthbellic.
 
 ### v1.3
@@ -78,7 +78,7 @@ The port works by loading the official Android ARMv7 executable in memory, resol
 ### v1.2
 
 - Fixed memory leak in vitaGL leading to corrupted textures.
-- Added ability to map L2/R2 to the front touchpad on the top. Thanks to adjutantt.
+- Added ability to map L2/R2 to the front touchpad on the top. Thanks to psykana.
 
 ### v1.1
 
@@ -230,6 +230,6 @@ cmake .. && make
 - frangarcj, fgsfds and Bythos for graphics-related stuff.
 - CBPS/SonicMastr for PIB, which was used on earlier stages of development.
 - isage for the native audio backend for OpenAL-Soft.
-- Adjutantt for patching the scripts and making various improvements to the port.
+- psykana for patching the scripts and making various improvements to the port.
 - XirXes and shadowknight for the audio conversion script.
 - JonathanERC and gtagmodding for the Cheat List.
