@@ -730,6 +730,10 @@ void patch_game(void) {
     kuKernelCpuUnrestrictedMemcpy((void *)(gtasa_mod.text_base + 0x0043A7A0), &nop32, sizeof(nop32));
     kuKernelCpuUnrestrictedMemcpy((void *)(gtasa_mod.text_base + 0x004627E6), &nop32, sizeof(nop32));
 
+    // Ignore side mission buttons (vigilante, paramedic, etc)
+    hook_addr(so_symbol(&gtasa_mod, "_ZN25CWidgetButtonMissionStart6UpdateEv"), (uintptr_t)ret0);
+    hook_addr(so_symbol(&gtasa_mod, "_ZN26CWidgetButtonMissionCancel6UpdateEv"), (uintptr_t)ret0);
+
     // Ignore steering control popup
     kuKernelCpuUnrestrictedMemcpy((void *)(gtasa_mod.text_base + 0x003F91B6), &nop16, sizeof(nop16));
 
