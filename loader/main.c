@@ -612,6 +612,72 @@ static void CAutomobile__BoostJumpControl(void *this) {
   }
 }
 
+static int hydraulics_locked = 0;
+
+static int CPad__GetHydraulicJump(void *this) {
+  if (*(short *)(this + 0x110) == 0) {
+    int pressed = CHID__IsJustPressed(MAPPING_LOCK_HYDRAULICS);
+    if (pressed) {
+      hydraulics_locked = hydraulics_locked ? 0 : 1;
+    }
+    if (hydraulics_locked) {
+      // zero out pending suspension state so it doesn't raise the vehicle
+      asm volatile(
+        "mov r1, #0x0\n"
+        "vmov s21, r1\n"
+        "vmov s22, r1\n"
+        "vstr s22,[sp,#0x14]\n"
+        "vstr s22,[sp,#0x18]\n"
+        "vstr s22,[sp,#0x1C]\n"
+      );
+    }
+    return hydraulics_locked;
+  }
+  return 0;
+}
+
+__attribute__((naked)) void CPad__AimWeaponUpDown_stub(void) {
+
+  register uintptr_t retAddr asm ("r12") = (uintptr_t)gtasa_mod.text_base + 0x003FC782 + 0x1;
+
+  asm volatile(
+    "cbz r0, %=f\n"
+    "ldrb.w r0, [r0, #0x392]\n"
+    "lsls r0, r0, #0x1e\n" // "hydraulics installed" flag
+    "bpl %=f\n"
+    "mov r0, %1\n"
+    "ldr r0, [r0]\n"
+    "cbnz r0, %=f\n"
+    "add sp, #0x10\n" // 0x003FC744
+    "pop.w {r11}\n"
+    "pop {r4-r7, pc}\n"
+    "%=:\n"
+    "bx %0\n"
+  :: "r" (retAddr), "r" (&hydraulics_locked));
+}
+
+__attribute__((naked)) void CPad__AimWeaponLeftRight_stub(void) {
+
+  register uintptr_t retAddr asm ("r12") = (uintptr_t)gtasa_mod.text_base + 0x003FC490 + 0x1;
+
+  asm volatile(
+    "cbz r0, %=f\n"
+    "ldrb.w r0, [r0, #0x392]\n"
+    "lsls r0, r0, #0x1e\n" // "hydraulics installed" flag
+    "bpl %=f\n"
+    "mov r0, %1\n"
+    "ldr r0, [r0]\n"
+    "cbnz r0, %=f\n"
+    "vmov r0, s16\n" // 0x003FC44C
+    "add sp, #0x10\n"
+    "vpop {d8}\n"
+    "pop.w {r11}\n"
+    "pop {r4-r7, pc}\n"
+    "%=:\n"
+    "bx %0\n"
+  :: "r" (retAddr), "r" (&hydraulics_locked));
+}
+
 static int (* CGenericGameStorage__CheckSlotDataValid)(int slot, int deleteRwObjects);
 static void (* C_PcSave__GenerateGameFilename)(void *this, int slot, char *filename);
 static uint64_t (* OS_FileGetDate)(int area, const char *path);
@@ -812,6 +878,11 @@ void patch_game(void) {
   CPhysical__ApplyMoveForce = (void *)so_symbol(&gtasa_mod, "_ZN9CPhysical14ApplyMoveForceE7CVector");
   CPhysical__ApplyTurnForce = (void *)so_symbol(&gtasa_mod, "_ZN9CPhysical14ApplyTurnForceE7CVectorS0_");
   hook_addr(so_symbol(&gtasa_mod, "_ZN11CAutomobile16BoostJumpControlEv"), (uintptr_t)CAutomobile__BoostJumpControl);
+
+  // Fix hydraulics lock so the right analog stick can be used as camera again
+  hook_addr(so_symbol(&gtasa_mod, "_ZN4CPad16GetHydraulicJumpEv"), (uintptr_t)CPad__GetHydraulicJump);
+  hook_addr((uintptr_t)(gtasa_mod.text_base + 0x003FC778 + 0x1), (uintptr_t)CPad__AimWeaponUpDown_stub);
+  hook_addr((uintptr_t)(gtasa_mod.text_base + 0x003FC486 + 0x1), (uintptr_t)CPad__AimWeaponLeftRight_stub);
 
   // make resume load the latest save
   CGenericGameStorage__CheckSlotDataValid = (void *)so_symbol(&gtasa_mod, "_ZN19CGenericGameStorage18CheckSlotDataValidEib");
