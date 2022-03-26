@@ -569,12 +569,6 @@ int CHID__IsReleased_Hook(HIDMapping mapping) {
     case MAPPING_ENTER_CAR:
     case MAPPING_CAMERA_CLOSER:
     case MAPPING_CAMERA_FARTHER:
-    case MAPPING_MENU_DOWN:
-    case MAPPING_MENU_UP:
-    case MAPPING_MENU_LEFT:
-    case MAPPING_MENU_RIGHT:
-    case MAPPING_MENU_ACCEPT:
-    case MAPPING_MENU_BACK:
       return CHID__IsJustPressed(mapping);
     default:
       return CHID__IsReleased(mapping);
