@@ -299,7 +299,10 @@ int so_resolve(so_module *mod, so_default_dynlib *default_dynlib, int size_defau
             uintptr_t link = so_resolve_link(mod, mod->dynstr + sym->st_name);
             if (link) {
               // debugPrintf("Resolved from dependencies: %s\n", mod->dynstr + sym->st_name);
-              *ptr = link;
+              if (type == R_ARM_ABS32)
+                *ptr += link;
+              else
+                *ptr = link;
               resolved = 1;
             }
           }

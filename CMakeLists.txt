@@ -37,13 +37,15 @@ add_dependencies(GTASA companion.bin)
 
 target_link_libraries(GTASA
   -Wl,--whole-archive pthread -Wl,--no-whole-archive
-  m
   stdc++
   openal
   vitaGL
   vitashark
+  SceShaccCgExt
+  m
   mathneon
   mpg123
+  taihen_stub
   kubridge_stub
   SceAppMgr_stub
   SceAppUtil_stub
@@ -71,7 +73,10 @@ target_link_libraries(companion
   imgui
   vitaGL
   vitashark
+  SceShaccCgExt
+  m
   mathneon
+  taihen_stub
   SceAppMgr_stub
   SceAudio_stub
   SceCtrl_stub
@@ -100,8 +105,8 @@ vita_create_vpk(GTASA.vpk ${VITA_TITLEID} eboot.bin
 )
 
 add_custom_target(copy
-  COMMAND cp eboot.bin E:/app/${VITA_TITLEID}/eboot.bin
-  COMMAND cp companion.bin E:/app/${VITA_TITLEID}/companion.bin
+  COMMAND cp eboot.bin D:/app/${VITA_TITLEID}/eboot.bin
+  COMMAND cp companion.bin D:/app/${VITA_TITLEID}/companion.bin
   DEPENDS eboot.bin
   DEPENDS companion.bin
 )
