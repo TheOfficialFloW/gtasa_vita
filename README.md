@@ -11,6 +11,7 @@ This is a wrapper/port of *Grand Theft Auto: San Andreas Android* for the *PS Vi
 - Added PS2-like rendering.
 
 The port works by loading the official Android ARMv7 executable in memory, resolving its imports with native functions and patching it in order to properly run.
+By doing so, it's basically as if we emulate a minimalist Android environment in which we run natively the executable as is.
 
 ## Changelog
 
