@@ -219,6 +219,7 @@ err_free_so:
 }
 
 int so_relocate(so_module *mod) {
+  uintptr_t val;
   for (int i = 0; i < mod->num_reldyn + mod->num_relplt; i++) {
     Elf32_Rel *rel = i < mod->num_reldyn ? &mod->reldyn[i] : &mod->relplt[i - mod->num_reldyn];
     Elf32_Sym *sym = &mod->dynsym[ELF32_R_SYM(rel->r_info)];
@@ -227,23 +228,24 @@ int so_relocate(so_module *mod) {
     int type = ELF32_R_TYPE(rel->r_info);
     switch (type) {
       case R_ARM_ABS32:
-        if (sym->st_shndx != SHN_UNDEF)
-          *ptr += mod->text_base + sym->st_value;
-        else
-          *ptr = mod->text_base + rel->r_offset; // make it crash for debugging
+        if (sym->st_shndx != SHN_UNDEF) {
+          val = *ptr + mod->text_base + sym->st_value;
+          kuKernelCpuUnrestrictedMemcpy(ptr, &val, sizeof(uintptr_t));
+        }
         break;
 
       case R_ARM_RELATIVE:
-        *ptr += mod->text_base;
+        val = *ptr + mod->text_base;
+        kuKernelCpuUnrestrictedMemcpy(ptr, &val, sizeof(uintptr_t));
         break;
 
       case R_ARM_GLOB_DAT:
       case R_ARM_JUMP_SLOT:
       {
-        if (sym->st_shndx != SHN_UNDEF)
-          *ptr = mod->text_base + sym->st_value;
-        else
-          *ptr = mod->text_base + rel->r_offset; // make it crash for debugging
+        if (sym->st_shndx != SHN_UNDEF) {
+          val = mod->text_base + sym->st_value;
+          kuKernelCpuUnrestrictedMemcpy(ptr, &val, sizeof(uintptr_t));
+        }
         break;
       }
 
@@ -282,6 +284,7 @@ uintptr_t so_resolve_link(so_module *mod, const char *symbol) {
 }
 
 int so_resolve(so_module *mod, so_default_dynlib *default_dynlib, int size_default_dynlib, int default_dynlib_only) {
+  uintptr_t val;
   for (int i = 0; i < mod->num_reldyn + mod->num_relplt; i++) {
     Elf32_Rel *rel = i < mod->num_reldyn ? &mod->reldyn[i] : &mod->relplt[i - mod->num_reldyn];
     Elf32_Sym *sym = &mod->dynsym[ELF32_R_SYM(rel->r_info)];
@@ -299,10 +302,13 @@ int so_resolve(so_module *mod, so_default_dynlib *default_dynlib, int size_defau
             uintptr_t link = so_resolve_link(mod, mod->dynstr + sym->st_name);
             if (link) {
               // debugPrintf("Resolved from dependencies: %s\n", mod->dynstr + sym->st_name);
-              if (type == R_ARM_ABS32)
-                *ptr += link;
-              else
-                *ptr = link;
+              if (type == R_ARM_ABS32) {
+                val = *ptr + link;
+                kuKernelCpuUnrestrictedMemcpy(ptr, &val, sizeof(uintptr_t));
+              } else {
+                val = link;
+                kuKernelCpuUnrestrictedMemcpy(ptr, &val, sizeof(uintptr_t));
+              }
               resolved = 1;
             }
           }
@@ -314,7 +320,8 @@ int so_resolve(so_module *mod, so_default_dynlib *default_dynlib, int size_defau
               } else {
                 // debugPrintf("Resolved manually: %s\n", mod->dynstr + sym->st_name);
               }
-              *ptr = default_dynlib[j].func;
+              val = default_dynlib[j].func;
+              kuKernelCpuUnrestrictedMemcpy(ptr, &val, sizeof(uintptr_t));
               resolved = 1;
               break;
             }
