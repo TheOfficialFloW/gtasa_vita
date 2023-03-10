@@ -6,7 +6,7 @@
  * of the MIT license.  See the LICENSE file for details.
  */
 
-#include <psp2/io/fcntl.h>
+#include <vitasdk.h>
 
 #include <stdlib.h>
 #include <string.h>

@@ -6,9 +6,7 @@
  * of the MIT license.  See the LICENSE file for details.
  */
 
-#include <psp2/io/dirent.h>
-#include <psp2/io/fcntl.h>
-#include <psp2/kernel/sysmem.h>
+#include <vitasdk.h>
 #include <kubridge.h>
 
 #include <stdio.h>
@@ -18,6 +16,10 @@
 #include "main.h"
 #include "dialog.h"
 #include "so_util.h"
+
+#ifndef SCE_KERNEL_MEMBLOCK_TYPE_USER_RX
+#define SCE_KERNEL_MEMBLOCK_TYPE_USER_RX                 (0x0C20D050)
+#endif
 
 static so_module *head = NULL, *tail = NULL;
 

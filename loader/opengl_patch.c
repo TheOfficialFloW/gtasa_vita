@@ -21,6 +21,9 @@ int *RQMaxBones;
 char pxlbuf[8192];
 char vtxbuf[8192];
 
+int pxlcnt = 0;
+int vtxcnt = 0;
+
 int (* GetMobileEffectSetting)();
 
 void BuildVertexSource(int flags) {
@@ -443,6 +446,8 @@ void BuildPixelSource(int flags) {
 int RQShader__BuildSource(int flags, char **pxlsrc, char **vtxsrc) {
   pxlbuf[0] = '\0';
   vtxbuf[0] = '\0';
+  pxlcnt = 0;
+  vtxcnt = 0;
 
   if (config.skygfx_ps2_shading) {
     BuildPixelSource_SkyGfx(flags);

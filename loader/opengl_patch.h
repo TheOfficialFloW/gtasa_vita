@@ -27,19 +27,19 @@
 #define FLAG_TEXMATRIX            0x2000000
 #define FLAG_GAMMA                0x4000000
 
-#define PXL_EMIT(...)                        \
-  do {                                       \
-    snprintf(tmp, sizeof(tmp), __VA_ARGS__); \
-    strcat(pxlbuf, tmp);                     \
-    strcat(pxlbuf, "\n");                    \
+#define PXL_EMIT(...)                                          \
+  do {                                                         \
+    snprintf(tmp, sizeof(tmp), __VA_ARGS__);                   \
+    pxlcnt += snprintf(pxlbuf + pxlcnt, sizeof(pxlbuf), tmp);  \
+    pxlcnt += snprintf(pxlbuf + pxlcnt, sizeof(pxlbuf), "\n"); \
   } while (0)
 
 
-#define VTX_EMIT(...)                        \
-  do {                                       \
-    snprintf(tmp, sizeof(tmp), __VA_ARGS__); \
-    strcat(vtxbuf, tmp);                     \
-    strcat(vtxbuf, "\n");                    \
+#define VTX_EMIT(...)                                          \
+  do {                                                         \
+    snprintf(tmp, sizeof(tmp), __VA_ARGS__);                   \
+    vtxcnt += snprintf(vtxbuf + vtxcnt, sizeof(vtxbuf), tmp);  \
+    vtxcnt += snprintf(vtxbuf + vtxcnt, sizeof(vtxbuf), "\n"); \
   } while (0)
 
 typedef struct {
@@ -81,6 +81,9 @@ extern int *RQMaxBones;
 
 extern char pxlbuf[8192];
 extern char vtxbuf[8192];
+
+extern int pxlcnt;
+extern int vtxcnt;
 
 extern int (* GetMobileEffectSetting)();
 

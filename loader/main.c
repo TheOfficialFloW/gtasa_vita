@@ -6,17 +6,7 @@
  * of the MIT license.  See the LICENSE file for details.
  */
 
-#include <psp2/io/dirent.h>
-#include <psp2/io/fcntl.h>
-#include <psp2/kernel/clib.h>
-#include <psp2/kernel/processmgr.h>
-#include <psp2/kernel/threadmgr.h>
-#include <psp2/appmgr.h>
-#include <psp2/apputil.h>
-#include <psp2/ctrl.h>
-#include <psp2/power.h>
-#include <psp2/touch.h>
-#include <psp2/vshbridge.h>
+#include <vitasdk.h>
 #include <kubridge.h>
 #include <vitashark.h>
 #include <vitaGL.h>
@@ -824,6 +814,9 @@ void patch_game(void) {
   hook_addr(so_symbol(&gtasa_mod, "_Z13LoadTelemetryv"), (uintptr_t)ret0);
   hook_addr(so_symbol(&gtasa_mod, "_Z11updateUsageb"), (uintptr_t)ret0);
 
+  hook_addr(so_symbol(&gtasa_mod, "_Z14AND_FileUpdated"), (uintptr_t)ret0);
+  hook_addr(so_symbol(&gtasa_mod, "_Z17AND_BillingUpdateb"), (uintptr_t)ret0);
+
   hook_addr(so_symbol(&gtasa_mod, "__cxa_guard_acquire"), (uintptr_t)&__cxa_guard_acquire);
   hook_addr(so_symbol(&gtasa_mod, "__cxa_guard_release"), (uintptr_t)&__cxa_guard_release);
 
@@ -1177,7 +1170,7 @@ static so_default_dynlib default_dynlib[] = {
   { "glBindAttribLocation", (uintptr_t)&glBindAttribLocation },
   { "glBindBuffer", (uintptr_t)&glBindBuffer },
   { "glBindFramebuffer", (uintptr_t)&glBindFramebuffer },
-  { "glBindRenderbuffer", (uintptr_t)&ret0 },
+  { "glBindRenderbuffer", (uintptr_t)&glBindRenderbuffer },
   { "glBindTexture", (uintptr_t)&glBindTexture },
   { "glBlendFunc", (uintptr_t)&glBlendFunc },
   { "glBlendFuncSeparate", (uintptr_t)&glBlendFuncSeparate },
@@ -1195,7 +1188,7 @@ static so_default_dynlib default_dynlib[] = {
   { "glDeleteBuffers", (uintptr_t)&glDeleteBuffers },
   { "glDeleteFramebuffers", (uintptr_t)&glDeleteFramebuffers },
   { "glDeleteProgram", (uintptr_t)&glDeleteProgram },
-  { "glDeleteRenderbuffers", (uintptr_t)&ret0 },
+  { "glDeleteRenderbuffers", (uintptr_t)&glDeleteRenderbuffers },
   { "glDeleteShader", (uintptr_t)&glDeleteShader },
   { "glDeleteTextures", (uintptr_t)&glDeleteTextures },
   { "glDepthFunc", (uintptr_t)&glDepthFunc },
@@ -1206,12 +1199,12 @@ static so_default_dynlib default_dynlib[] = {
   { "glDrawElements", (uintptr_t)&glDrawElements },
   { "glEnable", (uintptr_t)&glEnable },
   { "glEnableVertexAttribArray", (uintptr_t)&glEnableVertexAttribArray },
-  { "glFramebufferRenderbuffer", (uintptr_t)&ret0 },
+  { "glFramebufferRenderbuffer", (uintptr_t)&glFramebufferRenderbuffer },
   { "glFramebufferTexture2D", (uintptr_t)&glFramebufferTexture2D },
   { "glFrontFace", (uintptr_t)&glFrontFace },
   { "glGenBuffers", (uintptr_t)&glGenBuffers },
   { "glGenFramebuffers", (uintptr_t)&glGenFramebuffers },
-  { "glGenRenderbuffers", (uintptr_t)&ret0 },
+  { "glGenRenderbuffers", (uintptr_t)&glGenRenderbuffers },
   { "glGenTextures", (uintptr_t)&glGenTextures },
   { "glGetAttribLocation", (uintptr_t)&glGetAttribLocation },
   { "glGetError", (uintptr_t)&glGetError },
@@ -1226,7 +1219,7 @@ static so_default_dynlib default_dynlib[] = {
   { "glLinkProgram", (uintptr_t)&glLinkProgram },
   { "glPolygonOffset", (uintptr_t)&glPolygonOffset },
   { "glReadPixels", (uintptr_t)&glReadPixels },
-  { "glRenderbufferStorage", (uintptr_t)&ret0 },
+  { "glRenderbufferStorage", (uintptr_t)&glRenderbufferStorage },
   { "glScissor", (uintptr_t)&glScissor },
   { "glShaderSource", (uintptr_t)&glShaderSourceHook },
   { "glTexImage2D", (uintptr_t)&glTexImage2DHook },
