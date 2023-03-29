@@ -198,13 +198,13 @@ void *OS_ThreadLaunch(int (* func)(), void *arg, int cpu, char *name, int unused
 
   switch (priority) {
     case 0:
-      vita_priority = 67;
+      vita_priority = 127;
       break;
     case 1:
-      vita_priority = 66;
+      vita_priority = 106;
       break;
     case 2:
-      vita_priority = 65;
+      vita_priority = 85;
       break;
     case 3:
       vita_priority = 64;
@@ -1170,7 +1170,7 @@ static so_default_dynlib default_dynlib[] = {
   { "glBindAttribLocation", (uintptr_t)&glBindAttribLocation },
   { "glBindBuffer", (uintptr_t)&glBindBuffer },
   { "glBindFramebuffer", (uintptr_t)&glBindFramebuffer },
-  { "glBindRenderbuffer", (uintptr_t)&glBindRenderbuffer },
+  { "glBindRenderbuffer", (uintptr_t)&ret0 },
   { "glBindTexture", (uintptr_t)&glBindTexture },
   { "glBlendFunc", (uintptr_t)&glBlendFunc },
   { "glBlendFuncSeparate", (uintptr_t)&glBlendFuncSeparate },
@@ -1188,7 +1188,7 @@ static so_default_dynlib default_dynlib[] = {
   { "glDeleteBuffers", (uintptr_t)&glDeleteBuffers },
   { "glDeleteFramebuffers", (uintptr_t)&glDeleteFramebuffers },
   { "glDeleteProgram", (uintptr_t)&glDeleteProgram },
-  { "glDeleteRenderbuffers", (uintptr_t)&glDeleteRenderbuffers },
+  { "glDeleteRenderbuffers", (uintptr_t)&ret0 },
   { "glDeleteShader", (uintptr_t)&glDeleteShader },
   { "glDeleteTextures", (uintptr_t)&glDeleteTextures },
   { "glDepthFunc", (uintptr_t)&glDepthFunc },
@@ -1199,12 +1199,12 @@ static so_default_dynlib default_dynlib[] = {
   { "glDrawElements", (uintptr_t)&glDrawElements },
   { "glEnable", (uintptr_t)&glEnable },
   { "glEnableVertexAttribArray", (uintptr_t)&glEnableVertexAttribArray },
-  { "glFramebufferRenderbuffer", (uintptr_t)&glFramebufferRenderbuffer },
+  { "glFramebufferRenderbuffer", (uintptr_t)&ret0 },
   { "glFramebufferTexture2D", (uintptr_t)&glFramebufferTexture2D },
   { "glFrontFace", (uintptr_t)&glFrontFace },
   { "glGenBuffers", (uintptr_t)&glGenBuffers },
   { "glGenFramebuffers", (uintptr_t)&glGenFramebuffers },
-  { "glGenRenderbuffers", (uintptr_t)&glGenRenderbuffers },
+  { "glGenRenderbuffers", (uintptr_t)&ret0 },
   { "glGenTextures", (uintptr_t)&glGenTextures },
   { "glGetAttribLocation", (uintptr_t)&glGetAttribLocation },
   { "glGetError", (uintptr_t)&glGetError },
@@ -1219,7 +1219,7 @@ static so_default_dynlib default_dynlib[] = {
   { "glLinkProgram", (uintptr_t)&glLinkProgram },
   { "glPolygonOffset", (uintptr_t)&glPolygonOffset },
   { "glReadPixels", (uintptr_t)&glReadPixels },
-  { "glRenderbufferStorage", (uintptr_t)&glRenderbufferStorage },
+  { "glRenderbufferStorage", (uintptr_t)&ret0 },
   { "glScissor", (uintptr_t)&glScissor },
   { "glShaderSource", (uintptr_t)&glShaderSourceHook },
   { "glTexImage2D", (uintptr_t)&glTexImage2DHook },
