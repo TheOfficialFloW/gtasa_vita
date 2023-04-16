@@ -127,7 +127,7 @@ int pthread_create_fake(int r0, int r1, int r2, void *arg) {
 
 int pthread_mutex_init_fake(SceKernelLwMutexWork **work) {
   *work = (SceKernelLwMutexWork *)memalign(8, sizeof(SceKernelLwMutexWork));
-  if (sceKernelCreateLwMutex(*work, "mutex", 0x2000 | SCE_KERNEL_MUTEX_ATTR_RECURSIVE, 0, NULL) < 0)
+  if (sceKernelCreateLwMutex(*work, "mutex", SCE_KERNEL_MUTEX_ATTR_RECURSIVE, 0, NULL) < 0)
     return -1;
   return 0;
 }
@@ -884,17 +884,6 @@ void patch_game(void) {
   hook_addr(so_symbol(&gtasa_mod, "_ZN14MainMenuScreen6OnExitEv"), (uintptr_t)MainMenuScreen__OnExit);
 }
 
-void glTexImage2DHook(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const void * data) {
-  if (level == 0)
-    glTexImage2D(target, level, internalformat, width, height, border, format, type, data);
-}
-
-void glCompressedTexImage2DHook(GLenum target, GLint level, GLenum format, GLsizei width, GLsizei height, GLint border, GLsizei imageSize, const void * data) {
-  // mips for PVRTC textures break when they're under 1 block in size
-  if (level == 0 || (!config.disable_mipmaps && ((width >= 4 && height >= 4) || (format != 0x8C01 && format != 0x8C02))))
-    glCompressedTexImage2D(target, level, format, width, height, border, imageSize, data);
-}
-
 void glShaderSourceHook(GLuint shader, GLsizei count, const GLchar **string, const GLint *length) {
   if (!config.use_shader_cache) {
     glShaderSource(shader, count, string, length);
@@ -908,8 +897,11 @@ void glShaderSourceHook(GLuint shader, GLsizei count, const GLchar **string, con
   sha1_update(&ctx, (uint8_t *)*string, *length);
   sha1_final(&ctx, (uint8_t *)sha1);
 
-  char path[1024];
-  snprintf(path, sizeof(path), "%s/%08x%08x%08x%08x%08x.gxp", SHADER_CACHE_PATH, sha1[0], sha1[1], sha1[2], sha1[3], sha1[4]);
+  char folder[512];
+  snprintf(folder, sizeof(folder), "%s/%02x", SHADER_CACHE_PATH, sha1[0] >> 24);
+
+  char path[768];
+  snprintf(path, sizeof(path), "%s/%08x.gxp", folder, sha1[0]);
 
   size_t shaderSize;
   void *shaderBuf;
@@ -1181,7 +1173,7 @@ static so_default_dynlib default_dynlib[] = {
   { "glClearDepthf", (uintptr_t)&glClearDepthf },
   { "glClearStencil", (uintptr_t)&glClearStencil },
   { "glCompileShader", (uintptr_t)&glCompileShaderHook },
-  { "glCompressedTexImage2D", (uintptr_t)&glCompressedTexImage2DHook },
+  { "glCompressedTexImage2D", (uintptr_t)&glCompressedTexImage2D },
   { "glCreateProgram", (uintptr_t)&glCreateProgram },
   { "glCreateShader", (uintptr_t)&glCreateShader },
   { "glCullFace", (uintptr_t)&glCullFace },
@@ -1222,7 +1214,7 @@ static so_default_dynlib default_dynlib[] = {
   { "glRenderbufferStorage", (uintptr_t)&ret0 },
   { "glScissor", (uintptr_t)&glScissor },
   { "glShaderSource", (uintptr_t)&glShaderSourceHook },
-  { "glTexImage2D", (uintptr_t)&glTexImage2DHook },
+  { "glTexImage2D", (uintptr_t)&glTexImage2D },
   { "glTexParameterf", (uintptr_t)&glTexParameterf },
   { "glTexParameteri", (uintptr_t)&glTexParameteri },
   { "glUniform1fv", (uintptr_t)&glUniform1fv },
@@ -1268,7 +1260,7 @@ static so_default_dynlib default_dynlib[] = {
   { "stderr", (uintptr_t)&stderr_fake },
   { "strcasecmp", (uintptr_t)&strcasecmp },
   { "strcat", (uintptr_t)&strcat },
-  { "strchr", (uintptr_t)&strchr },
+  { "strchr", (uintptr_t)&sceClibStrchr },
   { "strcmp", (uintptr_t)&sceClibStrcmp },
   { "strcpy", (uintptr_t)&strcpy },
   { "strerror", (uintptr_t)&strerror },
@@ -1360,11 +1352,6 @@ int main(int argc, char *argv[]) {
     fatal_error("Error could not initialize fios.");
 
   vglSetupRuntimeShaderCompiler(SHARK_OPT_UNSAFE, SHARK_ENABLE, SHARK_ENABLE, SHARK_ENABLE);
-  vglSetVDMBufferSize(512 * 1024); // default 128 * 1024
-  vglSetVertexBufferSize(8 * 1024 * 1024); // default 2 * 1024 * 1024
-  vglSetFragmentBufferSize(2 * 1024 * 1024); // default 512 * 1024
-  vglSetUSSEBufferSize(64 * 1024); // default 16 * 1024
-  vglSetVertexPoolSize(48 * 1024 * 1024);
   vglSetupGarbageCollector(127, 0x20000);
   int has_low_res = vglInitExtended(0, SCREEN_W, SCREEN_H, MEMORY_VITAGL_THRESHOLD_MB * 1024 * 1024, config.aa_mode);
   if (has_low_res) {
