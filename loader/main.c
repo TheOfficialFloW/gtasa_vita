@@ -930,6 +930,8 @@ void glShaderSourceHook(GLuint shader, GLsizei count, const GLchar **string, con
       debugPrintf("Compilation failed for:\n%s\n", *string);
     glShaderBinary(1, &shader, 0, shaderBuf, shaderSize);
 
+    sceIoMkdir(folder, 0777);
+
     file = sceLibcBridge_fopen(path, "w");
     if (file) {
       sceLibcBridge_fwrite(shaderBuf, 1, shaderSize, file);
