@@ -99,7 +99,7 @@ char *ControlsVar[CONTROLS_NUM] = {
   "ANALOG_RIGHT_Y"
 };
 
-#define CONTROLS_MAPPINGS_NUM 109
+#define CONTROLS_MAPPINGS_NUM 110
 char *ControlsMapName[CONTROLS_MAPPINGS_NUM] = {
   "Attack:",
   "Sprint:",
@@ -209,7 +209,8 @@ char *ControlsMapName[CONTROLS_MAPPINGS_NUM] = {
   "Dancing Left:",
   "Dancing Right:",
   "Replay:",
-  "Taxi Boost Jump:"
+  "Taxi Boost Jump:",
+  "Enter Free Aim:"
 };
 
 char *ControlsMapVar[CONTROLS_MAPPINGS_NUM] = {
@@ -321,7 +322,8 @@ char *ControlsMapVar[CONTROLS_MAPPINGS_NUM] = {
   "MAPPING_DANCING_LEFT",
   "MAPPING_DANCING_RIGHT",
   "MAPPING_REPLAY",
-  "MAPPING_TAXI_BOOST_JUMP"
+  "MAPPING_TAXI_BOOST_JUMP",
+  "MAPPING_ENTER_FREE_AIM"
 };
 
 int controls_map[CONTROLS_MAPPINGS_NUM];

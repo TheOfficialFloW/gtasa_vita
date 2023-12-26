@@ -30,6 +30,7 @@ MAPPING_TAKE_COVER_LEFT                    BUTTON_L2
 MAPPING_TAKE_COVER_RIGHT                   BUTTON_R2
 MAPPING_WEAPON_ZOOM_IN                     BUTTON_SQUARE
 MAPPING_WEAPON_ZOOM_OUT                    BUTTON_CROSS
+MAPPING_ENTER_FREE_AIM                     DPAD_DOWN
 
 MAPPING_PED_MOVE_X                         ANALOG_LEFT_X
 MAPPING_PED_MOVE_Y                         ANALOG_LEFT_Y
