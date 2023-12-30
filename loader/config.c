@@ -260,6 +260,7 @@ int read_controller_config(const char *file) {
     CONFIG_VAR(MAPPING_DANCING_RIGHT)
     CONFIG_VAR(MAPPING_REPLAY)
     CONFIG_VAR(MAPPING_TAXI_BOOST_JUMP)
+    CONFIG_VAR(MAPPING_ENTER_FREE_AIM)
     #undef CONFIG_VAR
   }
 

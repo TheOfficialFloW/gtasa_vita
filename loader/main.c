@@ -661,6 +661,51 @@ __attribute__((naked)) void CPad__AimWeaponLeftRight_stub(void) {
     "bx %0\n"
   :: "r" (retAddr), "r" (&hydraulics_locked));
 }
+static int freeAim = 0;
+static int (* CPad__ShiftTargetRightJustDown)(void *pad);
+static int (* CPlayerPed__FindNextWeaponLockOnTarget)(void *pad, void* a2, int a3);
+static void (* CPlayerPed__ClearWeaponTarget)(void *playerPed);
+
+__attribute__((naked)) void CTaskSimplePlayerOnFoot__ProcessPlayerWeapon_stub(void) {
+  void *pad, *prevTarget, *playerPed;
+  asm volatile(
+    "push {r0-r11}\n"
+    "mov r0, r5\n"
+    "str r0, %0\n"
+    "ldr r1, [r4,#0x720]\n"
+    "str r1, %1\n"
+    "str r4, %2\n"
+  : "=m" (pad), "=m" (prevTarget), "=m" (playerPed));
+  
+  if (CPad__ShiftTargetRightJustDown(pad))
+    CPlayerPed__FindNextWeaponLockOnTarget(playerPed, prevTarget, 0);
+  else if (CHID__IsJustPressed(MAPPING_ENTER_FREE_AIM)) {
+    freeAim = 1;
+    CPlayerPed__ClearWeaponTarget(playerPed);
+  }
+  
+  register uintptr_t retAddr asm ("r12") = (uintptr_t)gtasa_mod.text_base + 0x00538A54 + 0x1;
+  asm volatile(
+    "pop {r0-r11}\n"
+    "bx %0\n"
+  :: "r" (retAddr));
+}
+
+static void (* CEntity__CleanUpOldReference)(void *this, void **param_1);
+
+void CPlayerPed__Clear3rdPersonMouseTarget(void *this) {
+  freeAim = 0;
+  if (*(void **)(this + 0x7A4) != NULL)
+    CEntity__CleanUpOldReference(*(void **)(this + 0x7A4), (void **)(this + 0x7A4));
+}
+
+static int *dword_6E04BC;
+
+int MobileSettings__IsFreeAimMode(void *this) {
+  if (freeAim)
+    return 1;
+  return *dword_6E04BC;
+}
 
 static int (* CGenericGameStorage__CheckSlotDataValid)(int slot, int deleteRwObjects);
 static void (* C_PcSave__GenerateGameFilename)(void *this, int slot, char *filename);
@@ -870,6 +915,17 @@ void patch_game(void) {
   hook_addr(so_symbol(&gtasa_mod, "_ZN4CPad16GetHydraulicJumpEv"), (uintptr_t)CPad__GetHydraulicJump);
   hook_addr((uintptr_t)(gtasa_mod.text_base + 0x003FC778 + 0x1), (uintptr_t)CPad__AimWeaponUpDown_stub);
   hook_addr((uintptr_t)(gtasa_mod.text_base + 0x003FC486 + 0x1), (uintptr_t)CPad__AimWeaponLeftRight_stub);
+
+  // Add custom Free aim binding
+  CPad__ShiftTargetRightJustDown = (void *)so_symbol(&gtasa_mod, "_ZN4CPad24ShiftTargetRightJustDownEv");
+  CPlayerPed__FindNextWeaponLockOnTarget = (void *)so_symbol(&gtasa_mod, "_ZN10CPlayerPed26FindNextWeaponLockOnTargetEP7CEntityb");
+  CPlayerPed__ClearWeaponTarget = (void *)so_symbol(&gtasa_mod, "_ZN10CPlayerPed17ClearWeaponTargetEv");
+  CEntity__CleanUpOldReference = (void *)so_symbol(&gtasa_mod, "_ZN7CEntity19CleanUpOldReferenceEPPS_");
+  dword_6E04BC = (int *)(uintptr_t)(gtasa_mod.text_base + 0x006E04BC);
+  hook_addr((uintptr_t)(gtasa_mod.text_base + 0x005387FC + 0x1), (uintptr_t)CTaskSimplePlayerOnFoot__ProcessPlayerWeapon_stub);
+  hook_addr(so_symbol(&gtasa_mod, "_ZN10CPlayerPed25Clear3rdPersonMouseTargetEv"), (uintptr_t)CPlayerPed__Clear3rdPersonMouseTarget);
+  hook_addr(so_symbol(&gtasa_mod, "_ZN14MobileSettings13IsFreeAimModeEv"), (uintptr_t)MobileSettings__IsFreeAimMode);
+
 
   // make resume load the latest save
   CGenericGameStorage__CheckSlotDataValid = (void *)so_symbol(&gtasa_mod, "_ZN19CGenericGameStorage18CheckSlotDataValidEib");
