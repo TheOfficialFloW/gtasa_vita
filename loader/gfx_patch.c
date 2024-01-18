@@ -567,6 +567,15 @@ patch_gfx(void)
 		const uint32_t nop2 = 0xbf00bf00;
 		kuKernelCpuUnrestrictedMemcpy((void *)(gtasa_mod.text_base + 0x005A26B0), &nop2, sizeof(nop2));
 	}
+	
+	//Fix for CJ's shadow when using classic shadows
+	const uint16_t nop = 0xbf00;
+	uintptr_t destinationAddress = gtasa_mod.text_base + 0x5B86C4;
+
+	// Add 7 NOP instructions
+	for (int i = 0; i < 7; ++i) {
+		kuKernelCpuUnrestrictedMemcpy((void *)(destinationAddress + (i * sizeof(uint16_t))), &nop, sizeof(nop));
+	}
 }
 
 /*
