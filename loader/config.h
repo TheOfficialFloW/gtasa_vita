@@ -11,7 +11,6 @@
 
 #define DATA_PATH "ux0:data/gtasa"
 #define SO_PATH DATA_PATH "/" "libGTASA.so"
-#define SHADER_CACHE_PATH DATA_PATH "/" "cache"
 #define CONFIG_PATH DATA_PATH "/" "config.txt"
 #define CONTROLLER_CONFIG_PATH DATA_PATH "/" "controls.txt"
 #define SCRIPT_SCM_PATH DATA_PATH "/data/script/mainV1.scm"
@@ -193,7 +192,6 @@ typedef struct {
   int disable_ped_spec;
   int ignore_mobile_stuff;
   int enable_fuzzy_seek;
-  int use_shader_cache;
   int enable_mvp_optimization;
   int enable_bones_optimization;
 } Config;

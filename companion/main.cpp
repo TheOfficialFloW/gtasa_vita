@@ -350,7 +350,6 @@ bool ped_spec = false;
 bool mobile_stuff = false;
 
 bool fuzzy_seek = false;
-bool use_shader_cache = true;
 bool enable_mvp_optimization = false;
 bool enable_bones_optimization = false;
 
@@ -383,7 +382,6 @@ void loadConfig(void) {
       else if (strcmp("ignore_mobile_stuff", buffer) == 0) mobile_stuff = value ? false : true;
 
       else if (strcmp("enable_fuzzy_seek", buffer) == 0) fuzzy_seek = (bool)value;
-      else if (strcmp("use_shader_cache", buffer) == 0) use_shader_cache = (bool)value;
       else if (strcmp("enable_mvp_optimization", buffer) == 0) enable_mvp_optimization = (bool)value;
       else if (strcmp("enable_bones_optimization", buffer) == 0) enable_bones_optimization = (bool)value;
     }
@@ -414,7 +412,6 @@ void saveConfig(void) {
     fprintf(config, "%s %d\n", "ignore_mobile_stuff", mobile_stuff ? false : true);
 
     fprintf(config, "%s %d\n", "enable_fuzzy_seek", (int)fuzzy_seek);
-    fprintf(config, "%s %d\n", "use_shader_cache", (int)use_shader_cache);
     fprintf(config, "%s %d\n", "enable_mvp_optimization", (int)enable_mvp_optimization);
     fprintf(config, "%s %d\n", "enable_bones_optimization", (int)enable_bones_optimization);
     fclose(config);
@@ -491,7 +488,6 @@ char *options_descs[] = {
   "When enabled, Mobile build widgets and windows will be shown (eg. App rating window, cutscene skip widgets, etc...)\nThe default value is: Disabled.", // ignore_mobile_stuff
 
   "When enabled, MP3 audio loading may be faster but less accurate.\nThe default value is: Disabled.", // enable_fuzzy_seek
-  "Makes compiled shaders be cached on storage for subsequent usage. When enabled, the game will stutter on very first time a shader is compiled but will make the game have more fluid gameplay later.\nThe default value is: Enabled.", // use_shader_cache
   "Moves MVP calculation from GPU to CPU. May improve performances.\nThe default value is: Disabled.", // enable_mvp_optimization
   "Simplify GPU code related to bones calculations by preventing CPU to transpose the related matrix.\nThe default value is: Disabled.", // enable_bones_optimization
 };
@@ -516,7 +512,6 @@ enum {
   OPT_MOBILE_STUFF,
 
   OPT_FUZZY_SEEK,
-  OPT_SHADER_CACHE,
   OPT_MVP_OPT,
   OPT_BONES_OPT
 };
@@ -648,9 +643,6 @@ int main(int argc, char *argv[]) {
     ImGui::Text("MP3 Fuzzy Seek:"); ImGui::SameLine();
     ImGui::Checkbox("##check16", &fuzzy_seek);
     SetDescription(OPT_FUZZY_SEEK);
-    ImGui::Text("Shader Cache:"); ImGui::SameLine();
-    ImGui::Checkbox("##check9", &use_shader_cache);
-    SetDescription(OPT_SHADER_CACHE);
     ImGui::Text("MVP Optimization:"); ImGui::SameLine();
     ImGui::Checkbox("##check12", &enable_mvp_optimization);
     SetDescription(OPT_MVP_OPT);

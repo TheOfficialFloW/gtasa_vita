@@ -38,7 +38,6 @@
 #include "opengl_patch.h"
 #include "gfx_patch.h"
 #include "scripts_patch.h"
-#include "sha1.h"
 
 #include "libc_bridge.h"
 
@@ -940,69 +939,6 @@ void patch_game(void) {
   hook_addr(so_symbol(&gtasa_mod, "_ZN14MainMenuScreen6OnExitEv"), (uintptr_t)MainMenuScreen__OnExit);
 }
 
-void glShaderSourceHook(GLuint shader, GLsizei count, const GLchar **string, const GLint *length) {
-  if (!config.use_shader_cache) {
-    glShaderSource(shader, count, string, length);
-    return;
-  }
-
-  uint32_t sha1[5];
-  SHA1_CTX ctx;
-
-  sha1_init(&ctx);
-  sha1_update(&ctx, (uint8_t *)*string, *length);
-  sha1_final(&ctx, (uint8_t *)sha1);
-
-  char folder[512];
-  snprintf(folder, sizeof(folder), "%s/%02x", SHADER_CACHE_PATH, sha1[0] >> 24);
-
-  char path[768];
-  snprintf(path, sizeof(path), "%s/%08x.gxp", folder, sha1[0]);
-
-  size_t shaderSize;
-  void *shaderBuf;
-
-  FILE *file = sceLibcBridge_fopen(path, "rb");
-  if (file) {
-    sceLibcBridge_fseek(file, 0, SEEK_END);
-    shaderSize = sceLibcBridge_ftell(file);
-    sceLibcBridge_fseek(file, 0, SEEK_SET);
-
-    shaderBuf = malloc(shaderSize);
-    sceLibcBridge_fread(shaderBuf, 1, shaderSize, file);
-    sceLibcBridge_fclose(file);
-
-    glShaderBinary(1, &shader, 0, shaderBuf, shaderSize);
-
-    free(shaderBuf);
-  } else {
-    GLint type;
-    glGetShaderiv(shader, GL_SHADER_TYPE, &type);
-    shark_type sharkType = type == GL_FRAGMENT_SHADER ? SHARK_FRAGMENT_SHADER : SHARK_VERTEX_SHADER;
-
-    shaderSize = *length;
-    shaderBuf = shark_compile_shader_extended(*string, &shaderSize, sharkType, SHARK_OPT_UNSAFE, SHARK_ENABLE, SHARK_ENABLE, SHARK_ENABLE);
-    if (!shaderBuf)
-      debugPrintf("Compilation failed for:\n%s\n", *string);
-    glShaderBinary(1, &shader, 0, shaderBuf, shaderSize);
-
-    sceIoMkdir(folder, 0777);
-
-    file = sceLibcBridge_fopen(path, "w");
-    if (file) {
-      sceLibcBridge_fwrite(shaderBuf, 1, shaderSize, file);
-      sceLibcBridge_fclose(file);
-    }
-
-    shark_clear_output();
-  }
-}
-
-void glCompileShaderHook(GLuint shader) {
-  if (!config.use_shader_cache)
-    glCompileShader(shader);
-}
-
 extern void *_ZdaPv;
 extern void *_ZdlPv;
 extern void *_Znaj;
@@ -1230,7 +1166,7 @@ static so_default_dynlib default_dynlib[] = {
   { "glClearColor", (uintptr_t)&glClearColor },
   { "glClearDepthf", (uintptr_t)&glClearDepthf },
   { "glClearStencil", (uintptr_t)&glClearStencil },
-  { "glCompileShader", (uintptr_t)&glCompileShaderHook },
+  { "glCompileShader", (uintptr_t)&glCompileShader },
   { "glCompressedTexImage2D", (uintptr_t)&glCompressedTexImage2D },
   { "glCreateProgram", (uintptr_t)&glCreateProgram },
   { "glCreateShader", (uintptr_t)&glCreateShader },
@@ -1271,7 +1207,7 @@ static so_default_dynlib default_dynlib[] = {
   { "glReadPixels", (uintptr_t)&glReadPixels },
   { "glRenderbufferStorage", (uintptr_t)&ret0 },
   { "glScissor", (uintptr_t)&glScissor },
-  { "glShaderSource", (uintptr_t)&glShaderSourceHook },
+  { "glShaderSource", (uintptr_t)&glShaderSource },
   { "glTexImage2D", (uintptr_t)&glTexImage2D },
   { "glTexParameterf", (uintptr_t)&glTexParameterf },
   { "glTexParameteri", (uintptr_t)&glTexParameteri },
@@ -1379,7 +1315,6 @@ int main(int argc, char *argv[]) {
   scePowerSetGpuClockFrequency(222);
   scePowerSetGpuXbarClockFrequency(166);
 
-  sceIoMkdir(SHADER_CACHE_PATH, 0777);
   read_config(CONFIG_PATH);
   read_controller_config(CONTROLLER_CONFIG_PATH);
 

@@ -30,7 +30,6 @@ add_executable(GTASA.elf
   loader/opengl_patch.c
   loader/gfx_patch.c
   loader/scripts_patch.c
-  loader/sha1.c
 )
 
 add_dependencies(GTASA.elf companion.bin)
